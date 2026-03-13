@@ -9,10 +9,12 @@
 
     <main class="main-content">
       <section class="intro-section">
-        <h2 @click="speak(isElderlyMode ? '請把可疑的內容貼在這裡' : '快速風險判斷')">
+        <h2 @click="speak(isElderlyMode ? '請把可疑的內容貼在這裡' : '')">
           {{ isElderlyMode ? '請把可疑的內容貼在這裡' : '快速風險判斷' }}
         </h2>
-        <p>支援電話、簡訊、網址、Email 或社群廣告內容 </p>
+        <p @click="speak(isElderlyMode ? '支援電話、簡訊、網址、Email 或社群廣告內容' : '')">
+          {{ isElderlyMode ? '支援電話、簡訊、網址、Email 或社群廣告內容' : '支援電話、簡訊、網址、Email 或社群廣告內容' }} 
+        </p>
       </section>
 
       <div class="input-card">
@@ -45,32 +47,13 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { useVoice } from '../composables/useVoice';
 
+const { speak } = useVoice();
 const router = useRouter();
 const userInput = ref('');
 const selectedFile = ref(null);
 const isElderlyMode = ref(false);
-
-// --- 朗讀功能邏輯 ---
-const speak = (text) => {
-  // 先停止正在播放的聲音，避免重疊
-  window.speechSynthesis.cancel();
-  
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'zh-TW'; // 設定為台灣中文
-  utterance.rate = 0.9;     // 語速稍微放慢一點，適合長輩
-  window.speechSynthesis.speak(utterance);
-};
-
-const toggleElderlyMode = () => {
-  isElderlyMode.value = !isElderlyMode.value;
-  if (isElderlyMode.value) {
-    speak("已開啟長輩友善模式。請把可疑的內容貼在中間的輸入框，或點擊相機圖示上傳照片。");
-  } else {
-    speak("切換回標準模式");
-  }
-};
-// --------------------
 
 const handleFileUpload = (event) => {
   selectedFile.value = event.target.files[0];
@@ -80,7 +63,16 @@ const handleFileUpload = (event) => {
     alert(msg);
   }
 };
-
+//長輩模式切換，開啟後會有語音提示，並且在分析前也會有語音提示
+const toggleElderlyMode = () => {
+  isElderlyMode.value = !isElderlyMode.value;
+  
+  if (isElderlyMode.value) {
+    speak("已開啟長輩友善模式。請把可疑的內容貼在中間，或點擊相機圖示上傳照片。");
+  } else {
+    speak("已切換回一般模式。");
+  }
+};
 const startAnalysis = () => {
   if (isElderlyMode.value) speak("正在為您分析內容，請稍等。");
   
