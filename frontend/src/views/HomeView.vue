@@ -5,13 +5,7 @@
     <div class="page page-main">
 
       <!-- API bar -->
-      <div class="api-bar">
-        <span class="api-brand">🛡️ 防詐雷達</span>
-        <div class="api-status">
-          <div class="api-dot" :class="apiOnline ? 'online' : 'offline'"></div>
-          <span>{{ apiStatusText }}</span>
-        </div>
-      </div>
+      
 
       <!-- Navbar -->
       <nav class="navbar">
@@ -44,7 +38,7 @@
         <header>
           <div class="shield">🛡️</div>
           <h1>防詐<span>雷達</span></h1>
-          <p>貼上連結、輸入電話、或上傳截圖<br>即時分析風險，守護您的數位安全</p>
+          <p>貼上連結、電話、上傳截圖<br>即時分析風險  守護您的數位安全</p>
         </header>
 
         <!-- Input card -->
@@ -83,12 +77,12 @@
               ref="textareaRef"
               class="smart-input"
               v-model="inputText"
-              :placeholder="(inputText || images.length) ? '' : '貼上可疑網址、電話號碼，或上傳截圖\n系統會自動判斷類型並進行風險分析'"
+              :placeholder="(inputText || images.length) ? '' : ''"
               @focus="isFocused = true"
               @blur="isFocused = false"
               @paste="handlePaste"
               @input="autoResize"
-              @keydown.ctrl.enter.prevent="doCheck"
+              @keydown.enter.prevent="doCheck"
               @keydown.meta.enter.prevent="doCheck"
             ></textarea>
           </div>
@@ -105,7 +99,7 @@
               </div>
             </div>
             <div class="toolbar-right">
-              <span class="hint-text">Ctrl+Enter 送出</span>
+              <span class="hint-text">案 Enter 送出</span>
               <button
                 class="send-btn"
                 :class="{ loading: isLoading, 'elder-pulse': isElder && !isLoading && (inputText.trim() || images.length) }"
@@ -407,7 +401,7 @@ onUnmounted(() => {
 .theme-toggle.active .toggle-pill { background:rgba(60,70,140,0.8); }
 
 /* ── Main content ── */
-.main-content { flex:1; display:flex; flex-direction:column; align-items:center; padding:32px 20px 0; gap:14px; position:relative; z-index:1; }
+.main-content { flex:1; display:flex; flex-direction:column; align-items:center; padding:32px 20px 0; gap:14px; position:relative; z-index:1;justify-content: center; }
 
 /* Header */
 header { text-align:center; }
