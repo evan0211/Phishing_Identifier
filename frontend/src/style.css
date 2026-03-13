@@ -1,79 +1,45 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --bg: #F0F4FF; --surface: #FFFFFF; --surface2: #EEF2FF; --surface3: #E4EAFF;
+  --border: #D6DFFF; --primary: #2D47E8; --primary-dark: #1A2FC7; --primary-light: #E8ECFF;
+  --text: #111827; --text-sub: #4B5563; --text-muted: #9CA3AF;
+  --safe: #00C47A; --safe-bg: #EDFFF6; --safe-text: #007A4C;
+  --promo: #2D87E8; --promo-bg: #EEF6FF; --promo-text: #1255B0;
+  --warn: #FF8C00; --warn-bg: #FFF8EC; --warn-text: #A05500;
+  --scam: #FF2D2D; --scam-bg: #FFF0F0; --scam-text: #B00000;
+  --radius: 20px; --anim: 0.42s cubic-bezier(0.32,0.72,0,1);
+  --topbar-bg: #1a1f35; --navbar-bg: #2D47E8;
+  --shadow-sm: 0 2px 12px rgba(45,71,232,0.08);
+  --shadow-md: 0 4px 28px rgba(45,71,232,0.10);
+  --shadow-lg: 0 8px 40px rgba(45,71,232,0.14);
+  --confirm-bg: rgba(255,255,255,0.97);
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+[data-theme="dark"] {
+  --bg: #0F1117; --surface: #1A1F2E; --surface2: #232940; --surface3: #2A3050;
+  --border: #2D3557; --primary: #5B74F5; --primary-dark: #4560E0; --primary-light: #1E2A4A;
+  --text: #EEF2FF; --text-sub: #9CA3AF; --text-muted: #6B7280;
+  --safe-bg: rgba(0,196,122,0.12); --safe-text: #4ADE9A;
+  --promo-bg: rgba(45,135,232,0.12); --promo-text: #7BADF8;
+  --warn-bg: rgba(255,140,0,0.12); --warn-text: #FBBF24;
+  --scam-bg: rgba(255,45,45,0.12); --scam-text: #F87171;
+  --topbar-bg: #0A0D1A; --navbar-bg: #1A2460;
+  --shadow-sm: 0 2px 12px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 28px rgba(0,0,0,0.35);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.4);
+  --confirm-bg: rgba(26,31,46,0.98);
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
+html { font-family: 'Noto Sans TC', sans-serif; }
+body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text); transition: background 0.25s, color 0.25s; }
+#app { min-height: 100vh; }
+button { font-family: 'Noto Sans TC', sans-serif; cursor: pointer; }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
+/* ── Global Elder Mode ── */
+[data-elder="true"] {
+  --elder-scale: 1;
 }
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-.card {
-  padding: 2em;
-}
-
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+[data-elder="true"] body {
+  font-size: 18px;
 }
