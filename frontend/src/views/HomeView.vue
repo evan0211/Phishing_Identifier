@@ -55,28 +55,19 @@
             </div>
           </div>
 
-          <!-- Country code -->
+          <!-- Phone input (vue-tel-input) -->
           <transition name="cc-fade">
-            <div class="country-row" v-if="detectedType === 'phone' && inputText.trim()">
-              <span class="cc-flag-display">{{ currentFlag }}</span>
-              <select class="cc-select" v-model="countryCode">
-                <option value="+886">🇹🇼 台灣 +886</option>
-                <option value="+86">🇨🇳 中國 +86</option>
-                <option value="+852">🇭🇰 香港 +852</option>
-                <option value="+853">🇲🇴 澳門 +853</option>
-                <option value="+1">🇺🇸 美國/加拿大 +1</option>
-                <option value="+81">🇯🇵 日本 +81</option>
-                <option value="+82">🇰🇷 韓國 +82</option>
-                <option value="+65">🇸🇬 新加坡 +65</option>
-                <option value="+60">🇲🇾 馬來西亞 +60</option>
-                <option value="+44">🇬🇧 英國 +44</option>
-              </select>
-              <span class="cc-hint">選擇來源國家，提升辨識準確率</span>
+            <div class="phone-input-row" v-if="detectedType === 'phone'">
+              <PhoneInput
+                v-model="inputText"
+                :isElder="isElder"
+                @valid="onPhoneValid"
+              />
             </div>
           </transition>
 
-          <!-- Textarea — hidden when images are uploaded -->
-          <div class="textarea-wrap" v-if="!images.length">
+          <!-- Textarea — hidden when images are uploaded or phone mode -->
+          <div class="textarea-wrap" v-if="!images.length && detectedType !== 'phone'">
             <textarea
               ref="textareaRef"
               class="smart-input"
@@ -198,11 +189,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTheme } from '../composables/useTheme.js'
 import { useElder } from '../composables/useElder.js'
 import { resultState } from '../composables/useResult.js'
+import PhoneInput from '../components/PhoneInput.vue'
 
 const API = 'http://localhost:3001'
 const router = useRouter()
@@ -214,6 +206,20 @@ const inputText   = ref('')
 const images      = ref([])
 const isLoading   = ref(false)
 const countryCode = ref('+886')
+const phoneIsValid = ref(false)
+const phoneE164    = ref('')
+
+function onPhoneValid({ isValid, e164 }) {
+  phoneIsValid.value = isValid
+  phoneE164.value    = e164
+}
+
+watch(inputText, (val) => {
+  if (!val) {
+    phoneIsValid.value = false
+    phoneE164.value = ''
+  }
+})
 
 const FLAG_MAP = {
   '+886': '🇹🇼', '+86': '🇨🇳', '+852': '🇭🇰', '+853': '🇲🇴',
@@ -310,9 +316,14 @@ let phTimer = null
 // ── Check ──
 async function doCheck() {
   const type = detectedType.value
+  // Validation guard for phone mode
+  if (type === 'phone' && !phoneIsValid.value) {
+    showToast('⚠️ 請輸入有效的電話號碼', 'err')
+    return
+  }
   // 截圖模式：取第一張圖的 base64（含 data:image/... 前綴）
   const rawQ = type === 'phone'
-    ? countryCode.value + ' ' + inputText.value.trim()
+    ? (phoneE164.value || (countryCode.value + inputText.value.trim().replace(/[-\s()]/g, '')))
     : type === 'screenshot'
       ? (images.value[0]?.src ?? '')
       : inputText.value.trim()
@@ -446,6 +457,7 @@ header h1 span { color:var(--primary); }
 
 /* Country code */
 .country-row { display:flex; align-items:center; gap:12px; padding:12px 18px 0; flex-wrap:wrap; }
+.phone-input-row { padding: 12px 14px 0; }
 .cc-fade-enter-active { transition:all 0.22s ease; }
 .cc-fade-leave-active { transition:all 0.18s ease; }
 .cc-fade-enter-from,.cc-fade-leave-to { opacity:0; transform:translateY(-8px); }
