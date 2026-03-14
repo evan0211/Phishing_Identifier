@@ -36,18 +36,21 @@
       <!-- Content -->
       <div class="main-content">
         <header>
-          <div class="shield">🛡️</div>
-          <h1>防詐<span>雷達</span></h1>
-          <p>貼上連結、電話、上傳截圖<br>即時分析風險  守護您的數位安全</p>
+          <h1>收到可疑訊息了嗎？<br><span class="sub">把它貼過來，我幫你看看。</span></h1>
         </header>
 
         <!-- Input card -->
         <div class="input-card" :class="{ focused: isFocused }">
 
+          <!-- Image preview row -->
           <div class="img-row" v-if="images.length > 0">
-            <div class="img-thumb" v-for="(img, i) in images" :key="i" @mouseenter="openPreview(img)" @mouseleave="closePreview">
+            <div class="img-thumb" v-for="(img, i) in images" :key="i"
+                 @mouseenter="openPreview(img)"
+                 @mousemove="updatePreviewPos($event)"
+                 @mouseleave="closePreview"
+            >
               <img :src="img.src" :alt="img.name">
-              <button class="img-remove" @click.stop="removeImage(i)">✕</button>
+              <button class="img-remove" @click.stop="closePreview(); removeImage(i)">✕</button>
               <div class="img-expand">🔍</div>
             </div>
           </div>
@@ -72,12 +75,13 @@
             </div>
           </transition>
 
-          <div class="textarea-wrap">
+          <!-- Textarea — hidden when images are uploaded -->
+          <div class="textarea-wrap" v-if="!images.length">
             <textarea
               ref="textareaRef"
               class="smart-input"
               v-model="inputText"
-              :placeholder="(inputText || images.length) ? '' : ''"
+              :placeholder="''"
               @focus="isFocused = true"
               @blur="isFocused = false"
               @paste="handlePaste"
@@ -85,21 +89,31 @@
               @keydown.enter.prevent="doCheck"
               @keydown.meta.enter.prevent="doCheck"
             ></textarea>
+            <!-- Animated placeholder -->
+            <div class="animated-placeholder" v-if="!inputText">
+              <transition name="ph-slide" mode="out-in">
+                <span :key="phIndex">{{ placeholders[phIndex] }}</span>
+              </transition>
+            </div>
+            <!-- Camera button — bottom-right of textarea -->
+            <label class="camera-btn" title="上傳圖片">
+              <input type="file" accept="image/*" multiple @change="pickFiles" style="display:none">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+            </label>
           </div>
 
-          <div class="input-toolbar">
-            <div class="toolbar-left">
-              <label class="attach-btn">
-                <input type="file" accept="image/*" multiple @change="pickFiles" style="display:none">
-                <span>📎</span>
-              </label>
+          <!-- Bottom action row: detect badge left, send right -->
+          <div class="action-row">
+            <div class="action-left">
               <div class="detect-badge" v-if="inputText.trim() || images.length">
                 <span class="detect-dot" :class="detectedType"></span>
                 <span>{{ detectLabel }}</span>
               </div>
             </div>
-            <div class="toolbar-right">
-              <span class="hint-text">案 Enter 送出</span>
+            <div class="action-right">
               <button
                 class="send-btn"
                 :class="{ loading: isLoading, 'elder-pulse': isElder && !isLoading && (inputText.trim() || images.length) }"
@@ -173,9 +187,7 @@
 
     <!-- Image hover preview -->
     <transition name="preview-fade">
-      <div class="preview-modal" v-if="previewImg"
-           @mouseenter="keepPreview = true"
-           @mouseleave="keepPreview = false; closePreview()">
+      <div class="preview-modal" v-if="previewImg" :style="previewStyle" style="pointer-events:none;">
         <div class="preview-box">
           <img :src="previewImg.src" :alt="previewImg.name">
           <div class="preview-name">{{ previewImg.name }}</div>
@@ -259,9 +271,41 @@ async function handlePaste(e) {
 }
 
 const previewImg  = ref(null)
-const keepPreview = ref(false)
-function openPreview(img) { previewImg.value = img }
-function closePreview()   { if (!keepPreview.value) previewImg.value = null }
+const previewStyle = ref({})
+
+const PREVIEW_W = 960
+const PREVIEW_H = 840
+const OFFSET_X  = 20  // distance from cursor
+
+function openPreview(img) {
+  previewImg.value = img
+}
+function updatePreviewPos(e) {
+  const vpW = window.innerWidth
+  const vpH = window.innerHeight
+  let left = e.clientX + OFFSET_X
+  let top  = e.clientY - PREVIEW_H / 2
+  // keep within viewport
+  if (left + PREVIEW_W > vpW - 8) left = e.clientX - PREVIEW_W - OFFSET_X
+  if (top < 8) top = 8
+  if (top + PREVIEW_H > vpH - 8) top = vpH - PREVIEW_H - 8
+  previewStyle.value = { left: left + 'px', top: top + 'px' }
+}
+function closePreview() {
+  previewImg.value = null
+}
+
+// ── Animated placeholder ──
+const placeholders = [
+  '0912-345-678',
+  'https://example.com',
+  '0800-123-456',
+  'www.suspicious-site.net',
+  '+886-912-345-678',
+  'http://bit.ly/3xXxXx',
+]
+const phIndex = ref(0)
+let phTimer = null
 
 // ── Check ──
 async function doCheck() {
@@ -329,10 +373,12 @@ onMounted(() => {
   checkHealth()
   healthTimer = setInterval(checkHealth, 5000)
   nextTick(setupObserver)
+  phTimer = setInterval(() => { phIndex.value = (phIndex.value + 1) % placeholders.length }, 2800)
 })
 onUnmounted(() => {
   clearInterval(healthTimer)
   clearTimeout(toastTimer)
+  clearInterval(phTimer)
   observer?.disconnect()
 })
 </script>
@@ -390,15 +436,12 @@ onUnmounted(() => {
 
 /* Header */
 header { text-align:center; }
-.shield { width:76px; height:76px; background:var(--primary); border-radius:22px; display:flex; align-items:center; justify-content:center; font-size:38px; margin:0 auto 16px; box-shadow:0 8px 30px rgba(45,71,232,0.35); animation:float 3s ease-in-out infinite; }
-@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
-header h1 { font-size:34px; font-weight:900; letter-spacing:-0.5px; }
+header h1 { font-size:28px; font-weight:700; letter-spacing:-0.5px; line-height:1.5; color:var(--text); }
 header h1 span { color:var(--primary); }
-header p  { margin-top:8px; font-size:15px; color:var(--text-sub); line-height:1.7; }
+.page-wrap.elder header h1 { font-size:34px; }
 
 /* Input card */
-.input-card { width:100%; max-width:720px; background:var(--surface); border:1.5px solid var(--border); border-radius:20px; box-shadow:0 8px 40px rgba(0,0,0,0.12); transition:border-color 0.2s,box-shadow 0.2s,background 0.25s; overflow:hidden; backdrop-filter:blur(12px); }
-.input-card.focused { border-color:var(--primary); box-shadow:0 0 0 5px rgba(45,71,232,0.12), 0 8px 40px rgba(0,0,0,0.15); }
+.input-card { width:100%; max-width:720px; background:var(--surface); border:1.5px solid var(--border); border-radius:20px; box-shadow:0 8px 40px rgba(0,0,0,0.12); transition:background 0.25s; backdrop-filter:blur(12px); }
 .page-wrap.elder .input-card { border-width:2.5px; border-color:var(--primary); }
 
 /* Country code */
@@ -439,30 +482,40 @@ header p  { margin-top:8px; font-size:15px; color:var(--text-sub); line-height:1
 .img-thumb:hover .img-expand { opacity:1; }
 
 /* Textarea */
-.textarea-wrap { padding:14px 18px 6px; }
-.smart-input { width:100%; resize:none; border:none; outline:none; background:transparent; font-family:'Noto Sans TC',sans-serif; font-size:16px; color:var(--text); line-height:1.7; min-height:68px; max-height:220px; overflow-y:auto; }
-.smart-input::placeholder { color:var(--text-muted); font-size:15px; line-height:1.7; }
+.textarea-wrap { padding:14px 18px 44px; position:relative; margin:12px 14px 0; border:1.5px solid var(--border); border-radius:14px; background:var(--surface2); transition:border-color 0.2s, background 0.2s; }
+.input-card.focused .textarea-wrap { border-color:var(--primary); background:var(--surface); }
+.smart-input { width:100%; resize:none; border:none; outline:none; background:transparent; font-family:'Noto Sans TC',sans-serif; font-size:16px; color:var(--text); line-height:1.7; min-height:68px; max-height:220px; overflow-y:auto; box-sizing:border-box; }
+.smart-input::placeholder { color:transparent; }
 .page-wrap.elder .smart-input              { font-size:22px; min-height:140px; }
 .page-wrap.elder .smart-input::placeholder { font-size:20px; }
 
-/* Toolbar */
-.input-toolbar { display:flex; align-items:center; justify-content:space-between; padding:8px 14px 12px; gap:10px; }
-.toolbar-left  { display:flex; align-items:center; gap:8px; }
-.toolbar-right { display:flex; align-items:center; gap:10px; }
-.attach-btn { width:36px; height:36px; border-radius:50%; background:var(--surface2); border:1.5px solid var(--border); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:17px; transition:background 0.2s; }
-.attach-btn:hover { background:var(--surface3); }
+/* Animated placeholder — scrolls top→bottom: new enters from top, old exits to bottom */
+.animated-placeholder { position:absolute; top:14px; left:18px; right:18px; pointer-events:none; font-size:15px; color:var(--text-muted); line-height:1.7; overflow:hidden; height:1.7em; }
+.ph-slide-enter-active { transition:transform 0.4s cubic-bezier(0.22,1,0.36,1), opacity 0.3s ease; }
+.ph-slide-leave-active { transition:transform 0.3s ease, opacity 0.25s ease; }
+.ph-slide-enter-from   { transform:translateY(-100%); opacity:0; }
+.ph-slide-leave-to     { transform:translateY(100%); opacity:0; }
+.page-wrap.elder .animated-placeholder { font-size:20px; }
+
+/* Camera button — absolute bottom-right inside textarea-wrap */
+.camera-btn { position:absolute; bottom:8px; right:10px; width:30px; height:30px; border-radius:8px; background:transparent; border:1.5px solid var(--border); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text-muted); transition:background 0.2s, color 0.2s, border-color 0.2s; flex-shrink:0; }
+.camera-btn:hover { background:var(--primary); color:#fff; border-color:var(--primary); }
+.camera-btn svg { width:16px; height:16px; }
+
+/* Action row — detect badge left, send right */
+.action-row { display:flex; align-items:center; justify-content:space-between; padding:14px 14px 16px; margin-top:14px; gap:10px; }
+.action-left  { display:flex; align-items:center; gap:8px; min-width:0; }
+.action-right { display:flex; align-items:center; gap:8px; flex-shrink:0; }
 .detect-badge { display:flex; align-items:center; gap:6px; background:var(--surface2); border:1.5px solid var(--border); border-radius:100px; padding:5px 12px; font-size:13px; font-weight:700; color:var(--text-sub); }
 .detect-dot { width:8px; height:8px; border-radius:50%; }
 .detect-dot.url        { background:var(--primary); }
 .detect-dot.phone      { background:var(--safe); }
 .detect-dot.screenshot { background:var(--warn); }
-.hint-text { font-size:12px; color:var(--text-muted); white-space:nowrap; }
 
-/* Send button */
-.send-btn { display:flex; align-items:center; gap:8px; background:var(--primary); color:#fff; border:none; border-radius:13px; padding:11px 20px; font-size:15px; font-weight:900; transition:background 0.2s,transform 0.2s; white-space:nowrap; box-shadow:0 3px 14px rgba(45,71,232,0.3); }
-.send-btn:hover:not(:disabled) { background:var(--primary-dark); transform:translateY(-1px); }
-.send-btn:disabled { opacity:0.45; cursor:not-allowed; transform:none; }
-.page-wrap.elder .send-btn { font-size:19px; padding:14px 28px; border-radius:14px; }
+.send-btn { display:flex; align-items:center; justify-content:center; gap:7px; background:var(--primary); color:#fff; border:none; border-radius:12px; padding:8px 18px; font-size:14px; font-weight:900; transition:background 0.2s,transform 0.2s,box-shadow 0.2s; box-shadow:0 3px 14px rgba(45,71,232,0.3); white-space:nowrap; }
+.send-btn:hover:not(:disabled) { background:var(--primary-dark); transform:translateY(-1px); box-shadow:0 5px 20px rgba(45,71,232,0.42); }
+.send-btn:disabled { opacity:0.45; cursor:not-allowed; transform:none; box-shadow:none; }
+.page-wrap.elder .send-btn { font-size:17px; padding:11px 22px; border-radius:14px; }
 .send-btn.elder-pulse { animation:breathe 1.8s ease-in-out infinite; }
 @keyframes breathe {
   0%,100% { box-shadow:0 3px 14px rgba(45,71,232,0.35), 0 0 0 0 rgba(45,71,232,0.45); transform:scale(1); }
@@ -475,8 +528,7 @@ header p  { margin-top:8px; font-size:15px; color:var(--text-sub); line-height:1
 .send-spinner { width:16px; height:16px; border:2.5px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; }
 @keyframes spin { to{transform:rotate(360deg)} }
 
-.page-wrap.elder header h1 { font-size:42px; }
-.page-wrap.elder header p  { font-size:17px; }
+.page-wrap.elder header h1 { font-size:28px; }
 
 /* ── Scroll arrow ── */
 .scroll-arrow {
@@ -550,14 +602,14 @@ header p  { margin-top:8px; font-size:15px; color:var(--text-sub); line-height:1
 .scroll-up:hover { border-color:var(--primary); color:var(--primary); }
 
 /* ── Preview modal ── */
-.preview-fade-enter-active { transition:opacity 0.15s ease, transform 0.18s cubic-bezier(0.34,1.4,0.64,1); }
-.preview-fade-leave-active { transition:opacity 0.12s ease; }
-.preview-fade-enter-from   { opacity:0; transform:translateY(8px) scale(0.95); }
-.preview-fade-leave-to     { opacity:0; }
-.preview-modal { position:fixed; bottom:32px; left:50%; transform:translateX(-50%); z-index:9000; pointer-events:none; }
-.preview-box { background:var(--surface); border-radius:16px; overflow:hidden; box-shadow:0 16px 60px rgba(0,0,0,0.45), 0 0 0 1.5px var(--border); max-width:420px; display:flex; flex-direction:column; }
-.preview-box img  { max-width:420px; max-height:320px; object-fit:contain; display:block; }
-.preview-name     { padding:8px 14px; font-size:11px; color:var(--text-muted); font-family:'DM Mono',monospace; border-top:1px solid var(--border); text-align:center; }
+.preview-fade-enter-active { transition:opacity 0.18s ease, transform 0.22s cubic-bezier(0.34,1.4,0.64,1); }
+.preview-fade-leave-active { transition:opacity 0.14s ease, transform 0.14s ease; }
+.preview-fade-enter-from   { opacity:0; transform:scale(0.88) translateY(10px); }
+.preview-fade-leave-to     { opacity:0; transform:scale(0.92); }
+.preview-modal { position:fixed; z-index:9000; pointer-events:none; }
+.preview-box { background:var(--surface); border-radius:18px; overflow:hidden; box-shadow:0 24px 80px rgba(0,0,0,0.55), 0 0 0 1.5px var(--border); max-width:960px; display:flex; flex-direction:column; }
+.preview-box img  { max-width:960px; max-height:800px; object-fit:contain; display:block; }
+.preview-name     { padding:10px 16px; font-size:12px; color:var(--text-muted); font-family:'DM Mono',monospace; border-top:1px solid var(--border); text-align:center; }
 
 /* ── Toast ── */
 .toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(80px); background:#111; color:#fff; border-radius:100px; padding:10px 22px; font-size:14px; font-weight:700; box-shadow:0 6px 28px rgba(0,0,0,0.22); transition:transform 0.3s cubic-bezier(0.34,1.4,0.64,1); z-index:9999; white-space:nowrap; pointer-events:none; }
@@ -570,8 +622,7 @@ header p  { margin-top:8px; font-size:15px; color:var(--text-sub); line-height:1
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .stats-header h2 { font-size:24px; }
   .stat-num { font-size:24px; }
-  header h1 { font-size:28px; }
-  .hint-text  { display:none; }
+  header h1 { font-size:18px; }
   .toggle-label { display:none; }
   .toggle-wrap  { padding:5px 8px; }
 }

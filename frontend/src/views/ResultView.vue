@@ -311,10 +311,10 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 
 /* ── Navbar ── */
 .navbar { background:var(--navbar-bg); padding:10px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:200; transition:background 0.25s; }
-.back-btn { background:rgba(255,255,255,0.15); border:1.5px solid rgba(255,255,255,0.25); border-radius:100px; padding:7px 16px; color:#fff; font-size:13px; font-weight:700; white-space:nowrap; transition:background 0.2s; }
+.back-btn { background:rgba(255,255,255,0.15); border:1.5px solid rgba(255,255,255,0.25); border-radius:100px; padding:7px 16px; color:#fff; font-size:13px; font-weight:700; white-space:nowrap; transition:background 0.2s; flex-shrink:0; }
 .back-btn:hover { background:rgba(255,255,255,0.28); }
-.nav-title { flex:1; text-align:center; color:#fff; font-size:15px; font-weight:700; }
-.nav-actions { display:flex; gap:8px; align-items:center; }
+.nav-title { position:absolute; left:50%; transform:translateX(-50%); color:#fff; font-size:15px; font-weight:700; pointer-events:none; }
+.nav-actions { display:flex; gap:8px; align-items:center; margin-left:auto; }
 
 /* Toggle switches */
 .toggle-wrap { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.2); border-radius:100px; padding:5px 10px 5px 8px; cursor:pointer; transition:background 0.2s,border-color 0.2s; user-select:none; }
