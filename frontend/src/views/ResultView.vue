@@ -376,7 +376,7 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 .col-right { border-left: none; }
 
 /* ── Risk banner ── */
-.risk-banner { border-radius:18px; padding:20px; display:flex; gap:16px; align-items:center; border:2px solid transparent; }
+.risk-banner { border-radius:18px; padding:20px; display:flex; gap:16px; align-items:center; border:2px solid transparent; overflow:hidden; }
 .risk-banner.safe  { background:var(--safe-bg);  border-color:var(--safe); }
 .risk-banner.promo { background:var(--promo-bg); border-color:var(--promo); }
 .risk-banner.warn  { background:var(--warn-bg);  border-color:var(--warn); }
@@ -390,14 +390,14 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 .rb-icon  { font-size:36px; line-height:1; }
 
 
-.rb-info { flex:1; min-width:0; }
+.rb-info { flex:1; min-width:0; overflow:hidden; }
 .rb-tag { display:inline-block; border-radius:100px; padding:4px 14px; font-size:13px; font-weight:900; letter-spacing:1px; text-transform:uppercase; margin-bottom:5px; }
 .safe  .rb-tag { background:rgba(0,196,122,0.2);  color:var(--safe-text); }
 .promo .rb-tag { background:rgba(45,135,232,0.2); color:var(--promo-text); }
 .warn  .rb-tag { background:rgba(255,140,0,0.2);  color:var(--warn-text); }
 .scam  .rb-tag { background:rgba(255,45,45,0.2);  color:var(--scam-text); }
-.rb-title { font-size:28px; font-weight:900; line-height:1.3; }
-.rb-input { font-size:13px; color:var(--text-muted); font-family:'DM Mono',monospace; margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rb-title { font-size:28px; font-weight:900; line-height:1.3; word-break:break-all; }
+.rb-input { font-size:13px; color:var(--text-muted); font-family:'DM Mono',monospace; margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; display:block; }
 
 /* ── Score card ── */
 .score-card { padding:16px 18px; }

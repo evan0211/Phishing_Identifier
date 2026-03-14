@@ -117,15 +117,7 @@
           </div>
         </div>
 
-        <!-- Demo chips -->
-        <div class="demo-chips">
-          <span class="demo-label">快速範例：</span>
-          <button class="chip" @click="setDemo('scam-url')">🚨 詐騙網址</button>
-          <button class="chip" @click="setDemo('promo-url')">📣 推銷連結</button>
-          <button class="chip" @click="setDemo('safe-url')">✅ 安全網站</button>
-          <button class="chip" @click="setDemo('scam-phone')">📞 詐騙電話</button>
-          <button class="chip" @click="setDemo('safe-phone')">📞 安全號碼</button>
-        </div>
+
       </div>
 
       <!-- Scroll-down arrow -->
@@ -271,32 +263,25 @@ const keepPreview = ref(false)
 function openPreview(img) { previewImg.value = img }
 function closePreview()   { if (!keepPreview.value) previewImg.value = null }
 
-// ── Demos ──
-const DEMOS = {
-  'scam-url':   'https://bank-tw-login.verify-now.xyz/confirm?id=88321',
-  'promo-url':  'http://lin.ee/abc123-gift-claim-free',
-  'safe-url':   'https://www.esun.com.tw/index.html',
-  'scam-phone': '0200-123-456',
-  'safe-phone': '0800-221-314',
-}
-function setDemo(key) {
-  inputText.value = DEMOS[key]; images.value = []
-  nextTick(autoResize); setTimeout(doCheck, 100)
-}
-
 // ── Check ──
 async function doCheck() {
   const type = detectedType.value
+  // 截圖模式：取第一張圖的 base64（含 data:image/... 前綴）
   const rawQ = type === 'phone'
     ? countryCode.value + ' ' + inputText.value.trim()
-    : type === 'screenshot' ? '(screenshot)' : inputText.value.trim()
-  if (!rawQ && !images.value.length) { showToast('⚠️ 請先輸入內容或上傳圖片', 'err'); return }
+    : type === 'screenshot'
+      ? (images.value[0]?.src ?? '')
+      : inputText.value.trim()
+  if (!rawQ) { showToast('⚠️ 請先輸入內容或上傳圖片', 'err'); return }
   isLoading.value = true
   try {
     const ep = type === 'screenshot' ? '/api/check/screenshot' : type === 'phone' ? '/api/check/phone' : '/api/check/url'
     const res = await fetch(API + ep, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ query: rawQ }) })
     const data = await res.json()
-    resultState.data = data; resultState.lastInput = rawQ; resultState.lastType = type
+    if (!res.ok) { showToast(`❌ ${data.error || '查詢失敗'}`, 'err'); return }
+    // 截圖模式顯示檔名，避免 base64 字串塞爆結果頁
+    const displayInput = type === 'screenshot' ? (images.value[0]?.name ?? '截圖') : rawQ
+    resultState.data = data; resultState.lastInput = displayInput; resultState.lastType = type
     router.push('/result')
   } catch { showToast('❌ 無法連接 API — 請確認 server.js 已啟動', 'err') }
   finally { isLoading.value = false }
@@ -490,12 +475,6 @@ header p  { margin-top:8px; font-size:15px; color:var(--text-sub); line-height:1
 .send-spinner { width:16px; height:16px; border:2.5px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; }
 @keyframes spin { to{transform:rotate(360deg)} }
 
-/* Demo chips */
-.demo-chips { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; align-items:center; max-width:720px; width:100%; }
-.demo-label { font-size:12px; color:var(--text-muted); }
-.chip { background:var(--surface); border:1.5px solid var(--border); border-radius:100px; padding:7px 16px; font-size:13px; color:var(--text-sub); transition:all 0.15s; backdrop-filter:blur(6px); }
-.chip:hover { border-color:var(--primary); color:var(--primary); background:var(--primary-light); }
-.page-wrap.elder .chip     { font-size:16px; padding:10px 20px; }
 .page-wrap.elder header h1 { font-size:42px; }
 .page-wrap.elder header p  { font-size:17px; }
 
