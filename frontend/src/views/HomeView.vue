@@ -515,7 +515,7 @@ header h1 span { color:var(--primary); }
 .camera-btn svg { width:16px; height:16px; }
 
 /* Action row — detect badge left, send right */
-.action-row { display:flex; align-items:center; justify-content:space-between; padding:14px 14px 16px; margin-top:14px; gap:10px; }
+.action-row { display:flex; align-items:center; justify-content:space-between; padding:2px 14px 16px; margin-top:14px; gap:10px; }
 .action-left  { display:flex; align-items:center; gap:8px; min-width:0; }
 .action-right { display:flex; align-items:center; gap:8px; flex-shrink:0; }
 .detect-badge { display:flex; align-items:center; gap:6px; background:var(--surface2); border:1.5px solid var(--border); border-radius:100px; padding:5px 12px; font-size:13px; font-weight:700; color:var(--text-sub); }
