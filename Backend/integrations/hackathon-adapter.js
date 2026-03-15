@@ -79,9 +79,9 @@ function normalize(raw) {
       else if (apiScore >= 20) level = 'warn'
       else                     level = 'scam'
     } else {
-      level = 'warn'
+      throw new Error('API 回傳資料不含可判斷風險的欄位，無法評估')
     }
-    score = apiScore !== null ? Math.round(100 - apiScore) : 50
+    score = Math.round(100 - apiScore)
   }
 
   // 標籤：截圖用 title，url-check 用 host，其他用 label/summary

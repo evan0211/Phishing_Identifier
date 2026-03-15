@@ -13,8 +13,14 @@ if (fs.existsSync(envPath)) {
   fs.readFileSync(envPath, 'utf8')
     .split('\n')
     .forEach(line => {
-      const [k, ...v] = line.replace(/\s*#.*$/, '').split('=')
-      if (k && k.trim()) process.env[k.trim()] = v.join('=').trim()
+      // 去除行首空白後，跳過空行與純註解行
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith('#')) return
+      const eqIdx = trimmed.indexOf('=')
+      if (eqIdx < 1) return
+      const k = trimmed.slice(0, eqIdx).trim()
+      const v = trimmed.slice(eqIdx + 1).trim()
+      if (k) process.env[k] = v
     })
 }
 

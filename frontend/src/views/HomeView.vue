@@ -59,8 +59,10 @@
           <transition name="cc-fade">
             <div class="phone-input-row" v-if="detectedType === 'phone'">
               <PhoneInput
-                v-model="inputText"
+                :initialValue="inputText"
                 :isElder="isElder"
+                @update:modelValue="onPhoneInput"
+                @submit="doCheck"
                 @valid="onPhoneValid"
               />
             </div>
@@ -205,28 +207,41 @@ const isFocused   = ref(false)
 const inputText   = ref('')
 const images      = ref([])
 const isLoading   = ref(false)
-const countryCode = ref('+886')
 const phoneIsValid = ref(false)
 const phoneE164    = ref('')
+const phoneMode   = ref(false)  // 鎖定電話模式，避免格式化字串干擾
+
+// ── Detection regex ──
+const PHONE_RE = /^[\d\s\-+()]{6,15}$/
+const URL_RE   = /^(https?:\/\/|www\.|[a-zA-Z0-9]([a-zA-Z0-9\-]*\.)+[a-zA-Z]{2,})/
+
+function onPhoneInput(val) {
+  // 只在清空時重置（vue-tel-input 清空會 emit ''）
+  if (!val) {
+    phoneMode.value    = false
+    phoneIsValid.value = false
+    phoneE164.value    = ''
+    inputText.value    = ''
+  }
+}
 
 function onPhoneValid({ isValid, e164 }) {
   phoneIsValid.value = isValid
   phoneE164.value    = e164
 }
 
+// textarea 輸入時偵測電話格式，符合就鎖定 phoneMode
 watch(inputText, (val) => {
+  if (phoneMode.value) return
+  const t = val.trim().replace(/[-\s()]/g, '')
   if (!val) {
     phoneIsValid.value = false
-    phoneE164.value = ''
+    phoneE164.value    = ''
+  } else if (PHONE_RE.test(t)) {
+    phoneMode.value = true
   }
 })
 
-const FLAG_MAP = {
-  '+886': '🇹🇼', '+86': '🇨🇳', '+852': '🇭🇰', '+853': '🇲🇴',
-  '+1':   '🇺🇸', '+81': '🇯🇵', '+82':  '🇰🇷', '+65':  '🇸🇬',
-  '+60':  '🇲🇾', '+44': '🇬🇧',
-}
-const currentFlag = computed(() => FLAG_MAP[countryCode.value] || '🌏')
 const textareaRef = ref(null)
 const statsPage   = ref(null)
 const statsVisible = ref(false)
@@ -241,12 +256,9 @@ const toastMsg     = ref('')
 const toastType    = ref('')
 let toastTimer = null
 
-// ── Detection ──
-const PHONE_RE = /^[\d\s\-+()]{6,15}$/
-const URL_RE   = /^(https?:\/\/|www\.|[a-zA-Z0-9]([a-zA-Z0-9\-]*\.)+[a-zA-Z]{2,})/
-
 const detectedType = computed(() => {
   if (images.value.length > 0) return 'screenshot'
+  if (phoneMode.value) return 'phone'
   const t = inputText.value.trim()
   if (!t) return 'url'
   if (PHONE_RE.test(t.replace(/[-\s()]/g, ''))) return 'phone'
