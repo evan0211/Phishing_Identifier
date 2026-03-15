@@ -4,7 +4,7 @@
     <!-- Navbar -->
     <nav class="navbar">
       <button class="back-btn" @click="goBack">← 返回</button>
-      <span class="nav-title">分析結果</span>
+      <span class="nav-title" @click="goBack" style="cursor:pointer">分析結果</span>
       <div class="nav-actions">
         <label class="toggle-wrap" :class="{ active: isElder }" title="長輩模式">
           <input type="checkbox" :checked="isElder" @change="toggleElder" style="display:none">

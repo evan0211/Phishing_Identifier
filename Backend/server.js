@@ -144,6 +144,38 @@ const server = http.createServer(async (req, res) => {
     return json(res, 200, { ok: true, provider: adapter.name || PROVIDER, mock: isMock })
   }
 
+  // 詐騙統計資料（來源：165打詐儀表板 165dashboard.tw，擷取於 2026-03-15）
+  if (method === 'GET' && url === '/api/stats') {
+    return json(res, 200, {
+      updatedAt: '2026-03-15',
+      source: '165打詐儀表板 165dashboard.tw',
+      periods: [
+        {
+          label: '115年2月',
+          stats: [
+            { icon: '💸', num: '46.4 億元', label: '詐騙財產損失金額',          source: '165打詐儀表板 115/02', pct: 88, color: 'red'    },
+            { icon: '🎣', num: '7,792 件',  label: '詐騙案件受理數',            source: '165打詐儀表板 115/02', pct: 55, color: 'orange' },
+            { icon: '🛒', num: '2,142 件',  label: '網路購物詐騙（當月第1名）',  source: '165打詐儀表板 115/02', pct: 42, color: 'orange' },
+            { icon: '📈', num: '20.7 億元', label: '假投資詐騙財損（當月第2名）', source: '165打詐儀表板 115/02', pct: 80, color: 'red'    },
+            { icon: '💑', num: '732 件',    label: '假交友投資詐騙（當月第3名）', source: '165打詐儀表板 115/02', pct: 28, color: 'orange' },
+            { icon: '🎣', num: '497 件',    label: '釣魚連結詐騙（當月第4名）',  source: '165打詐儀表板 115/02', pct: 19, color: 'blue'   }
+          ]
+        },
+        {
+          label: '115年1月',
+          stats: [
+            { icon: '💸', num: '70.1 億元', label: '詐騙財產損失金額',          source: '165打詐儀表板 115/01', pct: 100, color: 'red'   },
+            { icon: '🎣', num: '14,301 件', label: '詐騙案件受理數',            source: '165打詐儀表板 115/01', pct: 100, color: 'orange' },
+            { icon: '🚔', num: '254 團',    label: '查獲詐騙集團數',            source: '165打詐儀表板 115/01', pct: 62,  color: 'blue'   },
+            { icon: '👥', num: '2,132 人',  label: '查獲詐騙嫌疑人數',          source: '165打詐儀表板 115/01', pct: 55,  color: 'blue'   },
+            { icon: '🛡️', num: '11.4 億元', label: '攔阻詐騙金額',             source: '165打詐儀表板 115/01', pct: 45,  color: 'blue'   },
+            { icon: '🌐', num: '25,077 件', label: '涉嫌詐騙網站已阻斷',        source: '165打詐儀表板 115/01', pct: 70,  color: 'red'    }
+          ]
+        }
+      ]
+    })
+  }
+
   if (method !== 'POST') { res.writeHead(404); res.end(); return }
 
   let body

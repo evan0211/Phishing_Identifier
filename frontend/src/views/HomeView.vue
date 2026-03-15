@@ -1,30 +1,27 @@
 <template>
   <div class="page-wrap" :class="{ elder: isElder }">
 
+    <!-- Navbar — 在 page-wrap 頂層，window scroll 才能控制 -->
+    <nav class="navbar" :class="{ hidden: navbarHidden }">
+      <span class="nav-title" @click="scrollToMain" style="cursor:pointer">防詐雷達 DEMO</span>
+      <div class="nav-actions">
+        <label class="toggle-wrap" :class="{ active: isElder }">
+          <input type="checkbox" :checked="isElder" @change="toggleElder" style="display:none">
+          <span class="toggle-icon">👴</span>
+          <span class="toggle-label">長輩模式</span>
+          <span class="toggle-pill"><span class="toggle-knob"></span></span>
+        </label>
+        <label class="toggle-wrap theme-toggle" :class="{ active: isDark }">
+          <input type="checkbox" :checked="isDark" @change="toggleTheme" style="display:none">
+          <span class="toggle-icon">{{ isDark ? '🌙' : '☀️' }}</span>
+          <span class="toggle-label">{{ isDark ? '深色' : '亮色' }}</span>
+          <span class="toggle-pill"><span class="toggle-knob"></span></span>
+        </label>
+      </div>
+    </nav>
+
     <!-- ══ PAGE 1: Main input ══ -->
     <div class="page page-main">
-
-      <!-- API bar -->
-      
-
-      <!-- Navbar -->
-      <nav class="navbar">
-        <span class="nav-title">防詐雷達 DEMO</span>
-        <div class="nav-actions">
-          <label class="toggle-wrap" :class="{ active: isElder }">
-            <input type="checkbox" :checked="isElder" @change="toggleElder" style="display:none">
-            <span class="toggle-icon">👴</span>
-            <span class="toggle-label">長輩模式</span>
-            <span class="toggle-pill"><span class="toggle-knob"></span></span>
-          </label>
-          <label class="toggle-wrap theme-toggle" :class="{ active: isDark }">
-            <input type="checkbox" :checked="isDark" @change="toggleTheme" style="display:none">
-            <span class="toggle-icon">{{ isDark ? '🌙' : '☀️' }}</span>
-            <span class="toggle-label">{{ isDark ? '深色' : '亮色' }}</span>
-            <span class="toggle-pill"><span class="toggle-knob"></span></span>
-          </label>
-        </div>
-      </nav>
 
       <!-- Glow bg -->
       <div class="glow-wrap" aria-hidden="true">
@@ -157,12 +154,22 @@
       </div>
 
       <div class="stats-header">
-        <div class="stats-badge">📊 2024 台灣詐騙現況</div>
+        <div class="stats-badge">📊 台灣詐騙現況</div>
         <h2>您必須知道的<span>詐騙數字</span></h2>
-        <p>數據來源：內政部警政署、Whoscall、金融監督管理委員會</p>
+        <!-- 期別 tab 切換 -->
+        <div class="stats-tabs" v-if="statsPeriods.length > 1">
+          <button
+            v-for="(p, i) in statsPeriods" :key="i"
+            class="stats-tab"
+            :class="{ active: statsTabIndex === i }"
+            @click="statsTabIndex = i">
+            {{ p.label }}
+          </button>
+        </div>
+        <p>數據來源：165打詐儀表板（165dashboard.tw）</p>
       </div>
 
-      <div class="stats-grid">
+      <div class="stats-grid" v-if="stats.length">
         <div
           class="stat-card"
           v-for="(s, i) in stats" :key="i"
@@ -408,15 +415,41 @@ async function checkHealth() {
 function scrollToStats() { statsPage.value?.scrollIntoView({ behavior: 'smooth' }) }
 function scrollToMain()  { window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
-// ── Stats ──
-const stats = [
-  { icon:'💸', num:'91.2 億元', label:'2024 全台詐騙損失金額',       source:'內政部警政署 2024', pct:91, color:'red' },
-  { icon:'🎣', num:'17.6 萬件', label:'2024 詐騙案件總數（年增 11%）', source:'刑事警察局 2024',  pct:76, color:'orange' },
-  { icon:'📞', num:'每 4 分鐘', label:'就有一人接到詐騙電話',          source:'Whoscall 2024',   pct: undefined },
-  { icon:'📱', num:'83%',      label:'詐騙透過手機發動',              source:'Whoscall 2024',   pct:83, color:'blue' },
-  { icon:'👴', num:'34%',      label:'長者損失佔比，為最高風險族群',   source:'金管會 2024',      pct:34, color:'orange' },
-  { icon:'🏦', num:'28%',      label:'假冒金融業，最常見詐騙類型',     source:'金融消費評議中心',  pct:28, color:'red' },
-]
+// ── Stats（從後端 /api/stats 載入）──
+const statsPeriods  = ref([])   // 所有期別資料
+const statsTabIndex = ref(0)    // 目前選中的 tab
+const stats         = computed(() => statsPeriods.value[statsTabIndex.value]?.stats ?? [])
+const statsLabel    = computed(() => statsPeriods.value[statsTabIndex.value]?.label ?? '')
+const statsError    = ref(false)
+
+async function loadStats() {
+  try {
+    const r = await fetch(API + '/api/stats')
+    if (!r.ok) throw new Error('stats fetch failed')
+    const d = await r.json()
+    statsPeriods.value = d.periods ?? []
+  } catch {
+    statsError.value = true
+    // 載入失敗時顯示備用靜態資料
+    statsPeriods.value = [{
+      label: '115年2月',
+      stats: [
+        { icon:'💸', num:'46.4 億元', label:'詐騙財產損失金額',          source:'165打詐儀表板 115/02', pct:88, color:'red'    },
+        { icon:'🎣', num:'7,792 件',  label:'詐騙案件受理數',            source:'165打詐儀表板 115/02', pct:55, color:'orange' },
+        { icon:'🛒', num:'2,142 件',  label:'網路購物詐騙（當月第1名）',  source:'165打詐儀表板 115/02', pct:42, color:'orange' },
+        { icon:'📈', num:'20.7 億元', label:'假投資詐騙財損（當月第2名）',source:'165打詐儀表板 115/02', pct:80, color:'red'    },
+        { icon:'💑', num:'732 件',    label:'假交友投資詐騙（當月第3名）',source:'165打詐儀表板 115/02', pct:28, color:'orange' },
+        { icon:'🎣', num:'497 件',    label:'釣魚連結詐騙（當月第4名）',  source:'165打詐儀表板 115/02', pct:19, color:'blue'   },
+      ]
+    }]
+  }
+}
+
+// tab 切換時重置進場動畫
+watch(statsTabIndex, () => {
+  statsVisible.value = false
+  nextTick(() => { statsVisible.value = true })
+})
 
 // Intersection observer for stats animation
 let observer = null
@@ -444,13 +477,33 @@ function focusOnType(e) {
   textareaRef.value?.focus()
 }
 
+// ── Navbar 滾動隱藏/顯示 ──
+const navbarHidden = ref(false)
+let lastScrollY = 0
+let scrollStopTimer = null
+
+function onScroll() {
+  const y = window.scrollY
+  // 往下滾超過 60px 就隱藏
+  if (y > lastScrollY && y > 60) {
+    navbarHidden.value = true
+  }
+  lastScrollY = y
+  // 停止滾動 400ms 後顯示
+  clearTimeout(scrollStopTimer)
+  scrollStopTimer = setTimeout(() => {
+    navbarHidden.value = false
+  }, 400)
+}
+
 onMounted(() => {
   checkHealth()
   healthTimer = setInterval(checkHealth, 5000)
+  loadStats()
   nextTick(setupObserver)
   phTimer = setInterval(() => { phIndex.value = (phIndex.value + 1) % placeholders.length }, 2800)
-  // 使用者開始打字時自動 focus 輸入框
   document.addEventListener('keydown', focusOnType)
+  window.addEventListener('scroll', onScroll, { passive: true })
 })
 onUnmounted(() => {
   clearInterval(healthTimer)
@@ -458,6 +511,7 @@ onUnmounted(() => {
   clearInterval(phTimer)
   observer?.disconnect()
   document.removeEventListener('keydown', focusOnType)
+  window.removeEventListener('scroll', onScroll)
 })
 </script>
 
@@ -466,7 +520,8 @@ onUnmounted(() => {
 .page-wrap { background:var(--bg); color:var(--text); transition:background 0.25s,color 0.25s; overflow-x:hidden; }
 
 /* ── Two full-height pages ── */
-.page { min-height:100vh; position:relative; display:flex; flex-direction:column; overflow:hidden; }
+.page { min-height:100vh; position:relative; display:flex; flex-direction:column; overflow:clip; }
+.page-main { padding-top:44px; } /* 補償 fixed navbar 高度 */
 
 /* ── Glow background ── */
 .glow-wrap { position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:0; }
@@ -483,16 +538,9 @@ onUnmounted(() => {
 
 @keyframes glowIn { from{opacity:0} to{opacity:1} }
 
-/* ── API bar ── */
-.api-bar { background:var(--topbar-bg); padding:6px 20px; display:flex; align-items:center; justify-content:space-between; font-size:12px; color:rgba(255,255,255,0.55); font-family:'DM Mono',monospace; position:relative; z-index:10; }
-.api-brand { font-weight:700; color:rgba(255,255,255,0.8); }
-.api-status { display:flex; align-items:center; gap:6px; }
-.api-dot { width:7px; height:7px; border-radius:50%; background:#555; transition:background 0.3s; }
-.api-dot.online  { background:#00C47A; box-shadow:0 0 6px #00C47A88; }
-.api-dot.offline { background:#FF2D2D; }
-
 /* ── Navbar ── */
-.navbar { background:var(--navbar-bg); padding:10px 20px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:200; transition:background 0.25s; }
+.navbar { background:var(--navbar-bg); padding:10px 20px; display:flex; align-items:center; justify-content:space-between; transition:background 0.25s, transform 0.3s ease; position:fixed; top:0; left:0; right:0; z-index:200; }
+.navbar.hidden { transform:translateY(-100%); }
 .nav-title { color:rgba(255,255,255,0.9); font-size:14px; font-weight:700; }
 .nav-actions { display:flex; gap:10px; align-items:center; }
 
@@ -642,6 +690,12 @@ header h1 span { color:var(--primary); }
 .stats-header h2 span { color:var(--scam); }
 .stats-header p  { margin-top:8px; font-size:13px; color:var(--text-muted); }
 .page-wrap.elder .stats-header h2 { font-size:38px; }
+
+/* Stats tabs */
+.stats-tabs { display:flex; gap:6px; justify-content:center; margin:16px 0 4px; flex-wrap:wrap; }
+.stats-tab  { padding:6px 18px; border-radius:100px; border:1.5px solid var(--border); background:var(--surface2); color:var(--text-sub); font-size:13px; font-weight:700; cursor:pointer; transition:all 0.2s; }
+.stats-tab:hover  { border-color:var(--primary); color:var(--primary); }
+.stats-tab.active { background:var(--primary); border-color:var(--primary); color:#fff; }
 
 /* Stats grid */
 .stats-grid {
