@@ -5,18 +5,40 @@
     <nav class="navbar" :class="{ hidden: navbarHidden }">
       <span class="nav-title" @click="scrollToMain" style="cursor:pointer">防詐雷達 DEMO</span>
       <div class="nav-actions">
-        <label class="toggle-wrap" :class="{ active: isElder }">
-          <input type="checkbox" :checked="isElder" @change="toggleElder" style="display:none">
-          <span class="toggle-icon">👴</span>
-          <span class="toggle-label">長輩模式</span>
-          <span class="toggle-pill"><span class="toggle-knob"></span></span>
-        </label>
-        <label class="toggle-wrap theme-toggle" :class="{ active: isDark }">
-          <input type="checkbox" :checked="isDark" @change="toggleTheme" style="display:none">
-          <span class="toggle-icon">{{ isDark ? '🌙' : '☀️' }}</span>
-          <span class="toggle-label">{{ isDark ? '深色' : '亮色' }}</span>
-          <span class="toggle-pill"><span class="toggle-knob"></span></span>
-        </label>
+        <!-- 設定按鈕 -->
+        <div class="settings-wrap" ref="settingsWrap">
+          <button class="settings-btn" :class="{ active: menuOpen }" @click="menuOpen = !menuOpen" aria-label="設定">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span class="settings-label">設定</span>
+          </button>
+
+          <!-- 下拉選單 -->
+          <transition name="menu-drop">
+            <div class="settings-menu" v-if="menuOpen">
+              <!-- 長輩模式 -->
+              <button class="menu-row" :class="{ active: isElder }" @click="toggleElder">
+                <span class="menu-icon">👴</span>
+                <span class="menu-text">長輩模式</span>
+                <span class="menu-pill" :class="{ on: isElder }"><span class="menu-knob"></span></span>
+              </button>
+              <!-- 深色/亮色 -->
+              <button class="menu-row" :class="{ active: isDark }" @click="toggleTheme">
+                <span class="menu-icon">{{ isDark ? '🌙' : '☀️' }}</span>
+                <span class="menu-text">{{ isDark ? '深色模式' : '亮色模式' }}</span>
+                <span class="menu-pill" :class="{ on: isDark }"><span class="menu-knob"></span></span>
+              </button>
+              <!-- TTS -->
+              <button class="menu-row" :class="{ active: isTTSEnabled }" @click="toggleTTS">
+                <span class="menu-icon">🔊</span>
+                <span class="menu-text">語音朗讀</span>
+                <span class="menu-pill" :class="{ on: isTTSEnabled }"><span class="menu-knob"></span></span>
+              </button>
+            </div>
+          </transition>
+        </div>
       </div>
     </nav>
 
@@ -32,6 +54,7 @@
 
       <!-- Content -->
       <div class="main-content">
+        <div class="content-inner">
         <header>
           <h1>收到可疑訊息了嗎？<br><span class="sub">把它貼過來，我幫你看看。</span></h1>
         </header>
@@ -103,10 +126,23 @@
           <!-- Bottom action row: detect badge left, send right -->
           <div class="action-row">
             <div class="action-left">
-              <div class="detect-badge" v-if="inputText.trim() || images.length">
-                <span class="detect-dot" :class="detectedType"></span>
-                <span>{{ detectLabel }}</span>
-              </div>
+              <transition name="ph-slide" mode="out-in">
+                <div class="type-chips" v-if="inputText.trim() || images.length" key="chips">
+                  <template v-if="images.length">
+                    <span class="type-chip active screenshot">📸 截圖</span>
+                  </template>
+                  <template v-else>
+                    <button
+                      v-for="t in typeOptions" :key="t.value"
+                      class="type-chip"
+                      :class="{ active: detectedType === t.value }"
+                      :data-type="t.value"
+                      @click="setForcedType(t.value)">
+                      {{ t.label }}
+                    </button>
+                  </template>
+                </div>
+              </transition>
             </div>
             <div class="action-right">
               <!-- 取消按鈕：檢測進行中才顯示，含 loading 提示 -->
@@ -132,10 +168,9 @@
           <div class="elder-arrow-hint" v-if="isElder && (inputText.trim() || images.length)">
             <span class="eah-text">👆 輸入完畢？請按下「立即檢測」</span>
           </div>
-        </div>
-
-
-      </div>
+        </div><!-- /input-card -->
+        </div><!-- /content-inner -->
+      </div><!-- /main-content -->
 
       <!-- Scroll-down arrow -->
       <button class="scroll-arrow" @click="scrollToStats" aria-label="查看詐騙統計">
@@ -166,7 +201,7 @@
             {{ p.label }}
           </button>
         </div>
-        <p>數據來源：165打詐儀表板（165dashboard.tw）</p>
+        <p>數據來源：<a href="https://165dashboard.tw" target="_blank" rel="noopener" class="stats-source-link">165打詐儀表板</a></p>
       </div>
 
       <div class="stats-grid" v-if="stats.length">
@@ -216,6 +251,7 @@ import { useRouter } from 'vue-router'
 import { useTheme } from '../composables/useTheme.js'
 import { useElder } from '../composables/useElder.js'
 import { resultState } from '../composables/useResult.js'
+import { isTTSEnabled, toggleTTS } from '../composables/useVoice.js'
 import PhoneInput from '../components/PhoneInput.vue'
 
 const API = 'http://localhost:3001'
@@ -231,16 +267,39 @@ let abortController = null // 用於取消進行中的 fetch 請求
 const phoneIsValid = ref(false)
 const phoneE164    = ref('')
 const phoneMode   = ref(false)  // 鎖定電話模式，避免格式化字串干擾
+const forcedType  = ref(null)   // 使用者手動選擇的類型（null = 自動偵測）
+
+// 類型選項
+const typeOptions = [
+  { value: 'url',   label: '🔗 網址'   },
+  { value: 'phone', label: '📞 電話'   },
+]
+
+function setForcedType(val) {
+  // 再點一次同一個 → 取消強制
+  if (forcedType.value === val) {
+    forcedType.value = null
+    phoneMode.value  = false
+    return
+  }
+  forcedType.value = val
+  if (val === 'phone') {
+    phoneMode.value = true
+  } else {
+    phoneMode.value = false
+  }
+}
 
 // ── Detection regex ──
-// 肯定是電話：09 開頭台灣手機、0x 開頭市話、+886 或其他國碼格式
-const PHONE_RE = /^(\+\d{1,3}[\s\-]?)?(0\d[\s\-]?\d{3,4}[\s\-]?\d{3,4}|\(\d+\)\s?\d{4,})/
+// 支援：+886-912-345-678、+886912345678、0912-345-678、(02)1234-5678 等
+const PHONE_RE = /^(\+\d{1,3}[\s\-]?\d{1,14}$|(\+\d{1,3}[\s\-]?)?\(?\d{2,4}\)?[\s\-]?\d{3,4}[\s\-]?\d{3,4})/
 const URL_RE   = /^(https?:\/\/|www\.|[a-zA-Z0-9]([a-zA-Z0-9\-]*\.)+[a-zA-Z]{2,})/
 
 function onPhoneInput(val) {
   // 只在清空時重置（vue-tel-input 清空會 emit ''）
   if (!val) {
     phoneMode.value    = false
+    forcedType.value   = null
     phoneIsValid.value = false
     phoneE164.value    = ''
     inputText.value    = ''
@@ -260,7 +319,8 @@ watch(inputText, (val) => {
     phoneIsValid.value = false
     phoneE164.value    = ''
   } else if (PHONE_RE.test(t)) {
-    phoneMode.value = true
+    phoneMode.value  = true
+    forcedType.value = 'phone'  // 自動偵測到電話 → chip 自動選中
   }
 })
 
@@ -280,6 +340,7 @@ let toastTimer = null
 
 const detectedType = computed(() => {
   if (images.value.length > 0) return 'screenshot'
+  if (forcedType.value) return forcedType.value   // 手動選擇優先
   if (phoneMode.value) return 'phone'
   const t = inputText.value.trim()
   if (!t) return 'url'
@@ -397,9 +458,9 @@ function cancelCheck() {
 function clearInput() {
   inputText.value    = ''
   phoneMode.value    = false
+  forcedType.value   = null
   phoneIsValid.value = false
   phoneE164.value    = ''
-  // 等 DOM 更新後重置 textarea 高度
   nextTick(() => autoResize())
 }
 
@@ -477,7 +538,15 @@ function focusOnType(e) {
   textareaRef.value?.focus()
 }
 
-// ── Navbar 滾動隱藏/顯示 ──
+// ── 設定選單 ──
+const menuOpen    = ref(false)
+const settingsWrap = ref(null)
+
+function onClickOutside(e) {
+  if (settingsWrap.value && !settingsWrap.value.contains(e.target)) {
+    menuOpen.value = false
+  }
+}
 const navbarHidden = ref(false)
 let lastScrollY = 0
 let scrollStopTimer = null
@@ -504,6 +573,7 @@ onMounted(() => {
   phTimer = setInterval(() => { phIndex.value = (phIndex.value + 1) % placeholders.length }, 2800)
   document.addEventListener('keydown', focusOnType)
   window.addEventListener('scroll', onScroll, { passive: true })
+  document.addEventListener('click', onClickOutside)
 })
 onUnmounted(() => {
   clearInterval(healthTimer)
@@ -512,6 +582,7 @@ onUnmounted(() => {
   observer?.disconnect()
   document.removeEventListener('keydown', focusOnType)
   window.removeEventListener('scroll', onScroll)
+  document.removeEventListener('click', onClickOutside)
 })
 </script>
 
@@ -544,21 +615,37 @@ onUnmounted(() => {
 .nav-title { color:rgba(255,255,255,0.9); font-size:14px; font-weight:700; }
 .nav-actions { display:flex; gap:10px; align-items:center; }
 
-/* Toggles */
-.toggle-wrap { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.2); border-radius:100px; padding:5px 12px 5px 10px; cursor:pointer; transition:background 0.2s; user-select:none; }
-.toggle-wrap:hover { background:rgba(255,255,255,0.2); }
-.toggle-wrap.active { background:rgba(255,255,255,0.22); border-color:rgba(255,255,255,0.4); }
-.toggle-icon  { font-size:15px; line-height:1; }
-.toggle-label { font-size:12px; font-weight:700; color:#fff; white-space:nowrap; }
-.toggle-pill  { width:34px; height:18px; border-radius:100px; background:rgba(255,255,255,0.25); position:relative; flex-shrink:0; transition:background 0.25s; }
-.toggle-wrap.active .toggle-pill { background:rgba(255,255,255,0.7); }
-.toggle-knob  { position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.25); transition:transform 0.25s cubic-bezier(0.34,1.4,0.64,1); }
-.toggle-wrap.active .toggle-knob { transform:translateX(16px); }
-.theme-toggle .toggle-pill { background:rgba(100,120,255,0.4); }
-.theme-toggle.active .toggle-pill { background:rgba(60,70,140,0.8); }
+/* 設定按鈕 */
+.settings-wrap { position:relative; }
+.settings-btn { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.2); border-radius:100px; padding:6px 14px 6px 10px; cursor:pointer; color:#fff; transition:background 0.2s; user-select:none; }
+.settings-btn:hover { background:rgba(255,255,255,0.22); }
+.settings-btn.active { background:rgba(255,255,255,0.22); border-color:rgba(255,255,255,0.4); }
+.settings-btn svg { width:16px; height:16px; flex-shrink:0; }
+.settings-label { font-size:12px; font-weight:700; white-space:nowrap; }
+
+/* 下拉選單 */
+.settings-menu { position:absolute; top:calc(100% + 8px); right:0; background:var(--surface); border:1.5px solid var(--border); border-radius:16px; padding:6px; min-width:200px; box-shadow:0 8px 32px rgba(0,0,0,0.18); z-index:300; }
+.menu-drop-enter-active { transition:opacity 0.15s ease, transform 0.18s cubic-bezier(0.34,1.4,0.64,1); }
+.menu-drop-leave-active { transition:opacity 0.12s ease, transform 0.12s ease; }
+.menu-drop-enter-from,.menu-drop-leave-to { opacity:0; transform:translateY(-6px) scale(0.97); }
+
+.menu-row { display:flex; align-items:center; gap:10px; width:100%; padding:9px 12px; border-radius:10px; border:none; background:transparent; cursor:pointer; color:var(--text); font-size:13px; font-weight:600; transition:background 0.15s; text-align:left; }
+.menu-row:hover { background:var(--surface2); }
+.menu-row.active { color:var(--primary); }
+.menu-icon { font-size:16px; flex-shrink:0; width:20px; text-align:center; }
+.menu-text { flex:1; }
+
+/* 選單內的 toggle pill */
+.menu-pill { width:32px; height:17px; border-radius:100px; background:var(--border); position:relative; flex-shrink:0; transition:background 0.22s; }
+.menu-pill.on { background:var(--primary); }
+.menu-knob { position:absolute; top:2px; left:2px; width:13px; height:13px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.2); transition:transform 0.22s cubic-bezier(0.34,1.4,0.64,1); }
+.menu-pill.on .menu-knob { transform:translateX(15px); }
 
 /* ── Main content ── */
-.main-content { flex:1; display:flex; flex-direction:column; align-items:center; padding:32px 20px 0; gap:14px; position:relative; z-index:1;justify-content: center; }
+.main-content { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px 20px 0; position:relative; z-index:1; }
+.content-inner { display:flex; flex-direction:column; align-items:center; gap:14px; width:100%; max-width:720px; }
+header { text-align:center; flex-shrink:0; }
+.input-card { flex-shrink:0; }
 
 /* Header */
 header { text-align:center; }
@@ -573,9 +660,9 @@ header h1 span { color:var(--primary); }
 /* Country code */
 .country-row { display:flex; align-items:center; gap:12px; padding:12px 18px 0; flex-wrap:wrap; }
 .phone-input-row { padding: 12px 14px 0; }
-.cc-fade-enter-active { transition:all 0.22s ease; }
-.cc-fade-leave-active { transition:all 0.18s ease; }
-.cc-fade-enter-from,.cc-fade-leave-to { opacity:0; transform:translateY(-8px); }
+.cc-fade-enter-active { transition:opacity 0.18s ease; }
+.cc-fade-leave-active { transition:opacity 0.14s ease; }
+.cc-fade-enter-from,.cc-fade-leave-to { opacity:0; }
 
 .cc-flag-display {
   font-size:28px; line-height:1; flex-shrink:0;
@@ -632,6 +719,16 @@ header h1 span { color:var(--primary); }
 /* 清除按鈕 — 右上角 */
 .clear-btn { position:absolute; top:8px; right:10px; width:20px; height:20px; border-radius:50%; background:rgba(128,128,128,0.18); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text-muted); font-size:10px; font-weight:900; line-height:1; transition:background 0.2s, color 0.2s; z-index:2; }
 .clear-btn:hover { background:var(--scam); color:#fff; }
+
+/* 類型 chips — action-row 左側 inline */
+.type-chips { display:flex; gap:6px; align-items:center; }
+.type-chip  { padding:4px 12px; border-radius:100px; border:1.5px solid var(--border); background:var(--surface2); color:var(--text-sub); font-size:12px; font-weight:700; cursor:pointer; transition:all 0.18s; white-space:nowrap; }
+.type-chip:hover  { border-color:var(--primary); color:var(--primary); }
+/* 網址 — 藍 */
+.type-chip.active[data-type="url"],
+.type-chip.active[data-type="phone"],
+.type-chip.active.screenshot { background:#dce4ff; border-color:#4d6ef5; color:#2D47E8; }
+.page-wrap.elder .type-chip { font-size:15px; padding:5px 16px; }
 
 /* Action row — detect badge left, send right */
 .action-row { display:flex; align-items:center; justify-content:space-between; padding:2px 14px 16px; margin-top:14px; gap:10px; }
@@ -696,6 +793,8 @@ header h1 span { color:var(--primary); }
 .stats-tab  { padding:6px 18px; border-radius:100px; border:1.5px solid var(--border); background:var(--surface2); color:var(--text-sub); font-size:13px; font-weight:700; cursor:pointer; transition:all 0.2s; }
 .stats-tab:hover  { border-color:var(--primary); color:var(--primary); }
 .stats-tab.active { background:var(--primary); border-color:var(--primary); color:#fff; }
+.stats-source-link { color:var(--primary); text-decoration:underline; text-underline-offset:3px; }
+.stats-source-link:hover { opacity:0.75; }
 
 /* Stats grid */
 .stats-grid {
@@ -765,8 +864,8 @@ header h1 span { color:var(--primary); }
   .stats-header h2 { font-size:24px; }
   .stat-num { font-size:24px; }
   header h1 { font-size:18px; }
-  .toggle-label { display:none; }
-  .toggle-wrap  { padding:5px 8px; }
+  .settings-label { display:none; }
+  .settings-btn { padding:6px 10px; }
 }
 @media (max-width:440px) {
   .stats-grid { grid-template-columns: 1fr; }

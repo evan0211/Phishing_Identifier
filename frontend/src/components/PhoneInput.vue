@@ -60,30 +60,67 @@ const countries = [
 ]
 
 const selected  = ref(countries[0])
-const rawDigits = ref(props.initialValue.replace(/\D/g, '') || '')
 const isFocused = ref(false)
 const showDrop  = ref(false)
 const inputRef  = ref(null)
+const userPickedCountry = ref(false) // 使用者手動選過國家，停止自動偵測
 
 // 不做格式化，直接顯示原始數字
 const display = computed(() => rawDigits.value)
 
-function onInput(e) {
-  const digits = e.target.value.replace(/\D/g, '').slice(0, selected.value.maxLen)
-  rawDigits.value = digits
-  // 若有非數字字元被過濾，強制更新顯示
-  if (e.target.value !== digits) {
-    e.target.value = digits
+function tryAutoDetect(digits) {
+  // 優先：輸入含國碼前綴（超過 maxLen）→ 剝掉國碼
+  const sorted = [...countries].sort((a, b) => b.dial.length - a.dial.length)
+  for (const c of sorted) {
+    const dialDigits = c.dial.replace(/\D/g, '')
+    const rest = digits.slice(dialDigits.length)
+    if (digits.startsWith(dialDigits) && rest.length >= 6 && rest.length <= c.maxLen) {
+      return { country: c, digits: rest }
+    }
   }
+  return null
+}
+
+// initialValue 帶入時先跑一次偵測，剝掉可能的國碼前綴
+function initFromValue(raw) {
+  const digits = raw.replace(/\D/g, '')
+  if (!digits) return ''
+  const result = tryAutoDetect(digits)
+  if (result) {
+    selected.value = result.country
+    return result.digits
+  }
+  return digits.slice(0, selected.value.maxLen)
+}
+
+const rawDigits = ref(initFromValue(props.initialValue || ''))
+
+function onInput(e) {
+  let digits = e.target.value.replace(/\D/g, '')
+
+  // 只有超過當前國家 maxLen 時才嘗試自動偵測（剝國碼）
+  // 不在「剛好等於 maxLen」時觸發，避免誤切國家
+  if (!userPickedCountry.value && digits.length > selected.value.maxLen) {
+    const result = tryAutoDetect(digits)
+    if (result) {
+      selected.value = result.country
+      digits = result.digits
+    }
+  }
+
+  digits = digits.slice(0, selected.value.maxLen)
+  rawDigits.value = digits
+  if (e.target.value !== digits) e.target.value = digits
+
   const e164 = selected.value.dial + rawDigits.value
   emit('update:modelValue', rawDigits.value || '')
-  emit('valid', { isValid: rawDigits.value.length >= 6, e164 })
+  emit('valid', { isValid: rawDigits.value.length === selected.value.maxLen, e164 })
 }
 
 function select(c) {
   selected.value = c
   showDrop.value = false
-  // 切換國家時截斷超長號碼
+  userPickedCountry.value = true  // 鎖定，不再自動切換
   rawDigits.value = rawDigits.value.slice(0, c.maxLen)
   inputRef.value?.focus()
   const e164 = c.dial + rawDigits.value
@@ -92,6 +129,7 @@ function select(c) {
 
 function clearPhone() {
   rawDigits.value = ''
+  userPickedCountry.value = false  // 清除後恢復自動偵測
   emit('update:modelValue', '')
   emit('valid', { isValid: false, e164: '' })
   inputRef.value?.focus()
@@ -99,6 +137,11 @@ function clearPhone() {
 
 onMounted(() => {
   inputRef.value?.focus()
+  // 初始值帶入時，主動 emit 一次 valid 狀態
+  if (rawDigits.value) {
+    const e164 = selected.value.dial + rawDigits.value
+    emit('valid', { isValid: rawDigits.value.length === selected.value.maxLen, e164 })
+  }
 })
 </script>
 
