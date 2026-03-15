@@ -29,6 +29,13 @@
       @input="onInput"
       @keydown.enter.prevent="emit('submit')"
     />
+    <!-- 清除按鈕 — 有輸入才顯示 -->
+    <button
+      v-if="rawDigits"
+      class="phone-clear"
+      @mousedown.prevent
+      @click="clearPhone"
+      title="清除">✕</button>
   </div>
 </template>
 
@@ -81,6 +88,13 @@ function select(c) {
   inputRef.value?.focus()
   const e164 = c.dial + rawDigits.value
   emit('valid', { isValid: rawDigits.value.length >= 6, e164 })
+}
+
+function clearPhone() {
+  rawDigits.value = ''
+  emit('update:modelValue', '')
+  emit('valid', { isValid: false, e164: '' })
+  inputRef.value?.focus()
 }
 
 onMounted(() => {
@@ -136,4 +150,20 @@ onMounted(() => {
 .phone-input::placeholder { color: var(--text-muted, #9CA3AF); }
 [data-elder="true"] .phone-input { font-size: 18px; }
 [data-elder="true"] .cc-dial     { font-size: 16px; }
+
+/* 清除按鈕 — 垂直置中在輸入框右側內部 */
+.phone-clear {
+  flex-shrink: 0;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(128,128,128,0.18);
+  color: var(--text-muted);
+  font-size: 10px; font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  margin-right: 10px;
+  transition: background 0.2s, color 0.2s;
+}
+.phone-clear:hover { background: var(--scam, #ff2d2d); color: #fff; }
 </style>

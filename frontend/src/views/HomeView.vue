@@ -45,9 +45,7 @@
           <!-- Image preview row -->
           <div class="img-row" v-if="images.length > 0">
             <div class="img-thumb" v-for="(img, i) in images" :key="i"
-                 @mouseenter="openPreview(img)"
-                 @mousemove="updatePreviewPos($event)"
-                 @mouseleave="closePreview"
+                 @click="openPreview(img)"
             >
               <img :src="img.src" :alt="img.name">
               <button class="img-remove" @click.stop="closePreview(); removeImage(i)">✕</button>
@@ -82,7 +80,14 @@
               @keydown.enter.prevent="doCheck"
               @keydown.meta.enter.prevent="doCheck"
             ></textarea>
-            <!-- Animated placeholder -->
+            <!-- 清除按鈕 — 右上角，有內容才顯示 -->
+            <button
+              v-if="inputText"
+              class="clear-btn"
+              title="清除輸入"
+              @click="clearInput">
+              ✕
+            </button>
             <div class="animated-placeholder" v-if="!inputText">
               <transition name="ph-slide" mode="out-in">
                 <span :key="phIndex">{{ placeholders[phIndex] }}</span>
@@ -107,14 +112,22 @@
               </div>
             </div>
             <div class="action-right">
+              <!-- 取消按鈕：檢測進行中才顯示，含 loading 提示 -->
               <button
+                v-if="isLoading"
+                class="cancel-btn"
+                @click="cancelCheck">
+                <span class="send-spinner"></span>
+                <span>分析中… 取消</span>
+              </button>
+              <button
+                v-else
                 class="send-btn"
-                :class="{ loading: isLoading, 'elder-pulse': isElder && !isLoading && (inputText.trim() || images.length) }"
-                :disabled="isLoading || (!inputText.trim() && !images.length)"
+                :class="{ 'elder-pulse': isElder && (inputText.trim() || images.length) }"
+                :disabled="!inputText.trim() && !images.length"
                 @click="doCheck">
-                <span class="send-spinner" v-if="isLoading"></span>
-                <span v-else>🔍</span>
-                <span>{{ isLoading ? '分析中…' : '立即檢測' }}</span>
+                <span>🔍</span>
+                <span>立即檢測</span>
               </button>
             </div>
           </div>
@@ -178,9 +191,9 @@
     <!-- Toast -->
     <div class="toast" :class="{ show: toastVisible, ok: toastType==='ok', err: toastType==='err' }">{{ toastMsg }}</div>
 
-    <!-- Image hover preview -->
+    <!-- Image hover preview — 固定在畫面正中間 -->
     <transition name="preview-fade">
-      <div class="preview-modal" v-if="previewImg" :style="previewStyle" style="pointer-events:none;">
+      <div class="preview-modal" v-if="previewImg" @click="closePreview">
         <div class="preview-box">
           <img :src="previewImg.src" :alt="previewImg.name">
           <div class="preview-name">{{ previewImg.name }}</div>
@@ -207,12 +220,14 @@ const isFocused   = ref(false)
 const inputText   = ref('')
 const images      = ref([])
 const isLoading   = ref(false)
+let abortController = null // 用於取消進行中的 fetch 請求
 const phoneIsValid = ref(false)
 const phoneE164    = ref('')
 const phoneMode   = ref(false)  // 鎖定電話模式，避免格式化字串干擾
 
 // ── Detection regex ──
-const PHONE_RE = /^[\d\s\-+()]{6,15}$/
+// 肯定是電話：09 開頭台灣手機、0x 開頭市話、+886 或其他國碼格式
+const PHONE_RE = /^(\+\d{1,3}[\s\-]?)?(0\d[\s\-]?\d{3,4}[\s\-]?\d{3,4}|\(\d+\)\s?\d{4,})/
 const URL_RE   = /^(https?:\/\/|www\.|[a-zA-Z0-9]([a-zA-Z0-9\-]*\.)+[a-zA-Z]{2,})/
 
 function onPhoneInput(val) {
@@ -341,17 +356,44 @@ async function doCheck() {
       : inputText.value.trim()
   if (!rawQ) { showToast('⚠️ 請先輸入內容或上傳圖片', 'err'); return }
   isLoading.value = true
+  abortController = new AbortController()
   try {
     const ep = type === 'screenshot' ? '/api/check/screenshot' : type === 'phone' ? '/api/check/phone' : '/api/check/url'
-    const res = await fetch(API + ep, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ query: rawQ }) })
+    const res = await fetch(API + ep, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ query: rawQ }), signal: abortController.signal })
     const data = await res.json()
     if (!res.ok) { showToast(`❌ ${data.error || '查詢失敗'}`, 'err'); return }
+    // 查無資料：level 為 safe 且 reasons 為空，視為查無紀錄
+    if (!data.level || (!data.reasons?.length && !data.label)) {
+      showToast('📭 查無相關資料', 'ok'); return
+    }
     // 截圖模式顯示檔名，避免 base64 字串塞爆結果頁
     const displayInput = type === 'screenshot' ? (images.value[0]?.name ?? '截圖') : rawQ
     resultState.data = data; resultState.lastInput = displayInput; resultState.lastType = type
     router.push('/result')
-  } catch { showToast('❌ 無法連接 API — 請確認 server.js 已啟動', 'err') }
-  finally { isLoading.value = false }
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      showToast('🚫 已取消檢測', 'ok')
+    } else {
+      showToast('❌ 無法連接 API — 請確認 server.js 已啟動', 'err')
+    }
+  } finally { isLoading.value = false; abortController = null }
+}
+
+// ── Cancel ──
+function cancelCheck() {
+  if (abortController) {
+    abortController.abort()
+  }
+}
+
+// ── Clear input ──
+function clearInput() {
+  inputText.value    = ''
+  phoneMode.value    = false
+  phoneIsValid.value = false
+  phoneE164.value    = ''
+  // 等 DOM 更新後重置 textarea 高度
+  nextTick(() => autoResize())
 }
 
 // ── Health ──
@@ -392,17 +434,30 @@ function showToast(msg, type='') {
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { toastVisible.value = false }, 3200)
 }
 
+// ── 打字時自動 focus 輸入框 ──
+function focusOnType(e) {
+  // 忽略修飾鍵、功能鍵、已有焦點在其他輸入元素時
+  if (e.metaKey || e.ctrlKey || e.altKey) return
+  if (e.key.length !== 1) return // 只處理可見字元
+  const tag = document.activeElement?.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return
+  textareaRef.value?.focus()
+}
+
 onMounted(() => {
   checkHealth()
   healthTimer = setInterval(checkHealth, 5000)
   nextTick(setupObserver)
   phTimer = setInterval(() => { phIndex.value = (phIndex.value + 1) % placeholders.length }, 2800)
+  // 使用者開始打字時自動 focus 輸入框
+  document.addEventListener('keydown', focusOnType)
 })
 onUnmounted(() => {
   clearInterval(healthTimer)
   clearTimeout(toastTimer)
   clearInterval(phTimer)
   observer?.disconnect()
+  document.removeEventListener('keydown', focusOnType)
 })
 </script>
 
@@ -526,6 +581,10 @@ header h1 span { color:var(--primary); }
 .camera-btn:hover { background:var(--primary); color:#fff; border-color:var(--primary); }
 .camera-btn svg { width:16px; height:16px; }
 
+/* 清除按鈕 — 右上角 */
+.clear-btn { position:absolute; top:8px; right:10px; width:20px; height:20px; border-radius:50%; background:rgba(128,128,128,0.18); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text-muted); font-size:10px; font-weight:900; line-height:1; transition:background 0.2s, color 0.2s; z-index:2; }
+.clear-btn:hover { background:var(--scam); color:#fff; }
+
 /* Action row — detect badge left, send right */
 .action-row { display:flex; align-items:center; justify-content:space-between; padding:2px 14px 16px; margin-top:14px; gap:10px; }
 .action-left  { display:flex; align-items:center; gap:8px; min-width:0; }
@@ -541,6 +600,11 @@ header h1 span { color:var(--primary); }
 .send-btn:disabled { opacity:0.45; cursor:not-allowed; transform:none; box-shadow:none; }
 .page-wrap.elder .send-btn { font-size:17px; padding:11px 22px; border-radius:14px; }
 .send-btn.elder-pulse { animation:breathe 1.8s ease-in-out infinite; }
+.cancel-btn { display:flex; align-items:center; justify-content:center; gap:7px; background:var(--surface3,#e5e7eb); color:var(--text-sub); border:1.5px solid var(--border); border-radius:12px; padding:8px 18px; font-size:14px; font-weight:900; transition:background 0.2s,color 0.2s; white-space:nowrap; }
+.cancel-btn:hover { background:var(--scam-bg); color:var(--scam); border-color:var(--scam); }
+.cancel-btn .send-spinner { border-color:rgba(0,0,0,0.15); border-top-color:var(--text-sub); }
+.cancel-btn:hover .send-spinner { border-color:rgba(255,45,45,0.2); border-top-color:var(--scam); }
+.page-wrap.elder .cancel-btn { font-size:17px; padding:11px 22px; border-radius:14px; }
 @keyframes breathe {
   0%,100% { box-shadow:0 3px 14px rgba(45,71,232,0.35), 0 0 0 0 rgba(45,71,232,0.45); transform:scale(1); }
   50%      { box-shadow:0 6px 26px rgba(45,71,232,0.55), 0 0 0 12px rgba(45,71,232,0); transform:scale(1.05); }
@@ -628,11 +692,11 @@ header h1 span { color:var(--primary); }
 /* ── Preview modal ── */
 .preview-fade-enter-active { transition:opacity 0.18s ease, transform 0.22s cubic-bezier(0.34,1.4,0.64,1); }
 .preview-fade-leave-active { transition:opacity 0.14s ease, transform 0.14s ease; }
-.preview-fade-enter-from   { opacity:0; transform:scale(0.88) translateY(10px); }
+.preview-fade-enter-from   { opacity:0; transform:scale(0.88); }
 .preview-fade-leave-to     { opacity:0; transform:scale(0.92); }
-.preview-modal { position:fixed; z-index:9000; pointer-events:none; }
-.preview-box { background:var(--surface); border-radius:18px; overflow:hidden; box-shadow:0 24px 80px rgba(0,0,0,0.55), 0 0 0 1.5px var(--border); max-width:960px; display:flex; flex-direction:column; }
-.preview-box img  { max-width:960px; max-height:800px; object-fit:contain; display:block; }
+.preview-modal { position:fixed; inset:0; z-index:9000; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; padding:24px; cursor:zoom-out; }
+.preview-box { background:var(--surface); border-radius:18px; overflow:hidden; box-shadow:0 24px 80px rgba(0,0,0,0.55), 0 0 0 1.5px var(--border); max-width:min(960px,90vw); display:flex; flex-direction:column; }
+.preview-box img  { max-width:100%; max-height:80vh; object-fit:contain; display:block; }
 .preview-name     { padding:10px 16px; font-size:12px; color:var(--text-muted); font-family:'DM Mono',monospace; border-top:1px solid var(--border); text-align:center; }
 
 /* ── Toast ── */
