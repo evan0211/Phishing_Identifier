@@ -85,7 +85,7 @@
         <div class="elder-result-tip" v-if="isElder">
           <span class="ert-icon">{{ mode === 'scam' ? '🚨' : mode === 'warn' ? '⚠️' : '💡' }}</span>
           <div class="ert-text">
-            <strong>{{ mode === 'scam' ? '此為詐騙！請不要點擊任何連結或輸入資料' : mode === 'warn' ? '此來源可疑，請謹慎處理' : '此來源安全，您可以放心' }}</strong>
+            <strong>{{ mode === 'scam' ? '此為詐騙！請不要點擊任何連結或輸入資料' : mode === 'warn' ? '此來源可疑，請謹慎處理' : mode === 'unknown' ? '查無此號碼資料，請謹慎判斷' : '此來源安全，您可以放心' }}</strong>
             <span>{{ mode === 'scam' ? '建議立即使用下方「一鍵封鎖」並撥打 165 反詐騙專線。' : mode === 'warn' ? '建議先封鎖，若有疑問可撥打 165 確認。' : '如仍有疑慮，歡迎撥打 165 反詐騙專線查詢。' }}</span>
           </div>
         </div>
@@ -200,9 +200,9 @@ const lastInput = computed(() => resultState.lastInput)
 const lastType  = computed(() => resultState.lastType)
 const mode      = computed(() => result.value?.level || '')
 
-const ICONS = { safe:'✅', promo:'📣', warn:'⚠️', scam:'🚨' }
-const TAGS  = { safe:'安全', promo:'推銷（安全）', warn:'推銷（可疑）', scam:'詐騙' }
-const RI    = lv => lv==='scam' ? '🔴' : lv==='warn' ? '🟡' : '🟢'
+const ICONS = { safe:'✅', promo:'📣', warn:'⚠️', scam:'🚨', unknown:'❓' }
+const TAGS  = { safe:'安全', promo:'推銷（安全）', warn:'推銷（可疑）', scam:'詐騙', unknown:'查無資料' }
+const RI    = lv => lv==='scam' ? '🔴' : lv==='warn' ? '🟡' : lv==='unknown' ? '⚪' : '🟢'
 const NEXT  = {
   safe:  [{ i:'✅', t:'可以安全瀏覽',       s:'此來源無詐騙紀錄，請放心。' }],
   promo: [{ i:'📋', t:'確認是否為您主動訂閱', s:'若非本人訂閱，可封鎖。' },
@@ -214,6 +214,9 @@ const NEXT  = {
           { i:'💳', t:'立刻聯絡銀行',        s:'撥卡片背面號碼申請凍結。' },
           { i:'📞', t:'撥打 165 反詐騙',    s:'24 小時，由專人協助。' },
           { i:'👮', t:'向警察局報案',        s:'保留截圖向派出所報案。' }],
+  unknown: [{ i:'❓', t:'號碼查無資料',       s:'資料庫中無此號碼的詳細資訊。' },
+            { i:'🤔', t:'謹慎判斷是否接聽',   s:'陌生來電請提高警覺。' },
+            { i:'📞', t:'如有疑慮撥打 165',   s:'24 小時反詐騙專線諮詢。' }],
 }
 const nextSteps = computed(() => NEXT[mode.value] || [])
 
@@ -380,6 +383,10 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 .risk-banner.safe  { background:var(--safe-bg);  border-color:var(--safe); }
 .risk-banner.promo { background:var(--promo-bg); border-color:var(--promo); }
 .risk-banner.warn  { background:var(--warn-bg);  border-color:var(--warn); }
+.risk-banner.unknown {
+  background: rgba(168,196,78,0.10);
+  border-color: rgba(168,196,78,0.35);
+}
 .risk-banner.scam  { background:var(--scam-bg);  border-color:var(--scam); }
 
 .rb-badge { width:72px; height:72px; border-radius:18px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; }
@@ -407,7 +414,8 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 .safe  .score-fill, .score-fill.safe  { background:var(--safe); }
 .promo .score-fill, .score-fill.promo { background:var(--promo); }
 .warn  .score-fill, .score-fill.warn  { background:linear-gradient(90deg,#ffb300,var(--warn)); }
-.scam  .score-fill, .score-fill.scam  { background:linear-gradient(90deg,var(--warn),var(--scam)); }
+.scam  .score-fill, .score-fill.scam    { background:linear-gradient(90deg,var(--warn),var(--scam)); }
+.score-fill.unknown { background:linear-gradient(90deg,#8faa2e,#a8c44e); }
 .score-value { font-size:16px; font-weight:700; text-align:right; }
 .score-value.safe  { color:var(--safe-text); }
 .score-value.promo { color:var(--promo-text); }
@@ -458,7 +466,8 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 .nsi.safe  { border-left-color:var(--safe); }
 .nsi.promo { border-left-color:var(--promo); }
 .nsi.warn  { border-left-color:var(--warn); }
-.nsi.scam  { border-left-color:var(--scam); }
+.nsi.scam    { border-left-color:var(--scam); }
+.nsi.unknown { border-left-color:#a8c44e; }
 .nsi-icon { font-size:24px; flex-shrink:0; margin-top:1px; }
 .nsi-text strong { display:block; font-size:20px; color:var(--text); line-height:1.3; }
 .nsi-text span   { display:block; font-size:16px; color:var(--text-sub); margin-top:3px; line-height:1.4; }
