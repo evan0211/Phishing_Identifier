@@ -4,7 +4,7 @@
     <!-- Navbar -->
     <nav class="navbar">
       <button class="back-btn" @click="goBack">← 返回</button>
-      <span class="nav-title">分析結果</span>
+      <span class="nav-title" @click="goBack" style="cursor:pointer">分析結果</span>
       <div class="nav-actions">
         <label class="toggle-wrap" :class="{ active: isElder }" title="長輩模式">
           <input type="checkbox" :checked="isElder" @change="toggleElder" style="display:none">
@@ -189,8 +189,8 @@ import { useRouter } from 'vue-router'
 import { useTheme } from '../composables/useTheme.js'
 import { useElder } from '../composables/useElder.js'
 import { resultState } from '../composables/useResult.js'
+import { report } from '../services/api.js'
 
-const API    = 'http://localhost:3001'
 const router = useRouter()
 const { isDark, toggle: toggleTheme } = useTheme()
 const { isElder, toggle: toggleElderFn } = useElder()
@@ -224,10 +224,11 @@ function goBack() { router.push('/') }
 function toggleElder() { toggleElderFn(); showToast(isElder.value ? '👴 長輩模式已開啟' : '長輩模式已關閉', 'ok') }
 
 function confirmVisit() {
-  if (mode.value === 'safe') { window.open(lastInput.value, '_blank', 'noopener'); return }
+  const url = lastInput.value.startsWith('http') ? lastInput.value : `https://${lastInput.value}`
+  if (mode.value === 'safe') { window.open(url, '_blank', 'noopener'); return }
   if (mode.value === 'scam') { openScamFs(); return }
   openConfirm('⚠️ 確定前往此網站？', '此網站被標記為可疑，前往請謹慎。', '仍要前往', () => {
-    window.open(lastInput.value, '_blank', 'noopener'); closeConfirm()
+    window.open(url, '_blank', 'noopener'); closeConfirm()
   })
 }
 
@@ -241,8 +242,7 @@ async function doAction(type) {
   openConfirm(c.title, c.sub, c.ok, async () => {
     closeConfirm()
     try {
-      const res = await fetch(API + '/api/report', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ type, input:lastInput.value, level:mode.value }) })
-      const d = await res.json()
+      const d = await report(lastInput.value, lastType.value)
       const msgs = { block:'🚫 已封鎖 — '+d.caseNo, report:'📢 已通報 165，案號 '+d.caseNo, evidence:'📁 證據已上傳，案號 '+d.caseNo }
       showToast(msgs[type], 'ok')
     } catch { showToast('❌ 操作失敗', 'err') }
@@ -311,10 +311,10 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 
 /* ── Navbar ── */
 .navbar { background:var(--navbar-bg); padding:10px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:200; transition:background 0.25s; }
-.back-btn { background:rgba(255,255,255,0.15); border:1.5px solid rgba(255,255,255,0.25); border-radius:100px; padding:7px 16px; color:#fff; font-size:13px; font-weight:700; white-space:nowrap; transition:background 0.2s; }
+.back-btn { background:rgba(255,255,255,0.15); border:1.5px solid rgba(255,255,255,0.25); border-radius:100px; padding:7px 16px; color:#fff; font-size:13px; font-weight:700; white-space:nowrap; transition:background 0.2s; flex-shrink:0; }
 .back-btn:hover { background:rgba(255,255,255,0.28); }
-.nav-title { flex:1; text-align:center; color:#fff; font-size:15px; font-weight:700; }
-.nav-actions { display:flex; gap:8px; align-items:center; }
+.nav-title { position:absolute; left:50%; transform:translateX(-50%); color:#fff; font-size:15px; font-weight:700; pointer-events:none; }
+.nav-actions { display:flex; gap:8px; align-items:center; margin-left:auto; }
 
 /* Toggle switches */
 .toggle-wrap { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.2); border-radius:100px; padding:5px 10px 5px 8px; cursor:pointer; transition:background 0.2s,border-color 0.2s; user-select:none; }
@@ -376,7 +376,7 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 .col-right { border-left: none; }
 
 /* ── Risk banner ── */
-.risk-banner { border-radius:18px; padding:20px; display:flex; gap:16px; align-items:center; border:2px solid transparent; }
+.risk-banner { border-radius:18px; padding:20px; display:flex; gap:16px; align-items:center; border:2px solid transparent; overflow:hidden; }
 .risk-banner.safe  { background:var(--safe-bg);  border-color:var(--safe); }
 .risk-banner.promo { background:var(--promo-bg); border-color:var(--promo); }
 .risk-banner.warn  { background:var(--warn-bg);  border-color:var(--warn); }
@@ -390,14 +390,14 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 .rb-icon  { font-size:36px; line-height:1; }
 
 
-.rb-info { flex:1; min-width:0; }
+.rb-info { flex:1; min-width:0; overflow:hidden; }
 .rb-tag { display:inline-block; border-radius:100px; padding:4px 14px; font-size:13px; font-weight:900; letter-spacing:1px; text-transform:uppercase; margin-bottom:5px; }
 .safe  .rb-tag { background:rgba(0,196,122,0.2);  color:var(--safe-text); }
 .promo .rb-tag { background:rgba(45,135,232,0.2); color:var(--promo-text); }
 .warn  .rb-tag { background:rgba(255,140,0,0.2);  color:var(--warn-text); }
 .scam  .rb-tag { background:rgba(255,45,45,0.2);  color:var(--scam-text); }
-.rb-title { font-size:28px; font-weight:900; line-height:1.3; }
-.rb-input { font-size:13px; color:var(--text-muted); font-family:'DM Mono',monospace; margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rb-title { font-size:28px; font-weight:900; line-height:1.3; word-break:break-all; }
+.rb-input { font-size:13px; color:var(--text-muted); font-family:'DM Mono',monospace; margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; display:block; }
 
 /* ── Score card ── */
 .score-card { padding:16px 18px; }

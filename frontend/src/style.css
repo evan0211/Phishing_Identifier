@@ -18,13 +18,13 @@
 
 [data-theme="dark"] {
   --bg: #0F1117; --surface: #1A1F2E; --surface2: #232940; --surface3: #2A3050;
-  --border: #2D3557; --primary: #5B74F5; --primary-dark: #4560E0; --primary-light: #1E2A4A;
+  --border: #2D3557; --primary: #4132e3; --primary-dark: #4560E0; --primary-light: #1E2A4A;
   --text: #EEF2FF; --text-sub: #9CA3AF; --text-muted: #6B7280;
   --safe-bg: rgba(0,196,122,0.12); --safe-text: #4ADE9A;
   --promo-bg: rgba(45,135,232,0.12); --promo-text: #7BADF8;
   --warn-bg: rgba(255,140,0,0.12); --warn-text: #FBBF24;
   --scam-bg: rgba(255,45,45,0.12); --scam-text: #F87171;
-  --topbar-bg: #0A0D1A; --navbar-bg: #1A2460;
+  --topbar-bg: #0A0D1A; --navbar-bg: #4132e3;
   --shadow-sm: 0 2px 12px rgba(0,0,0,0.3);
   --shadow-md: 0 4px 28px rgba(0,0,0,0.35);
   --shadow-lg: 0 8px 40px rgba(0,0,0,0.4);
