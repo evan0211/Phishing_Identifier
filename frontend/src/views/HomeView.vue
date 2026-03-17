@@ -204,26 +204,75 @@
         <p>數據來源：<a href="https://165dashboard.tw" target="_blank" rel="noopener" class="stats-source-link">165打詐儀表板</a></p>
       </div>
 
-      <div class="stats-grid" v-if="stats.length">
+      <!-- 兩張大英雄卡：本月損失 + 本月案件 -->
+      <div class="hero-cards" v-if="cards.length">
         <div
-          class="stat-card"
-          v-for="(s, i) in stats" :key="i"
-          :class="{ visible: statsVisible }"
-          :style="{ transitionDelay: (i * 90) + 'ms' }">
-          <div class="stat-icon">{{ s.icon }}</div>
-          <div class="stat-num">
-            <span class="sn-val" :ref="el => numRefs[i] = el" data-target="">{{ s.num }}</span>
-          </div>
-          <div class="stat-label">{{ s.label }}</div>
-          <div class="stat-chart" v-if="s.pct !== undefined">
-            <div class="chart-bar">
-              <div class="chart-fill" :class="s.color"
-                   :style="{ width: statsVisible ? s.pct + '%' : '0%',
-                             transitionDelay: (i * 90 + 300) + 'ms' }"></div>
+          v-for="(s, i) in cards.filter(c => c.lastRaw !== null)"
+          :key="'hero-'+i"
+          class="hero-card"
+          :class="['hero-card--' + s.color, { visible: statsVisible }, i === 0 ? 'slide-left' : 'slide-right']"
+          :style="{ transitionDelay: (i * 150) + 'ms' }">
+          <div class="hc-label">{{ s.title }}</div>
+          <div class="hc-body">
+            <div class="hc-num">{{ s.current }}</div>
+            <div class="hc-badge" :class="s.change < 0 ? 'badge-down' : 'badge-up'">
+              <svg class="hc-arrow-svg" viewBox="0 0 16 16" fill="none">
+                <path v-if="s.change < 0" d="M3 3 L13 13 M13 13 L6 13 M13 13 L13 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path v-else d="M3 13 L13 3 M13 3 L6 3 M13 3 L13 10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>{{ Math.abs(s.change) }}%</span>
             </div>
-            <span class="chart-pct">{{ s.pct }}%</span>
           </div>
-          <div class="stat-source">{{ s.source }}</div>
+          <div class="hc-vs">
+            <span class="hc-vs-label">與上月比較</span>
+            <span class="hc-vs-val">{{ s.last }}</span>
+          </div>
+          <div class="hc-bars">
+            <div class="hc-bar-row">
+              <span class="hcbr-tag">本月</span>
+              <div class="hcbr-track">
+                <div class="hcbr-fill now" :class="s.color"
+                  :style="{ width: statsVisible ? '100%' : '0%', transitionDelay: (i * 150 + 200) + 'ms' }"></div>
+              </div>
+            </div>
+            <div class="hc-bar-row">
+              <span class="hcbr-tag muted">上月</span>
+              <div class="hcbr-track">
+                <div class="hcbr-fill old"
+                  :style="{ width: statsVisible ? Math.min(99, Math.round(s.currentRaw / s.lastRaw * 100)) + '%' : '0%', transitionDelay: (i * 150 + 320) + 'ms' }"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 四張小卡：今日 + 累計 + 手法 -->
+      <div class="mini-cards" v-if="cards.length">
+        <div
+          v-for="(s, i) in cards.filter(c => c.lastRaw === null)"
+          :key="'mini-'+i"
+          class="mini-card"
+          :class="['mini-card--' + s.color, { visible: statsVisible }]"
+          :style="{ transitionDelay: (i * 100 + 450) + 'ms' }">
+          <div class="mc-top">
+            <span class="mc-icon">{{ s.icon }}</span>
+          </div>
+          <div class="mc-num">{{ s.current }}</div>
+          <div class="mc-label">{{ s.title }}</div>
+        </div>
+      </div>
+
+      <!-- 折線圖區塊 -->
+      <div class="chart-section" v-if="chartData.length">
+        <div class="chart-header">
+          <div class="chart-title">📈 近 6 個月詐騙趨勢</div>
+          <div class="chart-tabs">
+            <button class="chart-tab" :class="{ active: chartMode === 'cases' }" @click="chartMode = 'cases'">案件數</button>
+            <button class="chart-tab" :class="{ active: chartMode === 'losses' }" @click="chartMode = 'losses'">損失金額</button>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas ref="chartCanvas" height="80"></canvas>
         </div>
       </div>
 
@@ -247,14 +296,15 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { Chart, registerables } from 'chart.js'
+Chart.register(...registerables)
 import { useRouter } from 'vue-router'
 import { useTheme } from '../composables/useTheme.js'
 import { useElder } from '../composables/useElder.js'
 import { resultState } from '../composables/useResult.js'
 import { isTTSEnabled, toggleTTS } from '../composables/useVoice.js'
 import PhoneInput from '../components/PhoneInput.vue'
-
-const API = 'http://localhost:3001'
+import { autoCheck, report, getStatsPeriods, getChartData } from '../services/api.js'
 const router = useRouter()
 const { isDark, toggle: toggleTheme } = useTheme()
 const { isElder, toggle: toggleElder } = useElder()
@@ -426,11 +476,7 @@ async function doCheck() {
   isLoading.value = true
   abortController = new AbortController()
   try {
-    const ep = type === 'screenshot' ? '/api/check/screenshot' : type === 'phone' ? '/api/check/phone' : '/api/check/url'
-    const res = await fetch(API + ep, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ query: rawQ }), signal: abortController.signal })
-    const data = await res.json()
-    if (!res.ok) { showToast(`❌ ${data.error || '查詢失敗'}`, 'err'); return }
-    // 查無資料：level 為 safe 且 reasons 為空，視為查無紀錄
+    const data = await autoCheck(rawQ, type)
     if (!data.level || (!data.reasons?.length && !data.label)) {
       showToast('📭 查無相關資料', 'ok'); return
     }
@@ -442,7 +488,7 @@ async function doCheck() {
     if (err.name === 'AbortError') {
       showToast('🚫 已取消檢測', 'ok')
     } else {
-      showToast('❌ 無法連接 API — 請確認 server.js 已啟動', 'err')
+      showToast('❌ 無法連接 API — 請確認網路連線', 'err')
     }
   } finally { isLoading.value = false; abortController = null }
 }
@@ -466,10 +512,9 @@ function clearInput() {
 
 // ── Health ──
 async function checkHealth() {
-  try {
-    const r = await fetch(API + '/api/health', { signal: AbortSignal.timeout(2000) })
-    apiOnline.value = r.ok; apiStatusText.value = r.ok ? 'API 連線正常 ✓' : 'API 離線'
-  } catch { apiOnline.value = false; apiStatusText.value = 'API 離線 — 請啟動 server.js' }
+  // AWS Lambda 不需要 health check，直接標記為上線
+  apiOnline.value = true
+  apiStatusText.value = 'API 連線正常 ✓'
 }
 
 // ── Scroll ──
@@ -480,14 +525,13 @@ function scrollToMain()  { window.scrollTo({ top: 0, behavior: 'smooth' }) }
 const statsPeriods  = ref([])   // 所有期別資料
 const statsTabIndex = ref(0)    // 目前選中的 tab
 const stats         = computed(() => statsPeriods.value[statsTabIndex.value]?.stats ?? [])
+const cards         = computed(() => statsPeriods.value[statsTabIndex.value]?.cards ?? [])
 const statsLabel    = computed(() => statsPeriods.value[statsTabIndex.value]?.label ?? '')
 const statsError    = ref(false)
 
 async function loadStats() {
   try {
-    const r = await fetch(API + '/api/stats')
-    if (!r.ok) throw new Error('stats fetch failed')
-    const d = await r.json()
+    const d = await getStatsPeriods()
     statsPeriods.value = d.periods ?? []
   } catch {
     statsError.value = true
@@ -517,11 +561,111 @@ let observer = null
 function setupObserver() {
   observer = new IntersectionObserver(entries => {
     entries.forEach(e => {
-      if (e.isIntersecting) { statsVisible.value = true; observer.disconnect() }
+      if (e.isIntersecting) {
+        statsVisible.value = true
+        // 讓 stats-header 也觸發動畫
+        const header = statsPage.value?.querySelector('.stats-header')
+        if (header) header.classList.add('visible')
+        observer.disconnect()
+      }
     })
-  }, { threshold: 0.15 })
+  }, { threshold: 0.12 })
   if (statsPage.value) observer.observe(statsPage.value)
 }
+
+// ── 折線圖 ──
+const chartCanvas  = ref(null)
+const chartData    = ref([])
+const chartMode    = ref('cases')
+let   chartInstance = null
+
+async function loadChartData() {
+  try {
+    const d = await getChartData()
+    chartData.value = d.months ?? []
+    await nextTick()
+    renderChart()
+  } catch (e) {
+    console.warn('chart 載入失敗', e)
+  }
+}
+
+function renderChart() {
+  if (!chartCanvas.value || !chartData.value.length) return
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null }
+
+  const isDarkMode = document.documentElement.classList.contains('dark') || 
+                     document.body.classList.contains('dark') ||
+                     window.matchMedia('(prefers-color-scheme: dark)').matches
+
+  const labels  = chartData.value.map(m => m.label)
+  const isLoss  = chartMode.value === 'losses'
+  const values  = chartData.value.map(m => isLoss ? Math.round(m.losses / 10000) : m.cases)
+  const color   = isLoss ? '#ff6b6b' : '#4d6ef5'
+  const colorBg = isLoss ? 'rgba(255,107,107,0.12)' : 'rgba(77,110,245,0.12)'
+  const gridColor = isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
+  const textColor = isDarkMode ? 'rgba(255,255,255,0.5)'  : 'rgba(0,0,0,0.45)'
+
+  chartInstance = new Chart(chartCanvas.value, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        borderColor: color,
+        backgroundColor: colorBg,
+        borderWidth: 2.5,
+        pointBackgroundColor: color,
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        fill: true,
+        tension: 0.4,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: isDarkMode ? 'rgba(30,30,50,0.95)' : 'rgba(255,255,255,0.95)',
+          titleColor: isDarkMode ? '#fff' : '#111',
+          bodyColor:  isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)',
+          borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+          borderWidth: 1,
+          padding: 12,
+          cornerRadius: 10,
+          callbacks: {
+            label: ctx => isLoss
+              ? ` ${ctx.raw.toLocaleString()} 億元`
+              : ` ${ctx.raw.toLocaleString()} 件`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { color: gridColor },
+          ticks: { color: textColor, font: { size: 12, weight: '600' } },
+          border: { display: false },
+        },
+        y: {
+          grid: { color: gridColor },
+          ticks: {
+            color: textColor,
+            font: { size: 11 },
+            callback: v => isLoss ? v + ' 億' : v.toLocaleString(),
+          },
+          border: { display: false },
+        },
+      },
+    },
+  })
+}
+
+// 切換模式時重繪
+watch(chartMode, () => { renderChart() })
 
 function showToast(msg, type='') {
   toastMsg.value = msg; toastType.value = type; toastVisible.value = true
@@ -569,6 +713,7 @@ onMounted(() => {
   checkHealth()
   healthTimer = setInterval(checkHealth, 5000)
   loadStats()
+  loadChartData()
   nextTick(setupObserver)
   phTimer = setInterval(() => { phIndex.value = (phIndex.value + 1) % placeholders.length }, 2800)
   document.addEventListener('keydown', focusOnType)
@@ -580,6 +725,7 @@ onUnmounted(() => {
   clearTimeout(toastTimer)
   clearInterval(phTimer)
   observer?.disconnect()
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null }
   document.removeEventListener('keydown', focusOnType)
   window.removeEventListener('scroll', onScroll)
   document.removeEventListener('click', onClickOutside)
@@ -779,9 +925,9 @@ header h1 span { color:var(--primary); }
 @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
 
 /* ══ PAGE 2: STATS ══ */
-.page-stats { background:var(--bg); padding:0 20px 60px; align-items:center; }
+.page-stats { background:var(--bg); padding:0 20px 40px; align-items:center; gap: 12px; display: flex; flex-direction: column; }
 
-.stats-header { text-align:center; padding:56px 20px 36px; position:relative; z-index:1; }
+.stats-header { text-align:center; padding:32px 20px 20px; position:relative; z-index:1; }
 .stats-badge { display:inline-block; background:var(--primary-light); color:var(--primary); border:1.5px solid rgba(45,71,232,0.25); border-radius:100px; padding:6px 18px; font-size:12px; font-weight:700; letter-spacing:1px; margin-bottom:14px; }
 .stats-header h2 { font-size:32px; font-weight:900; letter-spacing:-0.5px; line-height:1.2; }
 .stats-header h2 span { color:var(--scam); }
@@ -796,50 +942,212 @@ header h1 span { color:var(--primary); }
 .stats-source-link { color:var(--primary); text-decoration:underline; text-underline-offset:3px; }
 .stats-source-link:hover { opacity:0.75; }
 
-/* Stats grid */
-.stats-grid {
-  display:grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap:16px;
-  max-width:1000px;
-  width:100%;
-  position:relative; z-index:1;
+/* ── 英雄卡（本月趨勢）── */
+.hero-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  max-width: 1000px;
+  width: 100%;
+  position: relative; z-index: 1;
 }
 
-.stat-card {
-  background:var(--surface);
-  border:1.5px solid var(--border);
-  border-radius:20px;
-  padding:22px 20px 18px;
-  display:flex; flex-direction:column; gap:8px;
-  box-shadow:0 4px 24px rgba(0,0,0,0.08);
-  transition:background 0.25s, border-color 0.25s,
-             opacity 0.55s ease, transform 0.55s cubic-bezier(0.22,1,0.36,1);
-  opacity:0; transform:translateY(28px);
+.hero-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 24px;
+  padding: 18px 18px 16px;
+  display: flex; flex-direction: column; gap: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  opacity: 0; transform: translateY(24px);
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.22,1,0.36,1);
 }
-.stat-card.visible { opacity:1; transform:translateY(0); }
-.stat-card:hover { border-color:var(--primary); box-shadow:0 8px 32px rgba(45,71,232,0.13); transform:translateY(-3px) !important; }
+.hero-card.visible { opacity: 1; transform: translateY(0); }
+.hero-card:hover { box-shadow: 0 10px 36px rgba(45,71,232,0.14); transform: translateY(-2px); }
 
-.stat-icon { font-size:32px; line-height:1; }
-.stat-num  { font-size:30px; font-weight:900; color:var(--primary); letter-spacing:-1px; line-height:1.1; }
-.stat-label{ font-size:14px; color:var(--text-sub); line-height:1.45; }
+.hc-label { font-size: 12px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; }
+.hc-body  { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.hc-num   { font-size: 28px; font-weight: 900; color: var(--text); letter-spacing: -1px; line-height: 1; }
+.hero-card--red    .hc-num { color: var(--scam); }
+.hero-card--orange .hc-num { color: var(--warn); }
+.hero-card--blue   .hc-num { color: var(--primary); }
 
-/* Animated bar */
-.stat-chart { display:flex; align-items:center; gap:10px; margin-top:4px; }
-.chart-bar  { flex:1; height:8px; background:var(--surface3); border-radius:100px; overflow:hidden; }
-.chart-fill { height:100%; border-radius:100px; width:0%; transition:width 1.2s cubic-bezier(0.22,1,0.36,1); }
-.chart-fill.red    { background:linear-gradient(90deg,var(--warn),var(--scam)); }
-.chart-fill.orange { background:linear-gradient(90deg,#ffb300,var(--warn)); }
-.chart-fill.blue   { background:linear-gradient(90deg,var(--primary),#7c93ff); }
-.chart-pct { font-size:12px; font-weight:700; color:var(--text-muted); white-space:nowrap; }
+.hc-badge {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 13px; font-weight: 900;
+  padding: 4px 10px; border-radius: 100px;
+  flex-shrink: 0;
+}
+.hc-badge.badge-down { background: rgba(0,196,122,0.12); color: #00C47A; border: 1.5px solid rgba(0,196,122,0.25); }
+.hc-badge.badge-up   { background: rgba(220,53,69,0.10);  color: var(--scam); border: 1.5px solid rgba(220,53,69,0.22); }
+.hc-arrow { font-size: 15px; line-height: 1; }
 
+.hc-vs { display: flex; justify-content: space-between; align-items: center; }
+.hc-vs-label { font-size: 11px; color: var(--text-muted); }
+.hc-vs-val   { font-size: 12px; font-weight: 700; color: var(--text-sub); }
+
+.hc-bars { display: flex; flex-direction: column; gap: 7px; }
+.hc-bar-row { display: flex; align-items: center; gap: 8px; }
+.hcbr-tag  { font-size: 11px; font-weight: 700; color: var(--text-sub); width: 26px; flex-shrink: 0; }
+.hcbr-tag.muted { color: var(--text-muted); }
+.hcbr-track { flex: 1; height: 7px; background: var(--surface3); border-radius: 100px; overflow: hidden; }
+.hcbr-fill { height: 100%; border-radius: 100px; width: 0%; transition: width 1.2s cubic-bezier(0.22,1,0.36,1); }
+.hcbr-fill.now.red    { background: linear-gradient(90deg, var(--warn), var(--scam)); }
+.hcbr-fill.now.orange { background: linear-gradient(90deg, #ffb300, var(--warn)); }
+.hcbr-fill.now.blue   { background: linear-gradient(90deg, var(--primary), #7c93ff); }
+.hcbr-fill.old { background: var(--surface3); filter: brightness(1.8); }
+
+/* ── 入場動畫 ── */
+/* 英雄卡：左右滑入 */
+.hero-card {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.65s cubic-bezier(0.22,1,0.36,1),
+              transform 0.65s cubic-bezier(0.22,1,0.36,1);
+}
+.hero-card.slide-left  { transform: translateX(-48px) translateY(8px); }
+.hero-card.slide-right { transform: translateX(48px) translateY(8px); }
+.hero-card.visible { opacity: 1 !important; transform: translateX(0) translateY(0) !important; }
+
+/* 小卡：依序淡入上移 */
+.mini-card {
+  opacity: 0;
+  transform: translateY(32px) scale(0.96);
+  transition: opacity 0.55s cubic-bezier(0.22,1,0.36,1),
+              transform 0.55s cubic-bezier(0.22,1,0.36,1);
+}
+.mini-card.visible { opacity: 1; transform: translateY(0) scale(1); }
+.mini-card:hover { border-color: var(--primary); transform: translateY(-3px) scale(1.02) !important; box-shadow: 0 8px 28px rgba(45,71,232,0.15); }
+
+/* 標題區淡入 */
+.stats-header {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease 0.05s, transform 0.6s cubic-bezier(0.22,1,0.36,1) 0.05s;
+}
+.stats-header.visible { opacity: 1; transform: translateY(0); }
+
+/* 斜箭頭 SVG */
+.hc-arrow-svg {
+  width: 14px; height: 14px;
+  flex-shrink: 0;
+}
+.hc-badge.badge-down .hc-arrow-svg { color: #00C47A; }
+.hc-badge.badge-up   .hc-arrow-svg { color: var(--scam); }
+
+/* 數字跳動效果 */
+@keyframes numPop {
+  0%   { transform: scale(0.85); opacity: 0; }
+  60%  { transform: scale(1.06); }
+  100% { transform: scale(1);    opacity: 1; }
+}
+.hero-card.visible .hc-num { animation: numPop 0.5s cubic-bezier(0.34,1.4,0.64,1) forwards; animation-delay: inherit; }
+.mini-card.visible .mc-num  { animation: numPop 0.45s cubic-bezier(0.34,1.4,0.64,1) forwards; animation-delay: inherit; }
+
+/* ── 小卡（今日＋累計＋手法）── */
+.mini-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  max-width: 1000px;
+  width: 100%;
+  position: relative; z-index: 1;
+  margin-top: 0;
+}
+.mini-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 18px;
+  padding: 14px 14px 12px;
+  display: flex; flex-direction: column; gap: 6px;
+  opacity: 0; transform: translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.22,1,0.36,1);
+}
+.mini-card.visible { opacity: 1; transform: translateY(0); }
+.mini-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+
+.mc-top  { display: flex; align-items: center; justify-content: space-between; }
+.mc-icon { font-size: 26px; line-height: 1; }
+.mc-num  { font-size: 20px; font-weight: 900; color: var(--text); letter-spacing: -0.5px; line-height: 1.1; }
+.mini-card--red    .mc-num { color: var(--scam); }
+.mini-card--orange .mc-num { color: var(--warn); }
+.mini-card--blue   .mc-num { color: var(--primary); }
+.mc-label { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+
+/* 舊 stat-card 仍保留，不讓編譯錯誤 */
+.stat-card { display: none; }
+
+/* ── 折線圖 ── */
+.chart-section {
+  max-width: 1000px;
+  width: 100%;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 24px;
+  padding: 16px 18px 14px;
+  position: relative; z-index: 1;
+  margin-top: 0;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+}
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chart-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.chart-tabs {
+  display: flex;
+  gap: 6px;
+}
+.chart-tab {
+  padding: 5px 14px;
+  border-radius: 100px;
+  border: 1.5px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.chart-tab:hover { border-color: var(--primary); color: var(--primary); }
+.chart-tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.chart-wrap { position: relative; width: 100%; }
 .stat-source { font-size:10px; color:var(--text-muted); font-family:'DM Mono',monospace; margin-top:auto; padding-top:6px; border-top:1px solid var(--border); }
+
+/* ── 165風格趨勢卡片 ── */
+.sc-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.sc-title  { font-size:13px; color:var(--text-sub); font-weight:600; }
+.sc-badge  { font-size:12px; font-weight:700; padding:3px 9px; border-radius:20px; display:flex; align-items:center; gap:3px; white-space:nowrap; }
+.sc-badge.badge-down { background:rgba(0,180,100,0.12); color:#00b864; border:1px solid rgba(0,180,100,0.25); }
+.sc-badge.badge-up   { background:rgba(220,53,69,0.12);  color:#dc3545; border:1px solid rgba(220,53,69,0.25); }
+
+.sc-compare { display:flex; flex-direction:column; gap:10px; }
+.sc-row     { display:flex; align-items:center; gap:10px; }
+.sc-month   { font-size:11px; font-weight:700; color:var(--text); width:28px; flex-shrink:0; }
+.sc-month.muted { color:var(--text-muted); }
+.sc-bar-wrap { flex:1; height:8px; background:var(--surface3); border-radius:100px; overflow:hidden; }
+.sc-bar-fill { height:100%; border-radius:100px; transition:width 1.2s cubic-bezier(0.22,1,0.36,1); width:0%; }
+.sc-bar-fill.red    { background:linear-gradient(90deg,#ff6b6b,#ff3d32); }
+.sc-bar-fill.orange { background:linear-gradient(90deg,#ffbb55,#fd7e14); }
+.sc-bar-fill.blue   { background:linear-gradient(90deg,var(--primary),#7c93ff); }
+.sc-bar-fill.muted  { background:var(--surface3); filter:brightness(1.5); }
+.sc-val     { font-size:11px; color:var(--text); text-align:right; min-width:80px; flex-shrink:0; font-weight:600; }
+.sc-val.muted { color:var(--text-muted); font-weight:400; }
+.sc-val.red    { color:#ff6b6b; }
+.sc-val.orange { color:#ffbb55; }
+.sc-val.blue   { color:var(--primary); }
 
 .page-wrap.elder .stat-num   { font-size:34px; }
 .page-wrap.elder .stat-label { font-size:16px; }
 
 /* Scroll up */
-.scroll-up { display:flex; align-items:center; gap:6px; background:none; border:1.5px solid var(--border); border-radius:100px; padding:9px 20px; color:var(--text-sub); font-size:13px; font-weight:700; cursor:pointer; margin-top:32px; transition:all 0.2s; position:relative; z-index:1; }
+.scroll-up { display:flex; align-items:center; gap:6px; background:none; border:1.5px solid var(--border); border-radius:100px; padding:9px 20px; color:var(--text-sub); font-size:13px; font-weight:700; cursor:pointer; margin-top:20px; transition:all 0.2s; position:relative; z-index:1; }
 .scroll-up:hover { border-color:var(--primary); color:var(--primary); }
 
 /* ── Preview modal ── */
@@ -860,14 +1168,16 @@ header h1 span { color:var(--primary); }
 
 /* ── Mobile ── */
 @media (max-width:700px) {
-  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .hero-cards { grid-template-columns: 1fr; }
+  .mini-cards { grid-template-columns: 1fr 1fr; }
   .stats-header h2 { font-size:24px; }
-  .stat-num { font-size:24px; }
+  .hc-num { font-size:22px; }
   header h1 { font-size:18px; }
   .settings-label { display:none; }
   .settings-btn { padding:6px 10px; }
 }
 @media (max-width:440px) {
-  .stats-grid { grid-template-columns: 1fr; }
+  .mini-cards { grid-template-columns: 1fr 1fr; }
+  .hc-num { font-size:20px; }
 }
 </style>

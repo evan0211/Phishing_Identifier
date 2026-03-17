@@ -74,8 +74,8 @@ import { ref, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTheme } from '../composables/useTheme.js'
 import { useElder } from '../composables/useElder.js'
+import { report } from '../services/api.js'
 
-const API = 'http://localhost:3001'
 const route = useRoute(), router = useRouter()
 const { isDark, toggle: toggleTheme } = useTheme()
 const { isElder } = useElder()
@@ -87,10 +87,10 @@ const evidenceOpen = ref(false), submitSuccess = ref(false)
 const crType = ref('假冒銀行 / 金融機構'), crDesc = ref(''), caseNo = ref('')
 function toggleEvidence() { evidenceOpen.value = !evidenceOpen.value }
 
-async function doBlock()  { try { const r=await fetch(API+'/api/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'block',input:scamUrl,level:'scam'})}); const d=await r.json(); showToast('🚫 已封鎖 — '+d.caseNo,'ok') } catch { showToast('🚫 已封鎖（離線模式）','ok') } }
-async function doReport() { try { const r=await fetch(API+'/api/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'report',input:scamUrl,level:'scam'})}); const d=await r.json(); showToast('📢 已通報 165，案號 '+d.caseNo,'ok') } catch { showToast('📢 已通報（離線模式）','ok') } }
+async function doBlock()  { try { const d = await report(scamUrl, 'url'); showToast('🚫 已封鎖 — '+d.caseNo,'ok') } catch { showToast('🚫 已封鎖（離線模式）','ok') } }
+async function doReport() { try { const d = await report(scamUrl, 'url'); showToast('📢 已通報 165，案號 '+d.caseNo,'ok') } catch { showToast('📢 已通報（離線模式）','ok') } }
 async function submitReport() {
-  try { const r=await fetch(API+'/api/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'evidence',input:scamUrl,level:'scam',category:crType.value,description:crDesc.value})}); const d=await r.json(); caseNo.value='案號 '+d.caseNo } catch { caseNo.value='案號 #TW2026-'+Math.floor(10000+Math.random()*90000) }
+  try { const d = await report(scamUrl, 'url'); caseNo.value='案號 '+d.caseNo } catch { caseNo.value='案號 #TW2026-'+Math.floor(10000+Math.random()*90000) }
   submitSuccess.value = true
 }
 
