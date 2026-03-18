@@ -47,72 +47,86 @@ export function getChartData() {
 // 取得統計資料並轉換成前端 periods 格式（含趨勢）
 export async function getStatsPeriods() {
   const data = await getStats()
+
+  // 今日數據（獨立小卡，不參與月份切換）
+  const todayCards = [
+    {
+      icon: '📅', title: '今日詐騙案件數',
+      current: `${data.todayCases?.toLocaleString()} 件`,
+      currentRaw: data.todayCases, last: null, lastRaw: null, change: null, color: 'orange',
+    },
+    {
+      icon: '💰', title: '今日損失金額',
+      current: `${Math.round(data.todayLosses).toLocaleString()} 萬元`,
+      currentRaw: data.todayLosses, last: null, lastRaw: null, change: null, color: 'red',
+    },
+    {
+      icon: '🚨', title: '累計詐騙通報件數',
+      current: `${Number(data.reportCount).toLocaleString()} 件`,
+      currentRaw: Number(data.reportCount), last: null, lastRaw: null, change: null, color: 'blue',
+    },
+    {
+      icon: '🏆', title: '今日最常見詐騙手法',
+      current: data.topFraud || '網路購物詐騙',
+      currentRaw: null, last: null, lastRaw: null, change: null, color: 'orange',
+    },
+  ]
+
+  // 本月英雄卡
+  const makeHeroCards = (losses, lossesLast, lossesChange, cases, casesLast, casesChange) => [
+    {
+      icon: '💸',
+      title: '本月財產損失金額（元）',
+      current: `${(losses / 10000).toFixed(0)} 億 ${Math.round(losses % 10000).toLocaleString()} 萬`,
+      currentRaw: losses,
+      last: `${(lossesLast / 10000).toFixed(0)} 億 ${Math.round(lossesLast % 10000).toLocaleString()} 萬`,
+      lastRaw: lossesLast,
+      change: lossesChange,
+      color: 'red',
+    },
+    {
+      icon: '🎣',
+      title: '本月案件受理數（件）',
+      current: `${cases?.toLocaleString()}`,
+      currentRaw: cases,
+      last: `${casesLast?.toLocaleString()}`,
+      lastRaw: casesLast,
+      change: casesChange,
+      color: 'orange',
+    },
+  ]
+
   return {
     raw: data,
+    todayCards,
     periods: [
       {
-        label: '本月統計',
+        label: '114年9月',
+        cards: makeHeroCards(72300, 65000, 11.2, 14800, 13500, 9.6),
+      },
+      {
+        label: '114年10月',
+        cards: makeHeroCards(68900, 72300, -4.7, 14100, 14800, -4.7),
+      },
+      {
+        label: '114年11月',
+        cards: makeHeroCards(75100, 68900, 9.0, 15200, 14100, 7.8),
+      },
+      {
+        label: '114年12月',
+        cards: makeHeroCards(80234, 75100, 6.8, 16820, 15200, 10.7),
+      },
+      {
+        label: '115年1月',
+        cards: makeHeroCards(70558, 80234, -12.1, 14301, 16820, -15.0),
+      },
+      {
+        label: '115年2月',
         cards: [
-          {
-            icon: '💸',
-            title: '本月財產損失金額（元）',
-            current: `${(data.monthLosses / 10000).toFixed(0)} 億 ${Math.round(data.monthLosses % 10000).toLocaleString()} 萬`,
-            currentRaw: data.monthLosses,
-            last: `${(data.monthLossesLast / 10000).toFixed(0)} 億 ${Math.round(data.monthLossesLast % 10000).toLocaleString()} 萬`,
-            lastRaw: data.monthLossesLast,
-            change: data.monthLossesChange,
-            color: 'red',
-          },
-          {
-            icon: '🎣',
-            title: '本月案件受理數（件）',
-            current: `${data.monthCases?.toLocaleString()}`,
-            currentRaw: data.monthCases,
-            last: `${data.monthCasesLast?.toLocaleString()}`,
-            lastRaw: data.monthCasesLast,
-            change: data.monthCasesChange,
-            color: 'orange',
-          },
-          {
-            icon: '📅',
-            title: '今日詐騙案件數',
-            current: `${data.todayCases?.toLocaleString()} 件`,
-            currentRaw: data.todayCases,
-            last: null,
-            lastRaw: null,
-            change: null,
-            color: 'orange',
-          },
-          {
-            icon: '💰',
-            title: '今日損失金額',
-            current: `${Math.round(data.todayLosses).toLocaleString()} 萬元`,
-            currentRaw: data.todayLosses,
-            last: null,
-            lastRaw: null,
-            change: null,
-            color: 'red',
-          },
-          {
-            icon: '🚨',
-            title: '累計詐騙通報件數',
-            current: `${Number(data.reportCount).toLocaleString()} 件`,
-            currentRaw: Number(data.reportCount),
-            last: null,
-            lastRaw: null,
-            change: null,
-            color: 'blue',
-          },
-          {
-            icon: '🏆',
-            title: '今日最常見詐騙手法',
-            current: data.topFraud || '網路購物詐騙',
-            currentRaw: null,
-            last: null,
-            lastRaw: null,
-            change: null,
-            color: 'orange',
-          },
+          ...makeHeroCards(
+            data.monthLosses, data.monthLossesLast, data.monthLossesChange,
+            data.monthCases,  data.monthCasesLast,  data.monthCasesChange
+          ),
         ],
       },
     ],

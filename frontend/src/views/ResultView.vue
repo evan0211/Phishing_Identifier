@@ -6,18 +6,34 @@
       <button class="back-btn" @click="goBack">← 返回</button>
       <span class="nav-title" @click="goBack" style="cursor:pointer">分析結果</span>
       <div class="nav-actions">
-        <label class="toggle-wrap" :class="{ active: isElder }" title="長輩模式">
-          <input type="checkbox" :checked="isElder" @change="toggleElder" style="display:none">
-          <span class="toggle-icon">👴</span>
-          <span class="toggle-label">長輩模式</span>
-          <span class="toggle-pill"><span class="toggle-knob"></span></span>
-        </label>
-        <label class="toggle-wrap theme-toggle" :class="{ active: isDark }">
-          <input type="checkbox" :checked="isDark" @change="toggleTheme" style="display:none">
-          <span class="toggle-icon">{{ isDark ? '🌙' : '☀️' }}</span>
-          <span class="toggle-label">{{ isDark ? '深色' : '亮色' }}</span>
-          <span class="toggle-pill"><span class="toggle-knob"></span></span>
-        </label>
+        <div class="settings-wrap" ref="settingsWrap">
+          <button class="settings-btn" :class="{ active: menuOpen }" @click="menuOpen = !menuOpen" aria-label="設定">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span class="settings-label">設定</span>
+          </button>
+          <transition name="menu-drop">
+            <div class="settings-menu" v-if="menuOpen">
+              <button class="menu-row" :class="{ active: isElder }" @click="toggleElder">
+                <span class="menu-icon">👴</span>
+                <span class="menu-text">長輩模式</span>
+                <span class="menu-pill" :class="{ on: isElder }"><span class="menu-knob"></span></span>
+              </button>
+              <button class="menu-row" :class="{ active: isDark }" @click="toggleTheme">
+                <span class="menu-icon">{{ isDark ? '🌙' : '☀️' }}</span>
+                <span class="menu-text">{{ isDark ? '深色模式' : '亮色模式' }}</span>
+                <span class="menu-pill" :class="{ on: isDark }"><span class="menu-knob"></span></span>
+              </button>
+              <button class="menu-row" :class="{ active: isTTSEnabled }" @click="toggleTTS">
+                <span class="menu-icon">🔊</span>
+                <span class="menu-text">語音朗讀</span>
+                <span class="menu-pill" :class="{ on: isTTSEnabled }"><span class="menu-knob"></span></span>
+              </button>
+            </div>
+          </transition>
+        </div>
       </div>
     </nav>
 
@@ -50,7 +66,7 @@
         <div class="section-card score-card">
           <div class="score-labels"><span>安全 0</span><span>100 高風險</span></div>
           <div class="score-track">
-            <div class="score-fill" :class="mode" :style="{ width: barWidth + '%' }"></div>
+            <div class="score-fill" :style="{ width: barWidth + '%', background: scoreFillColor }"></div>
           </div>
           <div class="score-value" :class="mode">風險分數：{{ result.score }} / 100</div>
         </div>
@@ -65,6 +81,16 @@
             </li>
           </ul>
         </div>
+
+        <!-- 查無資料：補充按鈕 -->
+        <button v-if="mode === 'unknown'" class="contribute-btn" @click="goContribute">
+          <span class="cb-icon">🙋</span>
+          <div class="cb-text">
+            <span class="cb-title">協助補充資料</span>
+            <span class="cb-sub">此號碼查無紀錄，您的回報能保護更多人</span>
+          </div>
+          <span class="cb-arrow">→</span>
+        </button>
 
       </div><!-- /col-left -->
 
@@ -190,6 +216,7 @@ import { useTheme } from '../composables/useTheme.js'
 import { useElder } from '../composables/useElder.js'
 import { resultState } from '../composables/useResult.js'
 import { report } from '../services/api.js'
+import { isTTSEnabled, toggleTTS } from '../composables/useVoice.js'
 
 const router = useRouter()
 const { isDark, toggle: toggleTheme } = useTheme()
@@ -220,8 +247,28 @@ const NEXT  = {
 }
 const nextSteps = computed(() => NEXT[mode.value] || [])
 
+const SCORE_COLORS = {
+  safe:    'var(--safe)',
+  promo:   'var(--promo)',
+  warn:    'linear-gradient(90deg,#ffb300,var(--warn))',
+  scam:    'linear-gradient(90deg,var(--warn),var(--scam))',
+  unknown: 'linear-gradient(90deg,#8faa2e,#a8c44e)',
+}
+const scoreFillColor = computed(() => SCORE_COLORS[mode.value] || 'var(--surface3)')
 const barWidth = ref(0)
-onMounted(() => { setTimeout(() => { barWidth.value = result.value?.score || 0 }, 120) })
+
+onMounted(() => {
+  setTimeout(() => { barWidth.value = result.value?.score || 0 }, 120)
+  document.addEventListener('click', onClickOutside)
+})
+onUnmounted(() => { clearTimeout(toastTimer); document.body.style.overflow=''; document.removeEventListener('click', onClickOutside) })
+
+const menuOpen    = ref(false)
+const settingsWrap = ref(null)
+
+function onClickOutside(e) {
+  if (settingsWrap.value && !settingsWrap.value.contains(e.target)) menuOpen.value = false
+}
 
 function goBack() { router.push('/') }
 function toggleElder() { toggleElderFn(); showToast(isElder.value ? '👴 長輩模式已開啟' : '長輩模式已關閉', 'ok') }
@@ -303,6 +350,10 @@ function sTouchStart() {
   document.addEventListener('touchmove',tm,{passive:true}); document.addEventListener('touchend',te)
 }
 
+function goContribute() {
+  router.push({ path: '/contribute', query: { input: lastInput.value, type: lastType.value } })
+}
+
 const toastVisible=ref(false), toastMsg=ref(''), toastType=ref('')
 let toastTimer=null
 function showToast(msg,type=''){toastMsg.value=msg;toastType.value=type;toastVisible.value=true;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{toastVisible.value=false},3200)}
@@ -310,27 +361,36 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 </script>
 
 <style scoped>
-.page-wrap { min-height:100vh; background:var(--bg); color:var(--text); display:flex; flex-direction:column; transition:background 0.25s,color 0.25s; }
+.page-wrap { min-height:100vh; background:var(--bg); color:var(--text); display:flex; flex-direction:column; transition:background 0.25s,color 0.25s; user-select:none; }
 
 /* ── Navbar ── */
 .navbar { background:var(--navbar-bg); padding:10px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:200; transition:background 0.25s; }
-.back-btn { background:rgba(255,255,255,0.15); border:1.5px solid rgba(255,255,255,0.25); border-radius:100px; padding:7px 16px; color:#fff; font-size:13px; font-weight:700; white-space:nowrap; transition:background 0.2s; flex-shrink:0; }
+.back-btn { background:rgba(255,255,255,0.15); border:1.5px solid rgba(255,255,255,0.25); border-radius:100px; padding:7px 16px; color:#fff; font-size:13px; font-weight:700; white-space:nowrap; transition:background 0.2s; flex-shrink:0; user-select:none; }
 .back-btn:hover { background:rgba(255,255,255,0.28); }
-.nav-title { position:absolute; left:50%; transform:translateX(-50%); color:#fff; font-size:15px; font-weight:700; pointer-events:none; }
+.nav-title { position:absolute; left:50%; transform:translateX(-50%); color:#fff; font-size:15px; font-weight:700; pointer-events:none; user-select:none; }
 .nav-actions { display:flex; gap:8px; align-items:center; margin-left:auto; }
 
-/* Toggle switches */
-.toggle-wrap { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.2); border-radius:100px; padding:5px 10px 5px 8px; cursor:pointer; transition:background 0.2s,border-color 0.2s; user-select:none; }
-.toggle-wrap:hover { background:rgba(255,255,255,0.2); }
-.toggle-wrap.active { background:rgba(255,255,255,0.22); border-color:rgba(255,255,255,0.4); }
-.toggle-icon  { font-size:15px; line-height:1; }
-.toggle-label { font-size:12px; font-weight:700; color:#fff; white-space:nowrap; }
-.toggle-pill  { width:30px; height:16px; border-radius:100px; background:rgba(255,255,255,0.25); position:relative; flex-shrink:0; transition:background 0.25s; }
-.toggle-wrap.active .toggle-pill { background:rgba(255,255,255,0.7); }
-.toggle-knob  { position:absolute; top:2px; left:2px; width:12px; height:12px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.25); transition:transform 0.25s cubic-bezier(0.34,1.4,0.64,1); }
-.toggle-wrap.active .toggle-knob { transform:translateX(14px); }
-.theme-toggle .toggle-pill { background:rgba(100,120,255,0.4); }
-.theme-toggle.active .toggle-pill { background:rgba(60,70,140,0.8); }
+/* 設定按鈕 */
+.settings-wrap { position:relative; }
+.settings-btn { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.2); border-radius:100px; padding:6px 14px 6px 10px; cursor:pointer; color:#fff; transition:background 0.2s; user-select:none; }
+.settings-btn:hover { background:rgba(255,255,255,0.22); }
+.settings-btn.active { background:rgba(255,255,255,0.22); border-color:rgba(255,255,255,0.4); }
+.settings-btn svg { width:16px; height:16px; flex-shrink:0; }
+.settings-label { font-size:12px; font-weight:700; white-space:nowrap; }
+.settings-menu { position:absolute; top:calc(100% + 8px); right:0; background:var(--surface); border:1.5px solid var(--border); border-radius:16px; padding:6px; min-width:200px; box-shadow:0 8px 32px rgba(0,0,0,0.18); z-index:300; }
+.menu-drop-enter-active { transition:opacity 0.15s ease, transform 0.15s ease; }
+.menu-drop-leave-active { transition:opacity 0.1s ease, transform 0.1s ease; }
+.menu-drop-enter-from, .menu-drop-leave-to { opacity:0; transform:translateY(-6px); }
+.menu-row { display:flex; align-items:center; gap:10px; width:100%; padding:10px 12px; border-radius:10px; background:transparent; border:none; cursor:pointer; color:var(--text); transition:background 0.15s; }
+.menu-row:hover { background:var(--surface2); }
+.menu-row.active { background:var(--surface2); }
+.menu-icon { font-size:16px; flex-shrink:0; }
+.menu-text { flex:1; font-size:13px; font-weight:700; text-align:left; }
+.menu-pill { width:34px; height:18px; border-radius:100px; background:var(--surface3); position:relative; flex-shrink:0; transition:background 0.25s; }
+.menu-pill.on { background:var(--primary); }
+.menu-knob { position:absolute; top:3px; left:3px; width:12px; height:12px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.2); transition:transform 0.25s cubic-bezier(0.34,1.4,0.64,1); }
+.menu-pill.on .menu-knob { transform:translateX(16px); }
+
 
 /* ── No result ── */
 .no-result { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:40px; }
@@ -379,7 +439,7 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 .col-right { border-left: none; }
 
 /* ── Risk banner ── */
-.risk-banner { border-radius:18px; padding:20px; display:flex; gap:16px; align-items:center; border:2px solid transparent; overflow:hidden; }
+.risk-banner { border-radius:18px; padding:20px; display:flex; gap:16px; align-items:center; border:2px solid transparent; overflow:hidden; user-select:none; }
 .risk-banner.safe  { background:var(--safe-bg);  border-color:var(--safe); }
 .risk-banner.promo { background:var(--promo-bg); border-color:var(--promo); }
 .risk-banner.warn  { background:var(--warn-bg);  border-color:var(--warn); }
@@ -404,18 +464,14 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 .warn  .rb-tag { background:rgba(255,140,0,0.2);  color:var(--warn-text); }
 .scam  .rb-tag { background:rgba(255,45,45,0.2);  color:var(--scam-text); }
 .rb-title { font-size:28px; font-weight:900; line-height:1.3; word-break:break-all; }
-.rb-input { font-size:13px; color:var(--text-muted); font-family:'DM Mono',monospace; margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; display:block; }
+.rb-input { font-size:13px; color:var(--text-muted); font-family:'DM Mono',monospace; margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:0; min-width:100%; display:block; user-select:text; }
 
 /* ── Score card ── */
 .score-card { padding:16px 18px; }
 .score-labels { display:flex; justify-content:space-between; font-size:13px; color:var(--text-muted); margin-bottom:8px; }
 .score-track  { height:10px; background:var(--surface3); border-radius:100px; overflow:hidden; margin-bottom:8px; }
 .score-fill   { height:100%; border-radius:100px; width:0%; transition:width 1s 0.2s cubic-bezier(0.25,1,0.5,1); }
-.safe  .score-fill, .score-fill.safe  { background:var(--safe); }
-.promo .score-fill, .score-fill.promo { background:var(--promo); }
-.warn  .score-fill, .score-fill.warn  { background:linear-gradient(90deg,#ffb300,var(--warn)); }
-.scam  .score-fill, .score-fill.scam    { background:linear-gradient(90deg,var(--warn),var(--scam)); }
-.score-fill.unknown { background:linear-gradient(90deg,#8faa2e,#a8c44e); }
+.score-fill   { height:100%; border-radius:100px; width:0%; transition:width 1s 0.2s cubic-bezier(0.25,1,0.5,1); }
 .score-value { font-size:16px; font-weight:700; text-align:right; }
 .score-value.safe  { color:var(--safe-text); }
 .score-value.promo { color:var(--promo-text); }
@@ -429,7 +485,7 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 
 /* ── Reasons ── */
 .reasons { list-style:none; }
-.reasons li { display:flex; align-items:flex-start; gap:9px; padding:8px 0; font-size:20px; line-height:1.65; border-bottom:1px solid var(--border); }
+.reasons li { display:flex; align-items:flex-start; gap:9px; padding:8px 0; font-size:20px; line-height:1.65; border-bottom:1px solid var(--border); user-select:text; }
 .reasons li:last-child { border-bottom:none; }
 .ri { font-size:20px; flex-shrink:0; margin-top:2px; }
 
@@ -548,6 +604,21 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 .ert-text strong { display:block; font-size:18px; font-weight:900; color:var(--text); line-height:1.3; margin-bottom:4px; }
 .ert-text span   { font-size:12px; color:var(--text-sub); line-height:1.55; }
 
+/* ── 查無資料補充按鈕 ── */
+@keyframes contribute-pulse {
+  0%, 100% { box-shadow: 0 2px 12px rgba(168,196,78,0.2); transform: translateY(0); }
+  50%       { box-shadow: 0 6px 24px rgba(168,196,78,0.45); transform: translateY(-3px); }
+}
+.contribute-btn { display:flex; align-items:center; gap:14px; width:100%; border:2px solid #a8c44e; border-radius:14px; padding:18px 16px; background:linear-gradient(135deg, rgba(168,196,78,0.15), rgba(168,196,78,0.05)); color:var(--text); transition:all 0.18s; text-align:left; animation: contribute-pulse 2s ease-in-out infinite; will-change:transform; }
+.contribute-btn:hover { border-color:#8faa2e; background:linear-gradient(135deg, rgba(168,196,78,0.28), rgba(168,196,78,0.12)); animation:none; transform:translateY(-1px); box-shadow:0 4px 20px rgba(168,196,78,0.35); }
+.cb-icon { font-size:32px; flex-shrink:0; }
+.cb-text { flex:1; display:flex; flex-direction:column; gap:4px; will-change:auto; transform:translateZ(0); }
+.cb-title { font-size:16px; font-weight:900; color:#6a8a1a; }
+.cb-sub   { font-size:13px; color:var(--text-muted); }
+.cb-arrow { font-size:20px; font-weight:900; color:#8faa2e; flex-shrink:0; }
+[data-theme="dark"] .cb-title { color:#c8e060; }
+[data-theme="dark"] .cb-arrow { color:#c8e060; }
+
 /* ── Mobile: stack to single column ── */
 @media (max-width:900px) {
   .page-wrap { overflow-x: hidden; }
@@ -585,8 +656,5 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
   .act-btn .as { display: none; }
   /* Score value wrap */
   .score-value { font-size: 11px; }
-  /* Toggle labels hidden on small screens */
-  .toggle-label { display: none; }
-  .toggle-wrap  { padding: 5px 8px; }
 }
 </style>

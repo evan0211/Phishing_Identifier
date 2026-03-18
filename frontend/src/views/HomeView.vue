@@ -3,7 +3,7 @@
 
     <!-- Navbar — 在 page-wrap 頂層，window scroll 才能控制 -->
     <nav class="navbar" :class="{ hidden: navbarHidden }">
-      <span class="nav-title" @click="scrollToMain" style="cursor:pointer">防詐雷達 DEMO</span>
+      <span class="nav-title" @click="scrollToMain" style="cursor:pointer">防詐雷達</span>
       <div class="nav-actions">
         <!-- 設定按鈕 -->
         <div class="settings-wrap" ref="settingsWrap">
@@ -97,6 +97,7 @@
               @blur="isFocused = false"
               @paste="handlePaste"
               @input="autoResize"
+              @dblclick.prevent
               @keydown.enter.prevent="doCheck"
               @keydown.meta.enter.prevent="doCheck"
             ></textarea>
@@ -231,33 +232,36 @@
               <span class="hcbr-tag">本月</span>
               <div class="hcbr-track">
                 <div class="hcbr-fill now" :class="s.color"
-                  :style="{ width: statsVisible ? '100%' : '0%', transitionDelay: (i * 150 + 200) + 'ms' }"></div>
+                  :style="{ width: statsVisible ? Math.min(100, Math.round(s.currentRaw / s.lastRaw * 100)) + '%' : '0%', transitionDelay: (i * 150 + 200) + 'ms' }"></div>
               </div>
             </div>
             <div class="hc-bar-row">
               <span class="hcbr-tag muted">上月</span>
               <div class="hcbr-track">
                 <div class="hcbr-fill old"
-                  :style="{ width: statsVisible ? Math.min(99, Math.round(s.currentRaw / s.lastRaw * 100)) + '%' : '0%', transitionDelay: (i * 150 + 320) + 'ms' }"></div>
+                  :style="{ width: statsVisible ? '100%' : '0%', transitionDelay: (i * 150 + 320) + 'ms' }"></div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 四張小卡：今日 + 累計 + 手法 -->
-      <div class="mini-cards" v-if="cards.length">
-        <div
-          v-for="(s, i) in cards.filter(c => c.lastRaw === null)"
-          :key="'mini-'+i"
-          class="mini-card"
-          :class="['mini-card--' + s.color, { visible: statsVisible }]"
-          :style="{ transitionDelay: (i * 100 + 450) + 'ms' }">
-          <div class="mc-top">
-            <span class="mc-icon">{{ s.icon }}</span>
+      <!-- 四張小卡：今日數據（獨立，不受月份切換影響）-->
+      <div class="today-section" v-if="todayCards.length">
+        <div class="today-label">📅 今日數據</div>
+        <div class="mini-cards">
+          <div
+            v-for="(s, i) in todayCards"
+            :key="'today-'+i"
+            class="mini-card"
+            :class="['mini-card--' + s.color, { visible: statsVisible }]"
+            :style="{ transitionDelay: (i * 100 + 450) + 'ms' }">
+            <div class="mc-top">
+              <span class="mc-icon">{{ s.icon }}</span>
+            </div>
+            <div class="mc-num">{{ s.current }}</div>
+            <div class="mc-label">{{ s.title }}</div>
           </div>
-          <div class="mc-num">{{ s.current }}</div>
-          <div class="mc-label">{{ s.title }}</div>
         </div>
       </div>
 
@@ -402,6 +406,11 @@ const detectLabel = computed(() => ({ url: '🔗 網址', phone: '📞 電話號
 function autoResize() {
   const el = textareaRef.value
   if (!el) return
+  // 沒有內容時重置回最小高度，避免雙擊空白區域撐大
+  if (!el.value.trim()) {
+    el.style.height = ''
+    return
+  }
   el.style.height = 'auto'
   el.style.height = Math.min(el.scrollHeight, 220) + 'px'
 }
@@ -526,8 +535,9 @@ function scrollToStats() {
 function scrollToMain()  { window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
 // ── Stats（從後端 /api/stats 載入）──
-const statsPeriods  = ref([])   // 所有期別資料
-const statsTabIndex = ref(0)    // 目前選中的 tab
+const statsPeriods  = ref([])   // 所有期別資料（舊→新，新的在右邊）
+const statsTabIndex = ref(0)    // 目前選中的 tab（預設最後一個 = 最新）
+const todayCards    = ref([])   // 今日數據（獨立，不受月份切換影響）
 const stats         = computed(() => statsPeriods.value[statsTabIndex.value]?.stats ?? [])
 const cards         = computed(() => statsPeriods.value[statsTabIndex.value]?.cards ?? [])
 const statsLabel    = computed(() => statsPeriods.value[statsTabIndex.value]?.label ?? '')
@@ -537,20 +547,26 @@ async function loadStats() {
   try {
     const d = await getStatsPeriods()
     statsPeriods.value = d.periods ?? []
+    todayCards.value   = d.todayCards ?? []
+    // 預設選最新月份（最後一個 tab）
+    statsTabIndex.value = Math.max(0, statsPeriods.value.length - 1)
   } catch {
     statsError.value = true
     // 載入失敗時顯示備用靜態資料
     statsPeriods.value = [{
       label: '115年2月',
-      stats: [
-        { icon:'💸', num:'46.4 億元', label:'詐騙財產損失金額',          source:'165打詐儀表板 115/02', pct:88, color:'red'    },
-        { icon:'🎣', num:'7,792 件',  label:'詐騙案件受理數',            source:'165打詐儀表板 115/02', pct:55, color:'orange' },
-        { icon:'🛒', num:'2,142 件',  label:'網路購物詐騙（當月第1名）',  source:'165打詐儀表板 115/02', pct:42, color:'orange' },
-        { icon:'📈', num:'20.7 億元', label:'假投資詐騙財損（當月第2名）',source:'165打詐儀表板 115/02', pct:80, color:'red'    },
-        { icon:'💑', num:'732 件',    label:'假交友投資詐騙（當月第3名）',source:'165打詐儀表板 115/02', pct:28, color:'orange' },
-        { icon:'🎣', num:'497 件',    label:'釣魚連結詐騙（當月第4名）',  source:'165打詐儀表板 115/02', pct:19, color:'blue'   },
+      cards: [
+        { icon:'💸', title:'本月財產損失金額（元）', current:'46 億 4,000 萬', currentRaw:464000, last:'39 億 2,000 萬', lastRaw:392000, change:18.4, color:'red' },
+        { icon:'🎣', title:'本月案件受理數（件）',   current:'7,792',          currentRaw:7792,   last:'6,601',         lastRaw:6601,   change:18.0, color:'orange' },
       ]
     }]
+    todayCards.value = [
+      { icon:'📅', title:'今日詐騙案件數',   current:'約 260 件',   currentRaw:260,  last:null, lastRaw:null, change:null, color:'orange' },
+      { icon:'💰', title:'今日損失金額',     current:'約 1,547 萬', currentRaw:1547, last:null, lastRaw:null, change:null, color:'red'    },
+      { icon:'🚨', title:'累計詐騙通報件數', current:'93,504 件',   currentRaw:93504,last:null, lastRaw:null, change:null, color:'blue'   },
+      { icon:'🏆', title:'今日最常見詐騙手法',current:'網路購物詐騙',currentRaw:null, last:null, lastRaw:null, change:null, color:'orange' },
+    ]
+    statsTabIndex.value = 0
   }
 }
 
@@ -598,17 +614,15 @@ function renderChart() {
   if (!chartCanvas.value || !chartData.value.length) return
   if (chartInstance) { chartInstance.destroy(); chartInstance = null }
 
-  const isDarkMode = document.documentElement.classList.contains('dark') || 
-                     document.body.classList.contains('dark') ||
-                     window.matchMedia('(prefers-color-scheme: dark)').matches
+  const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark'
 
   const labels  = chartData.value.map(m => m.label)
   const isLoss  = chartMode.value === 'losses'
   const values  = chartData.value.map(m => isLoss ? Math.round(m.losses / 10000) : m.cases)
   const color   = isLoss ? '#ff6b6b' : '#4d6ef5'
   const colorBg = isLoss ? 'rgba(255,107,107,0.12)' : 'rgba(77,110,245,0.12)'
-  const gridColor = isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
-  const textColor = isDarkMode ? 'rgba(255,255,255,0.5)'  : 'rgba(0,0,0,0.45)'
+  const gridColor = isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
+  const textColor = isDarkMode ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.65)'
 
   chartInstance = new Chart(chartCanvas.value, {
     type: 'line',
@@ -670,6 +684,8 @@ function renderChart() {
 
 // 切換模式時重繪
 watch(chartMode, () => { renderChart() })
+// 切換主題時重繪
+watch(isDark, () => { renderChart() })
 
 function showToast(msg, type='') {
   toastMsg.value = msg; toastType.value = type; toastVisible.value = true
@@ -762,7 +778,7 @@ onUnmounted(() => {
 /* ── Navbar ── */
 .navbar { background:var(--navbar-bg); padding:10px 20px; display:flex; align-items:center; justify-content:space-between; transition:background 0.25s, transform 0.18s cubic-bezier(0.4,0,0.2,1); position:fixed; top:0; left:0; right:0; z-index:200; }
 .navbar.hidden { transform:translateY(-100%); }
-.nav-title { color:rgba(255,255,255,0.9); font-size:14px; font-weight:700; }
+.nav-title { color:rgba(255,255,255,0.9); font-size:14px; font-weight:700; user-select:none; }
 .nav-actions { display:flex; gap:10px; align-items:center; }
 
 /* 設定按鈕 */
@@ -799,7 +815,7 @@ header { text-align:center; flex-shrink:0; }
 
 /* Header */
 header { text-align:center; }
-header h1 { font-size:28px; font-weight:700; letter-spacing:-0.5px; line-height:1.5; color:var(--text); }
+header h1 { font-size:28px; font-weight:700; letter-spacing:-0.5px; line-height:1.5; color:var(--text); user-select:none; }
 header h1 span { color:var(--primary); }
 .page-wrap.elder header h1 { font-size:34px; }
 
@@ -846,11 +862,11 @@ header h1 span { color:var(--primary); }
 .img-thumb:hover .img-expand { opacity:1; }
 
 /* Textarea */
-.textarea-wrap { padding:14px 18px 44px; position:relative; margin:12px 14px 0; border:1.5px solid var(--border); border-radius:14px; background:var(--surface2); transition:border-color 0.2s, background 0.2s; }
+.textarea-wrap { padding:14px 18px 44px; position:relative; margin:12px 14px 0; border:1.5px solid var(--border); border-radius:14px; background:var(--surface2); transition:border-color 0.2s, background 0.2s; overflow:hidden; cursor:default; }
 .input-card.focused .textarea-wrap { border-color:var(--primary); background:var(--surface); }
-.smart-input { width:100%; resize:none; border:none; outline:none; background:transparent; font-family:'Noto Sans TC',sans-serif; font-size:16px; color:var(--text); line-height:1.7; min-height:68px; max-height:220px; overflow-y:auto; box-sizing:border-box; }
+.smart-input { width:100%; resize:none; border:none; outline:none; background:transparent; font-family:'Noto Sans TC',sans-serif; font-size:16px; color:var(--text); line-height:1.7; height:68px; min-height:68px; max-height:220px; overflow-y:auto; box-sizing:border-box; display:block; }
 .smart-input::placeholder { color:transparent; }
-.page-wrap.elder .smart-input              { font-size:22px; min-height:140px; }
+.page-wrap.elder .smart-input { font-size:22px; height:140px; min-height:140px; }
 .page-wrap.elder .smart-input::placeholder { font-size:20px; }
 
 /* Animated placeholder — scrolls top→bottom: new enters from top, old exits to bottom */
@@ -999,7 +1015,7 @@ header h1 span { color:var(--primary); }
 .hcbr-fill.now.red    { background: linear-gradient(90deg, var(--warn), var(--scam)); }
 .hcbr-fill.now.orange { background: linear-gradient(90deg, #ffb300, var(--warn)); }
 .hcbr-fill.now.blue   { background: linear-gradient(90deg, var(--primary), #7c93ff); }
-.hcbr-fill.old { background: var(--surface3); filter: brightness(1.8); }
+.hcbr-fill.old { background: var(--text-muted); opacity: 0.45; }
 
 /* ── 入場動畫 ── */
 /* 英雄卡：左右滑入 */
@@ -1047,6 +1063,22 @@ header h1 span { color:var(--primary); }
 }
 .hero-card.visible .hc-num { animation: numPop 0.5s cubic-bezier(0.34,1.4,0.64,1) forwards; animation-delay: inherit; }
 .mini-card.visible .mc-num  { animation: numPop 0.45s cubic-bezier(0.34,1.4,0.64,1) forwards; animation-delay: inherit; }
+
+/* ── 今日數據區塊 ── */
+.today-section {
+  max-width: 1000px;
+  width: 100%;
+  position: relative; z-index: 1;
+}
+.today-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  padding-left: 2px;
+}
 
 /* ── 小卡（今日＋累計＋手法）── */
 .mini-cards {

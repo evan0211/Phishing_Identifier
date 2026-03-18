@@ -180,6 +180,7 @@ onMounted(() => {
   display: flex; align-items: center; gap: 8px;
   padding: 9px 14px; cursor: pointer; font-size: 14px;
   transition: background 0.15s;
+  user-select: none;
 }
 .cc-item:hover, .cc-item.active { background: var(--surface2); }
 .cc-item-name { flex: 1; color: var(--text); }
