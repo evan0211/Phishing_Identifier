@@ -189,7 +189,6 @@
       </div>
 
       <div class="stats-header">
-        <div class="stats-badge">📊 台灣詐騙現況</div>
         <h2>您必須知道的<span>詐騙數字</span></h2>
         <!-- 期別 tab 切換 -->
         <div class="stats-tabs" v-if="statsPeriods.length > 1">
@@ -518,7 +517,12 @@ async function checkHealth() {
 }
 
 // ── Scroll ──
-function scrollToStats() { statsPage.value?.scrollIntoView({ behavior: 'smooth' }) }
+function scrollToStats() {
+  if (!statsPage.value) return
+  // 補償 fixed navbar 高度（44px）
+  const top = statsPage.value.getBoundingClientRect().top + window.scrollY - 44
+  window.scrollTo({ top, behavior: 'smooth' })
+}
 function scrollToMain()  { window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
 // ── Stats（從後端 /api/stats 載入）──
@@ -702,11 +706,11 @@ function onScroll() {
     navbarHidden.value = true
   }
   lastScrollY = y
-  // 停止滾動 400ms 後顯示
+  // 停止滾動 150ms 後顯示
   clearTimeout(scrollStopTimer)
   scrollStopTimer = setTimeout(() => {
     navbarHidden.value = false
-  }, 400)
+  }, 150)
 }
 
 onMounted(() => {
@@ -756,7 +760,7 @@ onUnmounted(() => {
 @keyframes glowIn { from{opacity:0} to{opacity:1} }
 
 /* ── Navbar ── */
-.navbar { background:var(--navbar-bg); padding:10px 20px; display:flex; align-items:center; justify-content:space-between; transition:background 0.25s, transform 0.3s ease; position:fixed; top:0; left:0; right:0; z-index:200; }
+.navbar { background:var(--navbar-bg); padding:10px 20px; display:flex; align-items:center; justify-content:space-between; transition:background 0.25s, transform 0.18s cubic-bezier(0.4,0,0.2,1); position:fixed; top:0; left:0; right:0; z-index:200; }
 .navbar.hidden { transform:translateY(-100%); }
 .nav-title { color:rgba(255,255,255,0.9); font-size:14px; font-weight:700; }
 .nav-actions { display:flex; gap:10px; align-items:center; }
@@ -925,9 +929,9 @@ header h1 span { color:var(--primary); }
 @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
 
 /* ══ PAGE 2: STATS ══ */
-.page-stats { background:var(--bg); padding:0 20px 40px; align-items:center; gap: 12px; display: flex; flex-direction: column; }
+.page-stats { background:var(--bg); padding:0 20px 40px; align-items:center; gap: 12px; display: flex; flex-direction: column; height:100vh; overflow:hidden; }
 
-.stats-header { text-align:center; padding:32px 20px 20px; position:relative; z-index:1; }
+.stats-header { text-align:center; padding:64px 20px 20px; position:relative; z-index:1; }
 .stats-badge { display:inline-block; background:var(--primary-light); color:var(--primary); border:1.5px solid rgba(45,71,232,0.25); border-radius:100px; padding:6px 18px; font-size:12px; font-weight:700; letter-spacing:1px; margin-bottom:14px; }
 .stats-header h2 { font-size:32px; font-weight:900; letter-spacing:-0.5px; line-height:1.2; }
 .stats-header h2 span { color:var(--scam); }
