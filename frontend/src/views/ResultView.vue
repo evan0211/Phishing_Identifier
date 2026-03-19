@@ -35,7 +35,7 @@
       <div class="col col-left">
 
         <!-- Risk banner -->
-        <div class="risk-banner" :class="mode">
+        <div class="risk-banner" :class="[mode, mode.includes('_') ? mode.split('_')[0] : mode]">
           <div class="rb-badge">
             <span class="rb-icon">{{ ICONS[mode] }}</span>
           </div>
@@ -49,10 +49,32 @@
         <!-- Score bar -->
         <div class="section-card score-card">
           <div class="score-labels"><span>安全 0</span><span>100 高風險</span></div>
-          <div class="score-track">
-            <div class="score-fill" :class="mode" :style="{ width: barWidth + '%' }"></div>
+
+          <!-- Gogolook 分數條 -->
+          <div class="dual-bar-row">
+            <span class="dbar-label">Gogolook</span>
+            <div class="dbar-track">
+              <div class="dbar-fill ggl" :style="{ width: (result?.ggl?.score ?? barWidth) + '%' }"></div>
+            </div>
+            <span class="dbar-val ggl-text">{{ result.score }}</span>
           </div>
-          <div class="score-value" :class="mode">風險分數：{{ result.score }} / 100</div>
+
+          <!-- AI 分數條 -->
+          <div class="dual-bar-row" v-if="llmAnalysis?.score !== undefined">
+            <span class="dbar-label">AI</span>
+            <div class="dbar-track">
+              <div class="dbar-fill ai" :style="{ width: llmBarWidth + '%' }"></div>
+            </div>
+            <span class="dbar-val ai-text">{{ llmAnalysis.score }}</span>
+          </div>
+
+          <!-- 加權綜合分數 -->
+          <div class="weighted-score" v-if="llmAnalysis?.score !== undefined">
+            <span class="ws-label">綜合評分</span>
+            <span class="ws-val" :class="mode">{{ weightedScore }} 分</span>
+            <span class="ws-formula">（Gogolook×55% + AI×45%）</span>
+          </div>
+          <div class="score-value" :class="mode" v-else>風險分數：{{ result?.ggl?.score ?? result.score }} / 100</div>
         </div>
 
         <!-- Reasons -->
@@ -68,25 +90,87 @@
 
       </div><!-- /col-left -->
 
-      <!-- ── RIGHT COLUMN: 行動建議 ── -->
+
+
+      <!-- ── AI 分析第三欄 ── -->
+      <div class="col col-ai" v-if="llmAnalysis || isLoadingLLM">
+
+        <div class="section-card llm-card">
+          <div class="sec-title">🤖 AI 深度分析</div>
+          <div class="llm-loading" v-if="isLoadingLLM">
+            <span class="spinner">⏳</span>
+            <span>AI 正在分析中...</span>
+          </div>
+          <template v-else-if="llmAnalysis">
+            <div class="llm-score-row" v-if="llmAnalysis.score !== undefined">
+              <span class="lsr-label">AI 風險評分</span>
+              <span class="lsr-val" :class="llmAnalysis.level">{{ llmAnalysis.score }} 分</span>
+            </div>
+            <div class="llm-fraud-type" v-if="llmAnalysis.fraud_type">
+              <span class="lft-icon">🎯</span>
+              <div class="lft-text">
+                <strong>詐騙手法</strong>
+                <span>{{ llmAnalysis.fraud_type }}</span>
+              </div>
+            </div>
+            <div class="llm-suggestion" v-if="llmAnalysis.suggestion">
+              <span class="ls-icon">💡</span>
+              <p>{{ llmAnalysis.suggestion }}</p>
+            </div>
+          </template>
+        </div>
+
+        <div class="section-card advice-card" v-if="llmAdvice">
+          <div class="sec-title">🛡️ 專業對策建議</div>
+          <div class="advice-section" v-if="llmAdvice.immediate_actions?.length">
+            <div class="advice-title">⚡ 立即行動</div>
+            <ul class="advice-list">
+              <li v-for="(action, i) in llmAdvice.immediate_actions" :key="i">
+                <span class="al-icon">✓</span><span>{{ action }}</span>
+              </li>
+            </ul>
+          </div>
+          <div class="advice-section" v-if="llmAdvice.avoid_actions?.length">
+            <div class="advice-title">🚫 絕對不要</div>
+            <ul class="advice-list avoid">
+              <li v-for="(action, i) in llmAdvice.avoid_actions" :key="i">
+                <span class="al-icon">✗</span><span>{{ action }}</span>
+              </li>
+            </ul>
+          </div>
+          <div class="advice-section" v-if="llmAdvice.report_steps?.length">
+            <div class="advice-title">📢 舉報步驟</div>
+            <ol class="advice-steps">
+              <li v-for="(step, i) in llmAdvice.report_steps" :key="i">{{ step }}</li>
+            </ol>
+          </div>
+          <div class="advice-recovery" v-if="llmAdvice.recovery_tips">
+            <div class="advice-title">🔧 若已受騙</div>
+            <p>{{ llmAdvice.recovery_tips }}</p>
+          </div>
+        </div>
+
+      </div><!-- /col-ai -->
+
+            <!-- ── RIGHT COLUMN: 行動建議 ── -->
       <div class="col col-right">
 
         <!-- Visit site (URL only) — top of right col -->
         <div class="section-card visit-card" v-if="lastType === 'url'">
-          <div class="visit-warning" v-if="mode === 'scam'">
+          <div class="visit-warning" v-if="isScamLevel">
             ⚠️ <strong>警告：</strong>此網站已被標記為詐騙，強烈不建議前往。
           </div>
-          <button class="visit-btn" :class="{ 'visit-safe': mode === 'safe', 'visit-promo': mode === 'promo' }" @click="confirmVisit">
-            {{ mode === 'safe' ? '🔗 前往此網站' : '⚠️ 仍要前往此網站（不建議）' }}
+          <button class="visit-btn" :class="{ 'visit-safe': isSafeLevel, 'visit-promo': mode.startsWith('promo') }" @click="confirmVisit">
+            {{ isSafeLevel ? '🔗 前往此網站' : '⚠️ 仍要前往此網站（不建議）' }}
           </button>
         </div>
 
         <!-- Elder guidance tip -->
         <div class="elder-result-tip" v-if="isElder">
-          <span class="ert-icon">{{ mode === 'scam' ? '🚨' : mode === 'warn' ? '⚠️' : '💡' }}</span>
+          <span class="ert-icon">{{ isScamLevel ? '🚨' : ['suspect_high','suspect_low','promo_warn','warn'].includes(mode) ? '⚠️' : '💡' }}</span>
           <div class="ert-text">
-            <strong>{{ mode === 'scam' ? '此為詐騙！請不要點擊任何連結或輸入資料' : mode === 'warn' ? '此來源可疑，請謹慎處理' : mode === 'unknown' ? '查無此號碼資料，請謹慎判斷' : '此來源安全，您可以放心' }}</strong>
-            <span>{{ mode === 'scam' ? '建議立即使用下方「一鍵封鎖」並撥打 165 反詐騙專線。' : mode === 'warn' ? '建議先封鎖，若有疑問可撥打 165 確認。' : '如仍有疑慮，歡迎撥打 165 反詐騙專線查詢。' }}</span>
+            <strong>{{ ['scam','promo_scam'].includes(mode) ? '此為詐騙！請不要點擊任何連結或輸入資料' : ['suspect_high','promo_warn'].includes(mode) ? '此來源高度可疑，請謹慎處理' : ['suspect_low'].includes(mode) ? '此來源輕度可疑，建議確認後再操作' : mode === 'unknown' ? '查無此號碼資料，請謹慎判斷' : '此來源安全，您可以放心' }}</strong>
+            <span>{{ isScamLevel ? '建議立即封鎖並撥打 165 反詐騙專線。' : ['suspect_high','suspect_low','promo_warn'].includes(mode) ? '建議先封鎖，若有疑問可撥打 165 確認。' : '如仍有疑慮，歡迎撥打 165 反詐騙專線查詢。' }}</span>
           </div>
         </div>
 
@@ -132,7 +216,7 @@
           </div>
         </div>
 
-      </div><!-- /col-right -->
+</div><!-- /col-right -->
 
     </main>
 
@@ -189,7 +273,7 @@ import { useRouter } from 'vue-router'
 import { useTheme } from '../composables/useTheme.js'
 import { useElder } from '../composables/useElder.js'
 import { resultState } from '../composables/useResult.js'
-import { report } from '../services/api.js'
+import { report, analyzeLLMText, getLLMAdvice } from '../services/api.js'
 
 const router = useRouter()
 const { isDark, toggle: toggleTheme } = useTheme()
@@ -198,38 +282,135 @@ const { isElder, toggle: toggleElderFn } = useElder()
 const result    = computed(() => resultState.data)
 const lastInput = computed(() => resultState.lastInput)
 const lastType  = computed(() => resultState.lastType)
-const mode      = computed(() => result.value?.level || '')
+const mode = computed(() => {
+  const lv = result.value?.level || ''
+  // Map new levels to CSS class
+  if (['safe_high','safe_low','safe'].includes(lv)) return 'safe'
+  if (['suspect_low','warn'].includes(lv)) return 'warn'
+  if (['suspect_high'].includes(lv)) return 'warn'
+  if (['promo_safe','promo'].includes(lv)) return 'promo'
+  if (['promo_warn','promo_scam'].includes(lv)) return 'warn'
+  if (lv === 'scam') return 'scam'
+  if (lv === 'unknown') return 'unknown'
+  return lv
+})
 
-const ICONS = { safe:'✅', promo:'📣', warn:'⚠️', scam:'🚨', unknown:'❓' }
-const TAGS  = { safe:'安全', promo:'推銷（安全）', warn:'推銷（可疑）', scam:'詐騙', unknown:'查無資料' }
-const RI    = lv => lv==='scam' ? '🔴' : lv==='warn' ? '🟡' : lv==='unknown' ? '⚪' : '🟢'
-const NEXT  = {
-  safe:  [{ i:'✅', t:'可以安全瀏覽',       s:'此來源無詐騙紀錄，請放心。' }],
-  promo: [{ i:'📋', t:'確認是否為您主動訂閱', s:'若非本人訂閱，可封鎖。' },
-          { i:'🔕', t:'不需要可直接封鎖',    s:'點選一鍵封鎖加入黑名單。' }],
-  warn:  [{ i:'⛔', t:'不要點擊連結',        s:'可疑推銷常隱藏惡意導向。' },
-          { i:'👨‍👩‍👧', t:'詢問家人或朋友確認',  s:'讓信任的人幫你確認。' },
-          { i:'📢', t:'建議通報',            s:'協助保護其他可能受害者。' }],
-  scam:  [{ i:'🚫', t:'立即停止任何操作',    s:'不要點擊、不要輸入資料。' },
-          { i:'💳', t:'立刻聯絡銀行',        s:'撥卡片背面號碼申請凍結。' },
-          { i:'📞', t:'撥打 165 反詐騙',    s:'24 小時，由專人協助。' },
-          { i:'👮', t:'向警察局報案',        s:'保留截圖向派出所報案。' }],
-  unknown: [{ i:'❓', t:'號碼查無資料',       s:'資料庫中無此號碼的詳細資訊。' },
+// 判斷是否為安全等級（用於前往網站按鈕）
+const isSafeLevel = computed(() => {
+  const lv = result.value?.level || ''
+  return ['safe', 'safe_high', 'safe_low', 'promo_safe'].includes(lv)
+})
+
+// 判斷是否為詐騙等級（用於全版警告）
+const isScamLevel = computed(() => {
+  const lv = result.value?.level || ''
+  return ['scam', 'promo_scam'].includes(lv)
+})
+
+// LLM 分析相關
+const llmAnalysis = ref(null)
+const llmAdvice = ref(null)
+const isLoadingLLM = ref(false)
+
+const ICONS = {
+  safe_high: '✅', safe_low: '🟢',
+  suspect_low: '🟡', suspect_high: '🟠',
+  scam: '🚨',
+  promo_safe: '📣', promo_warn: '📣⚠️', promo_scam: '📣🚨',
+  unknown: '❓',
+  // 舊等級 fallback
+  safe: '✅', promo: '📣', warn: '⚠️',
+}
+const TAGS  = {
+  safe_high: '完全安全', safe_low: '安全（低風險）',
+  suspect_low: '輕度可疑', suspect_high: '高度可疑',
+  scam: '詐騙',
+  promo_safe: '行銷推廣（安全）', promo_warn: '行銷推廣（可疑）', promo_scam: '行銷推廣（詐騙）',
+  unknown: '查無資料',
+  safe: '安全', promo: '推銷', warn: '可疑',
+}
+const RI = lv => {
+  if (['scam','promo_scam'].includes(lv)) return '🔴'
+  if (['suspect_high','promo_warn'].includes(lv)) return '🟠'
+  if (['suspect_low'].includes(lv)) return '🟡'
+  if (lv === 'unknown') return '⚪'
+  return '🟢'
+}
+const NEXT = {
+  safe_high: [{ i:'✅', t:'完全安全可放心使用', s:'Gogolook 與 AI 雙重確認安全。' }],
+  safe_low:  [{ i:'🟢', t:'安全但保持警覺',    s:'風險極低，正常使用即可。' }],
+  suspect_low:  [{ i:'🟡', t:'輕度可疑，謹慎使用', s:'不要輕易提供個人資料。' },
+                 { i:'👨‍👩‍👧', t:'詢問家人或朋友確認', s:'讓信任的人幫你確認。' }],
+  suspect_high: [{ i:'🟠', t:'高度可疑，建議封鎖', s:'請勿點擊或提供任何資料。' },
+                 { i:'📢', t:'建議通報',           s:'協助保護其他可能受害者。' }],
+  scam:  [{ i:'🚫', t:'立即停止任何操作',   s:'不要點擊、不要輸入資料。' },
+          { i:'💳', t:'立刻聯絡銀行',       s:'撥卡片背面號碼申請凍結。' },
+          { i:'📞', t:'撥打 165 反詐騙',   s:'24 小時，由專人協助。' },
+          { i:'👮', t:'向警察局報案',       s:'保留截圖向派出所報案。' }],
+  promo_safe: [{ i:'📣', t:'確認是否為主動訂閱', s:'若非本人訂閱，可封鎖。' }],
+  promo_warn: [{ i:'📣', t:'行銷但有可疑跡象',   s:'請確認來源是否可信。' },
+               { i:'🔕', t:'不需要可直接封鎖',   s:'點選一鍵封鎖加入黑名單。' }],
+  promo_scam: [{ i:'🚫', t:'疑似詐騙偽裝推銷',   s:'不要點擊或提供資料。' },
+               { i:'📢', t:'建議通報',            s:'協助保護其他用戶。' }],
+  unknown: [{ i:'❓', t:'號碼查無資料',       s:'資料庫中無此號碼資訊。' },
             { i:'🤔', t:'謹慎判斷是否接聽',   s:'陌生來電請提高警覺。' },
             { i:'📞', t:'如有疑慮撥打 165',   s:'24 小時反詐騙專線諮詢。' }],
+  // fallback
+  safe:  [{ i:'✅', t:'可以安全瀏覽', s:'此來源無詐騙紀錄。' }],
+  warn:  [{ i:'⚠️', t:'請謹慎使用',   s:'建議不要提供個人資料。' }],
+  promo: [{ i:'📋', t:'確認是否為主動訂閱', s:'若非本人訂閱，可封鎖。' }],
 }
 const nextSteps = computed(() => NEXT[mode.value] || [])
 
-const barWidth = ref(0)
-onMounted(() => { setTimeout(() => { barWidth.value = result.value?.score || 0 }, 120) })
+const barWidth    = ref(0)
+const llmBarWidth = ref(0)
+
+// 新格式：Lambda 已計算好加權分數
+const weightedScore = computed(() => result.value?.score ?? 0)
+// Gogolook 原始分數
+const gglScoreVal = computed(() => result.value?.ggl?.score ?? result.value?.score ?? 0)
+
+onMounted(async () => {
+  setTimeout(() => {
+    // Gogolook 條用 ggl.score，AI 條用 ai.score
+    barWidth.value = gglScoreVal.value
+  }, 120)
+
+  // 自動解析新格式 AI 資料
+  if (lastInput.value) {
+    performLLMAnalysis()
+  }
+})
+
+// 解析新格式 AI 資料（result 已包含 ggl + ai + advice）
+function performLLMAnalysis() {
+  const data = result.value
+  if (!data) return
+
+  if (data.ai) {
+    // 新格式：ai 欄位已內嵌
+    llmAnalysis.value = {
+      score:      data.ai.score,
+      fraud_type: data.ai.fraud_type,
+      suggestion: data.ai.suggestion,
+      reasoning:  data.ai.reasoning,
+      level:      data.level,
+    }
+    setTimeout(() => { llmBarWidth.value = data.ai.score ?? 0 }, 120)
+    if (data.advice) llmAdvice.value = data.advice
+  } else if (lastType.value !== 'image' && lastType.value !== 'screenshot') {
+    // 舊格式（截圖或未走 LLM）：不額外呼叫，避免重複消耗 token
+    console.log('[ResultView] 非 LLM 格式，跳過 AI 分析')
+  }
+}
 
 function goBack() { router.push('/') }
 function toggleElder() { toggleElderFn(); showToast(isElder.value ? '👴 長輩模式已開啟' : '長輩模式已關閉', 'ok') }
 
 function confirmVisit() {
   const url = lastInput.value.startsWith('http') ? lastInput.value : `https://${lastInput.value}`
-  if (mode.value === 'safe') { window.open(url, '_blank', 'noopener'); return }
-  if (mode.value === 'scam') { openScamFs(); return }
+  if (isSafeLevel.value) { window.open(url, '_blank', 'noopener'); return }
+  if (isScamLevel.value) { openScamFs(); return }
   openConfirm('⚠️ 確定前往此網站？', '此網站被標記為可疑，前往請謹慎。', '仍要前往', () => {
     window.open(url, '_blank', 'noopener'); closeConfirm()
   })
@@ -341,18 +522,19 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 /* ── BOOK-STYLE TWO-COLUMN MAIN ── */
 .result-main {
   flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
-  max-width: 1200px;
+  display: flex;
+  flex-direction: row;
+  max-width: 1400px;
   width: 100%;
   margin: 24px auto;
   padding: 0 32px 52px;
   align-items: stretch;
+  min-height: 80vh;
 }
 
 /* Left page */
 .col-left {
+  flex: 1; min-width: 0;
   display: flex; flex-direction: column; gap: 14px;
   background: var(--surface);
   border: 1.5px solid var(--border);
@@ -365,12 +547,14 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 
 /* Right page */
 .col-right {
+  flex: 1; min-width: 0;
   display: flex; flex-direction: column; gap: 14px;
   background: var(--surface2);
   border: 1.5px solid var(--border);
   border-radius: 0 18px 18px 0;
+  overflow: hidden;
   padding: 24px;
-  box-shadow: 6px 0 32px rgba(0,0,0,0.10), inset 4px 0 12px rgba(0,0,0,0.04);
+  box-shadow: inset 4px 0 12px rgba(0,0,0,0.04);
   transition: background 0.25s, border-color 0.25s;
 }
 
@@ -425,6 +609,8 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 /* ── Section cards — no extra bg inside the book pages ── */
 .section-card { background: transparent; border: 1.5px solid var(--border); border-radius: 14px; padding: 16px; transition: border-color 0.25s; box-shadow: none; }
 .col-right .section-card { background: transparent; }
+.col-left .section-card:last-child { flex: 1; }
+.col-right .section-card:last-child { flex: 1; }
 .sec-title { font-size:13px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--text-muted); margin-bottom:14px; }
 
 /* ── Reasons ── */
@@ -558,6 +744,7 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+    min-height: 100vh;
   }
   .col-left {
     border-right: 1.5px solid var(--border);
@@ -571,11 +758,43 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
   .col-right {
     border-left: 1.5px solid var(--border);
     border-top: none;
-    border-radius: 0 0 18px 18px;
+    border-radius: 0 0 0 0;
     box-shadow: none;
     padding: 16px;
     min-width: 0;
   }
+  .col-ai {
+    border: 1.5px solid var(--border);
+    border-top: none;
+    border-radius: 0 ;
+    padding: 16px;
+  }
+.col-ai {
+  flex: 1;
+  min-width: 0;
+
+  display: flex;              /* 🔥 關鍵 */
+  flex-direction: column;     /* 🔥 關鍵 */
+  gap: 14px;
+
+  border: 1.5px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 18px 18px;
+  padding: 16px;
+}
+.col-ai .llm-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.col-ai .section-card{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.col-left .section-card:last-child { flex: 1; }
+.col-right .section-card:last-child { flex: 1; }
   /* Prevent banner text overflow */
   .rb-title  { font-size: 18px; }
   .rb-input  { max-width: calc(100vw - 140px); }
@@ -589,4 +808,203 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
   .toggle-label { display: none; }
   .toggle-wrap  { padding: 5px 8px; }
 }
+
+/* ══════════════════════════════════════════
+   LLM 分析樣式
+══════════════════════════════════════════ */
+.llm-card {
+  background: linear-gradient(135deg, rgba(100,120,255,0.08), rgba(100,120,255,0.03));
+  border-color: rgba(100,120,255,0.25);
+}
+
+.llm-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  color: var(--text-sub);
+}
+
+.spinner {
+  font-size: 24px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.llm-fraud-type {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.lft-icon { font-size: 24px; flex-shrink: 0; }
+.lft-text strong {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 3px;
+}
+.lft-text span {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.llm-suggestion {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: rgba(100,120,255,0.10);
+  border-radius: 10px;
+  padding: 12px 14px;
+  line-height: 1.6;
+}
+
+.ls-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+
+/* 對策建議卡片 */
+.advice-card {
+  background: linear-gradient(135deg, rgba(255,140,0,0.08), rgba(255,140,0,0.03));
+  border-color: rgba(255,140,0,0.25);
+}
+
+.advice-section { margin-bottom: 16px; }
+.advice-section:last-child { margin-bottom: 0; }
+
+.advice-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.advice-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.advice-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  background: var(--surface2);
+  border-radius: 8px;
+}
+
+.al-icon {
+  flex-shrink: 0;
+  font-weight: 900;
+  color: var(--safe);
+}
+
+.advice-list.avoid .al-icon {
+  color: var(--scam);
+}
+
+.advice-steps {
+  list-style: none;
+  counter-reset: step;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.advice-steps li {
+  counter-increment: step;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  background: var(--surface2);
+  border-radius: 8px;
+}
+
+.advice-steps li::before {
+  content: counter(step);
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.advice-recovery {
+  background: rgba(255,140,0,0.10);
+  border: 1.5px solid rgba(255,140,0,0.25);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.advice-recovery p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  margin-top: 6px;
+}
+
+
+.llm-score-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; padding:8px 12px; background:var(--surface2); border-radius:10px; }
+.lsr-label { font-size:12px; color:var(--text-sub); font-weight:600; }
+.lsr-val { font-size:18px; font-weight:900; }
+.lsr-val.safe    { color:var(--safe); }
+.lsr-val.warn    { color:var(--warn); }
+.lsr-val.scam    { color:var(--scam); }
+
+
+/* ── 雙色分數條 ── */
+.dual-bar-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.dbar-label { font-size:10px; font-weight:700; color:rgba(128,128,128,0.8); width:52px; flex-shrink:0; letter-spacing:0.3px; }
+.dbar-track { flex:1; height:8px; background:rgba(128,128,128,0.15); border-radius:100px; overflow:hidden; }
+.dbar-fill  { height:100%; border-radius:100px; width:0%; transition:width 1.2s cubic-bezier(0.22,1,0.36,1) 0.2s; }
+
+/* Gogolook：固定橘紅漸層（深淺色皆清晰） */
+.dbar-fill.ggl { background: linear-gradient(90deg, #f97316, #ef4444); }
+.dbar-val.ggl-text { font-size:12px; font-weight:800; color:#ef4444; width:24px; text-align:right; flex-shrink:0; }
+
+/* AI：固定藍紫漸層（深淺色皆清晰） */
+.dbar-fill.ai  { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+.dbar-val.ai-text { font-size:12px; font-weight:800; color:#6366f1; width:24px; text-align:right; flex-shrink:0; }
+
+/* 加權綜合分數 */
+.weighted-score { display:flex; align-items:center; gap:8px; margin-top:6px; padding-top:8px; border-top:1px solid var(--border); }
+.ws-label { font-size:11px; color:var(--text-sub); font-weight:600; }
+.ws-val   { font-size:18px; font-weight:900; line-height:1; }
+.ws-formula { font-size:9px; color:var(--text-muted); margin-left:auto; }
+
+/* AI 評分列 */
+.llm-score-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; padding:8px 12px; background:var(--surface2); border-radius:10px; }
+.lsr-label { font-size:12px; color:var(--text-sub); font-weight:600; }
+.lsr-val { font-size:18px; font-weight:900; }
+.lsr-val.safe    { color:#22c55e; }
+.lsr-val.warn    { color:#f97316; }
+.lsr-val.scam    { color:#ef4444; }
+.lsr-val.unknown { color:#a8c44e; }
 </style>
