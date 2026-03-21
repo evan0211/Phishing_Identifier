@@ -3,16 +3,16 @@
 
     <!-- Navbar — 在 page-wrap 頂層，window scroll 才能控制 -->
     <nav class="navbar" :class="{ hidden: navbarHidden }">
-      <span class="nav-title" @click="scrollToMain" style="cursor:pointer">防詐雷達</span>
+      <span class="nav-title" @click="scrollToMain" style="cursor:pointer">{{ t('appName') }}</span>
       <div class="nav-actions">
         <!-- 設定按鈕 -->
         <div class="settings-wrap" ref="settingsWrap">
-          <button class="settings-btn" :class="{ active: menuOpen }" @click="menuOpen = !menuOpen" aria-label="設定">
+          <button class="settings-btn" :class="{ active: menuOpen }" @click="menuOpen = !menuOpen" :aria-label="t('settings')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="3"/>
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
             </svg>
-            <span class="settings-label">設定</span>
+            <span class="settings-label">{{ t('settings') }}</span>
           </button>
 
           <!-- 下拉選單 -->
@@ -21,19 +21,19 @@
               <!-- 長輩模式 -->
               <button class="menu-row" :class="{ active: isElder }" @click="toggleElder">
                 <span class="menu-icon">👴</span>
-                <span class="menu-text">長輩模式</span>
+                <span class="menu-text">{{ t('elderMode') }}</span>
                 <span class="menu-pill" :class="{ on: isElder }"><span class="menu-knob"></span></span>
               </button>
               <!-- 深色/亮色 -->
               <button class="menu-row" :class="{ active: isDark }" @click="toggleTheme">
                 <span class="menu-icon">{{ isDark ? '🌙' : '☀️' }}</span>
-                <span class="menu-text">{{ isDark ? '深色模式' : '亮色模式' }}</span>
+                <span class="menu-text">{{ isDark ? t('darkMode') : t('lightMode') }}</span>
                 <span class="menu-pill" :class="{ on: isDark }"><span class="menu-knob"></span></span>
               </button>
               <!-- TTS -->
               <button class="menu-row" :class="{ active: isTTSEnabled }" @click="toggleTTS">
                 <span class="menu-icon">🔊</span>
-                <span class="menu-text">語音朗讀</span>
+                <span class="menu-text">{{ t('voiceRead') }}</span>
                 <span class="menu-pill" :class="{ on: isTTSEnabled }"><span class="menu-knob"></span></span>
               </button>
             </div>
@@ -56,7 +56,7 @@
       <div class="main-content">
         <div class="content-inner">
         <header>
-          <h1>收到可疑訊息了嗎？<br><span class="sub">把它貼過來，我幫你看看。</span></h1>
+          <h1>{{ t('homeTitle') }}<br><span class="sub">{{ t('homeSub') }}</span></h1>
         </header>
 
         <!-- Input card -->
@@ -105,7 +105,7 @@
             <button
               v-if="inputText"
               class="clear-btn"
-              title="清除輸入"
+              :title="t('clearInput')"
               @click="clearInput">
               ✕
             </button>
@@ -115,7 +115,7 @@
               </transition>
             </div>
             <!-- Camera button — bottom-right of textarea -->
-            <label class="camera-btn" title="上傳圖片">
+            <label class="camera-btn" :title="t('uploadImage')">
               <input type="file" accept="image/*" multiple @change="pickFiles" style="display:none">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
@@ -130,7 +130,7 @@
               <transition name="ph-slide" mode="out-in">
                 <div class="type-chips" v-if="inputText.trim() || images.length" key="chips">
                   <template v-if="images.length">
-                    <span class="type-chip active screenshot">📸 截圖</span>
+                    <span class="type-chip active screenshot">{{ t('typeScreenshot') }}</span>
                   </template>
                   <template v-else>
                     <button
@@ -152,7 +152,7 @@
                 class="cancel-btn"
                 @click="cancelCheck">
                 <span class="send-spinner"></span>
-                <span>分析中… 取消</span>
+                <span>{{ t('analyzing') }}</span>
               </button>
               <button
                 v-else
@@ -161,21 +161,21 @@
                 :disabled="!inputText.trim() && !images.length"
                 @click="doCheck">
                 <span>🔍</span>
-                <span>立即檢測</span>
+                <span>{{ t('checkNow') }}</span>
               </button>
             </div>
           </div>
 
           <div class="elder-arrow-hint" v-if="isElder && (inputText.trim() || images.length)">
-            <span class="eah-text">👆 輸入完畢？請按下「立即檢測」</span>
+            <span class="eah-text">{{ t('elderHint') }}</span>
           </div>
         </div><!-- /input-card -->
         </div><!-- /content-inner -->
       </div><!-- /main-content -->
 
       <!-- Scroll-down arrow -->
-      <button class="scroll-arrow" @click="scrollToStats" aria-label="查看詐騙統計">
-        <span class="sa-text">台灣詐騙現況</span>
+      <button class="scroll-arrow" @click="scrollToStats" :aria-label="t('checkScroll')">
+        <span class="sa-text">{{ t('scrollHint') }}</span>
         <span class="sa-icon">↓</span>
       </button>
     </div>
@@ -190,7 +190,7 @@
       </div>
 
       <div class="stats-header">
-        <h2>您必須知道的<span>詐騙數字</span></h2>
+        <h2>{{ t('statsTitle') }}<span>{{ t('statsTitleSpan') }}</span></h2>
         <!-- 期別 tab 切換 -->
         <div class="stats-tabs" v-if="statsPeriods.length > 1">
           <button
@@ -201,7 +201,7 @@
             {{ p.label }}
           </button>
         </div>
-        <p>數據來源：<a href="https://165dashboard.tw" target="_blank" rel="noopener" class="stats-source-link">165打詐儀表板</a></p>
+        <p>{{ t('statsSource') }}<a href="https://165dashboard.tw" target="_blank" rel="noopener" class="stats-source-link">{{ t('statsSourceLink') }}</a></p>
       </div>
 
       <!-- 兩張大英雄卡：本月損失 + 本月案件 -->
@@ -224,19 +224,19 @@
             </div>
           </div>
           <div class="hc-vs">
-            <span class="hc-vs-label">與上月比較</span>
+            <span class="hc-vs-label">{{ t('vsLastMonth') }}</span>
             <span class="hc-vs-val">{{ s.last }}</span>
           </div>
           <div class="hc-bars">
             <div class="hc-bar-row">
-              <span class="hcbr-tag">本月</span>
+              <span class="hcbr-tag">{{ t('thisMonth') }}</span>
               <div class="hcbr-track">
                 <div class="hcbr-fill now" :class="s.color"
                   :style="{ width: statsVisible ? Math.min(100, Math.round(s.currentRaw / s.lastRaw * 100)) + '%' : '0%', transitionDelay: (i * 150 + 200) + 'ms' }"></div>
               </div>
             </div>
             <div class="hc-bar-row">
-              <span class="hcbr-tag muted">上月</span>
+              <span class="hcbr-tag muted">{{ t('lastMonth') }}</span>
               <div class="hcbr-track">
                 <div class="hcbr-fill old"
                   :style="{ width: statsVisible ? '100%' : '0%', transitionDelay: (i * 150 + 320) + 'ms' }"></div>
@@ -248,7 +248,7 @@
 
       <!-- 四張小卡：今日數據（獨立，不受月份切換影響）-->
       <div class="today-section" v-if="todayCards.length">
-        <div class="today-label">📅 今日數據</div>
+        <div class="today-label">{{ t('todayLabel') }}</div>
         <div class="mini-cards">
           <div
             v-for="(s, i) in todayCards"
@@ -268,10 +268,10 @@
       <!-- 折線圖區塊 -->
       <div class="chart-section" v-if="chartData.length">
         <div class="chart-header">
-          <div class="chart-title">📈 近 6 個月詐騙趨勢</div>
+          <div class="chart-title">{{ t('chartTitle') }}</div>
           <div class="chart-tabs">
-            <button class="chart-tab" :class="{ active: chartMode === 'cases' }" @click="chartMode = 'cases'">案件數</button>
-            <button class="chart-tab" :class="{ active: chartMode === 'losses' }" @click="chartMode = 'losses'">損失金額</button>
+            <button class="chart-tab" :class="{ active: chartMode === 'cases' }" @click="chartMode = 'cases'">{{ t('chartCases') }}</button>
+            <button class="chart-tab" :class="{ active: chartMode === 'losses' }" @click="chartMode = 'losses'">{{ t('chartLosses') }}</button>
           </div>
         </div>
         <div class="chart-wrap">
@@ -279,7 +279,7 @@
         </div>
       </div>
 
-      <button class="scroll-up" @click="scrollToMain">↑ 返回頂端</button>
+      <button class="scroll-up" @click="scrollToMain">{{ t('backTop') }}</button>
     </div>
 
     <!-- Toast -->
@@ -306,11 +306,13 @@ import { useTheme } from '../composables/useTheme.js'
 import { useElder } from '../composables/useElder.js'
 import { resultState } from '../composables/useResult.js'
 import { isTTSEnabled, toggleTTS } from '../composables/useVoice.js'
+import { useLocale, t } from '../composables/useLocale.js'
 import PhoneInput from '../components/PhoneInput.vue'
 import { autoCheck, report, getStatsPeriods, getChartData } from '../services/api.js'
 const router = useRouter()
 const { isDark, toggle: toggleTheme } = useTheme()
 const { isElder, toggle: toggleElder } = useElder()
+const { locale } = useLocale()
 
 const isFocused   = ref(false)
 const inputText   = ref('')
@@ -322,11 +324,11 @@ const phoneE164    = ref('')
 const phoneMode   = ref(false)  // 鎖定電話模式，避免格式化字串干擾
 const forcedType  = ref(null)   // 使用者手動選擇的類型（null = 自動偵測）
 
-// 類型選項
-const typeOptions = [
-  { value: 'url',   label: '🔗 網址'   },
-  { value: 'phone', label: '📞 電話'   },
-]
+// 類型選項 — reactive to locale
+const typeOptions = computed(() => [
+  { value: 'url',   label: t('typeUrl')   },
+  { value: 'phone', label: t('typePhone') },
+])
 
 function setForcedType(val) {
   // 再點一次同一個 → 取消強制
@@ -426,7 +428,7 @@ function addImageFile(file) {
 function removeImage(i) { images.value.splice(i, 1) }
 async function handlePaste(e) {
   const imgs = Array.from(e.clipboardData?.items || []).filter(it => it.type.startsWith('image/'))
-  if (imgs.length) { e.preventDefault(); imgs.forEach(it => addImageFile(it.getAsFile())); showToast('📷 圖片已貼上', 'ok') }
+  if (imgs.length) { e.preventDefault(); imgs.forEach(it => addImageFile(it.getAsFile())); showToast(t('toastImagePaste'), 'ok') }
 }
 
 const previewImg  = ref(null)
@@ -471,7 +473,7 @@ async function doCheck() {
   const type = detectedType.value
   // Validation guard for phone mode
   if (type === 'phone' && !phoneIsValid.value) {
-    showToast('⚠️ 請輸入有效的電話號碼', 'err')
+    showToast(t('toastInvalidPhone'), 'err')
     return
   }
   // 截圖模式：取第一張圖的 base64（含 data:image/... 前綴）
@@ -480,13 +482,13 @@ async function doCheck() {
     : type === 'screenshot'
       ? (images.value[0]?.src ?? '')
       : inputText.value.trim()
-  if (!rawQ) { showToast('⚠️ 請先輸入內容或上傳圖片', 'err'); return }
+  if (!rawQ) { showToast(t('toastNoContent'), 'err'); return }
   isLoading.value = true
   abortController = new AbortController()
   try {
     const data = await autoCheck(rawQ, type)
     if (!data.level || (!data.reasons?.length && !data.label)) {
-      showToast('📭 查無相關資料', 'ok'); return
+      showToast(t('toastNoData'), 'ok'); return
     }
     // 截圖模式顯示檔名，避免 base64 字串塞爆結果頁
     const displayInput = type === 'screenshot' ? (images.value[0]?.name ?? '截圖') : rawQ
@@ -494,9 +496,9 @@ async function doCheck() {
     router.push('/result')
   } catch (err) {
     if (err.name === 'AbortError') {
-      showToast('🚫 已取消檢測', 'ok')
+      showToast(t('toastCancelled'), 'ok')
     } else {
-      showToast('❌ 無法連接 API — 請確認網路連線', 'err')
+      showToast(t('toastNetworkErr'), 'err')
     }
   } finally { isLoading.value = false; abortController = null }
 }
@@ -657,8 +659,8 @@ function renderChart() {
           cornerRadius: 10,
           callbacks: {
             label: ctx => isLoss
-              ? ` ${ctx.raw.toLocaleString()} 億元`
-              : ` ${ctx.raw.toLocaleString()} 件`,
+              ? ` ${ctx.raw.toLocaleString()} ${locale.value === 'en' ? '00M' : '億元'}`
+              : ` ${ctx.raw.toLocaleString()} ${locale.value === 'en' ? 'cases' : '件'}`,
           },
         },
       },
@@ -673,7 +675,7 @@ function renderChart() {
           ticks: {
             color: textColor,
             font: { size: 11 },
-            callback: v => isLoss ? v + ' 億' : v.toLocaleString(),
+            callback: v => isLoss ? v + (locale.value === 'en' ? '00M' : ' 億') : v.toLocaleString(),
           },
           border: { display: false },
         },
@@ -686,6 +688,10 @@ function renderChart() {
 watch(chartMode, () => { renderChart() })
 // 切換主題時重繪
 watch(isDark, () => { renderChart() })
+// 切換語言時重繪
+watch(locale, () => { renderChart() })
+// 切換語言時重繪
+watch(locale, () => { renderChart() })
 
 function showToast(msg, type='') {
   toastMsg.value = msg; toastType.value = type; toastVisible.value = true
