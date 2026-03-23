@@ -68,7 +68,7 @@ const props = defineProps({
   storageKey: { type: String, default: 'tourDone' },
 })
 
-const emit = defineEmits(['set-input', 'do-check', 'open-ai', 'finish-all'])
+const emit = defineEmits(['set-input', 'do-check', 'open-ai', 'finish-all', 'open-menu', 'close-menu'])
 
 const visible = ref(false)
 const current = ref(0)
@@ -145,10 +145,11 @@ const hole = reactive({ x: 0, y: 0, w: 0, h: 0, r: 12 })
 const cardStyle = ref({})
 
 function openSettingsMenu() {
-  const btn = document.querySelector('.settings-btn')
-  if (!btn) return
-  const menu = document.querySelector('.settings-menu')
-  if (!menu) btn.click()
+  // 若選單已開啟（DOM 中存在）則不重複
+  if (document.querySelector('.settings-menu')) return
+  // 用 setTimeout 讓當前 click 事件完全結束後再開選單，
+  // 避免 onClickOutside 把剛開的選單立刻關掉
+  setTimeout(() => emit('open-menu'), 0)
 }
 
 // 等選單 DOM 真的出現後再執行 callback（最多等 600ms）
@@ -166,10 +167,8 @@ function waitForEl(selector, cb, timeout = 600) {
 }
 
 function closeSettingsMenu() {
-  const menu = document.querySelector('.settings-menu')
-  if (menu) {
-    const btn = document.querySelector('.settings-btn')
-    if (btn) btn.click()
+  if (document.querySelector('.settings-menu')) {
+    emit('close-menu')
   }
 }
 
@@ -199,7 +198,6 @@ function positionOnEl(el) {
 
 function updatePosition() {
   const step = activeSteps.value[current.value]
-  if (step.openMenu) openSettingsMenu()
 
   if (!step.target) {
     hole.w = 0
@@ -207,33 +205,12 @@ function updatePosition() {
     return
   }
 
-  // openMenu 步驟：先等選單容器出現，再 polling 確認目標元素位置穩定後定位
   if (step.openMenu) {
-    waitForEl('.settings-menu', () => {
-      // polling：等目標元素 top > 44（navbar 以下）且連續兩次位置相同（transition 完成）
-      const start = Date.now()
-      let lastTop = -1
-      const poll = setInterval(() => {
-        const el = document.querySelector(step.target)
-        if (el) {
-          const rect = el.getBoundingClientRect()
-          if (rect.top > 44 && rect.height > 0) {
-            if (Math.abs(rect.top - lastTop) < 1) {
-              // 位置穩定，transition 已完成
-              clearInterval(poll)
-              positionOnEl(el)
-              return
-            }
-            lastTop = rect.top
-          }
-        }
-        if (Date.now() - start > 800) {
-          clearInterval(poll)
-          hole.w = 0
-          cardStyle.value = { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
-        }
-      }, 30)
-    })
+    // 先開選單，等 DOM 出現後再等 transition 結束（約 200ms）再定位
+    openSettingsMenu()
+    waitForEl(step.target, (el) => {
+      setTimeout(() => positionOnEl(el), 220)
+    }, 800)
     return
   }
 
@@ -279,11 +256,17 @@ async function next() {
   }
 }
 
-function skip() { finish() }
+function skip() {
+  if (activeSteps.value[current.value]?.openMenu) closeSettingsMenu()
+  visible.value = false
+  // 跳過時一次標記所有頁面的導覽為已完成，避免後續頁面再跳出
+  ;['tourDone', 'resultTourDone', 'aiTourDone'].forEach(k => localStorage.setItem(k, '1'))
+}
 
 function finish() {
   if (activeSteps.value[current.value]?.openMenu) closeSettingsMenu()
   visible.value = false
+  // 正常完成只標記當前頁
   localStorage.setItem(props.storageKey, '1')
 }
 

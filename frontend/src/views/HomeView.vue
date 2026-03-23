@@ -293,7 +293,12 @@
       </div>
     </transition>
     <!-- Onboarding 教學導覽 -->
-    <OnboardingTour @set-input="onTourSetInput" @do-check="doCheck" />
+    <OnboardingTour
+      @set-input="onTourSetInput"
+      @do-check="doCheck"
+      @open-menu="menuOpen = true"
+      @close-menu="menuOpen = false"
+    />
 
   </div>
 </template>
@@ -723,6 +728,8 @@ const menuOpen    = ref(false)
 const settingsWrap = ref(null)
 
 function onClickOutside(e) {
+  // 排除導覽卡片的點擊，避免干擾 tour 開選單的流程
+  if (e.target.closest('.tour-overlay')) return
   if (settingsWrap.value && !settingsWrap.value.contains(e.target)) {
     menuOpen.value = false
   }

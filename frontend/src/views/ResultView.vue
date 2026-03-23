@@ -6,18 +6,35 @@
       <button class="back-btn" @click="goBack">{{ t('back') }}</button>
       <span class="nav-title" @click="goBack" style="cursor:pointer">{{ t('analysisResult') }}</span>
       <div class="nav-actions">
-        <label class="toggle-wrap" :class="{ active: isElder }" :title="t('elderMode')">
-          <input type="checkbox" :checked="isElder" @change="toggleElder" style="display:none">
-          <span class="toggle-icon">👴</span>
-          <span class="toggle-label">{{ t('seniorMode') }}</span>
-          <span class="toggle-pill"><span class="toggle-knob"></span></span>
-        </label>
-        <label class="toggle-wrap theme-toggle" :class="{ active: isDark }">
-          <input type="checkbox" :checked="isDark" @change="toggleTheme" style="display:none">
-          <span class="toggle-icon">{{ isDark ? '🌙' : '☀️' }}</span>
-          <span class="toggle-label">{{ isDark ? t('dark') : t('light') }}</span>
-          <span class="toggle-pill"><span class="toggle-knob"></span></span>
-        </label>
+        <!-- 設定按鈕（與首頁一致） -->
+        <div class="settings-wrap" ref="settingsWrap">
+          <button class="settings-btn" :class="{ active: menuOpen }" @click="menuOpen = !menuOpen" :aria-label="t('settings')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span class="settings-label">{{ t('settings') }}</span>
+          </button>
+          <transition name="menu-drop">
+            <div class="settings-menu" v-if="menuOpen">
+              <button class="menu-row" :class="{ active: isElder }" @click="toggleElder">
+                <span class="menu-icon">👴</span>
+                <span class="menu-text">{{ t('elderMode') }}</span>
+                <span class="menu-pill" :class="{ on: isElder }"><span class="menu-knob"></span></span>
+              </button>
+              <button class="menu-row" :class="{ active: isDark }" @click="toggleTheme">
+                <span class="menu-icon">{{ isDark ? '🌙' : '☀️' }}</span>
+                <span class="menu-text">{{ isDark ? t('darkMode') : t('lightMode') }}</span>
+                <span class="menu-pill" :class="{ on: isDark }"><span class="menu-knob"></span></span>
+              </button>
+              <button class="menu-row" :class="{ active: isTTSEnabled }" @click="toggleTTS">
+                <span class="menu-icon">🔊</span>
+                <span class="menu-text">{{ t('voiceRead') }}</span>
+                <span class="menu-pill" :class="{ on: isTTSEnabled }"><span class="menu-knob"></span></span>
+              </button>
+            </div>
+          </transition>
+        </div>
       </div>
     </nav>
 
@@ -114,14 +131,24 @@
             <!-- ── RIGHT COLUMN: 行動建議 ── -->
       <div class="col col-right">
 
-        <!-- Visit site (URL only) — top of right col -->
-        <div class="section-card visit-card" v-if="lastType === 'url'">
+        <!-- Visit site (URL only) — top of right col / 手機版固定底部 -->
+        <div class="section-card visit-card mobile-action-bar" v-if="lastType === 'url'">
           <div class="visit-warning" v-if="isScamLevel">
             {{ t('visitWarn') }}<strong>{{ t('visitWarnMsg') }}</strong>
           </div>
           <button class="visit-btn" :class="{ 'visit-safe': isSafeLevel, 'visit-promo': mode.startsWith('promo') }" @click="confirmVisit">
             {{ isSafeLevel ? t('visitSite') : t('visitScam') }}
           </button>
+        </div>
+
+        <!-- 一鍵撥打（電話偵測時顯示）— 手機版固定底部 -->
+        <div class="section-card visit-card mobile-action-bar" v-if="lastType === 'phone'">
+          <div class="visit-warning" v-if="isScamLevel">
+            {{ t('visitWarn') }}<strong>{{ t('visitWarnMsg') }}</strong>
+          </div>
+          <a class="visit-btn call-btn" :class="{ 'visit-safe': isSafeLevel }" :href="`tel:${lastInput}`">
+            {{ t('callNow') }}
+          </a>
         </div>
 
         <!-- Elder guidance tip -->
@@ -237,6 +264,7 @@ import { useElder } from '../composables/useElder.js'
 import { resultState } from '../composables/useResult.js'
 import { report, analyzeLLMText, getLLMAdvice } from '../services/api.js'
 import { useLocale, t } from '../composables/useLocale.js'
+import { isTTSEnabled, toggleTTS } from '../composables/useVoice.js'
 import OnboardingTour from '../components/OnboardingTour.vue'
 
 // 結果頁教學步驟
@@ -413,6 +441,8 @@ onMounted(async () => {
   if (lastInput.value) {
     performLLMAnalysis()
   }
+
+  document.addEventListener('click', onClickOutside)
 })
 
 // 解析新格式 AI 資料（result 已包含 ggl + ai + advice）
@@ -441,6 +471,17 @@ function goBack() { router.push('/') }
 function toggleElder() {
   toggleElderFn()
   showToast(isElder.value ? '👴 ' + t('elderMode') : t('elderMode'), 'ok')
+}
+
+// ── 設定選單 ──
+const menuOpen     = ref(false)
+const settingsWrap = ref(null)
+
+function onClickOutside(e) {
+  if (e.target.closest('.tour-overlay')) return
+  if (settingsWrap.value && !settingsWrap.value.contains(e.target)) {
+    menuOpen.value = false
+  }
 }
 
 function confirmVisit() {
@@ -540,7 +581,7 @@ function sTouchStart() {
 const toastVisible=ref(false), toastMsg=ref(''), toastType=ref('')
 let toastTimer=null
 function showToast(msg,type=''){toastMsg.value=msg;toastType.value=type;toastVisible.value=true;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{toastVisible.value=false},3200)}
-onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
+onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';document.removeEventListener('click', onClickOutside)})
 </script>
 
 <style scoped>
@@ -553,18 +594,26 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 .nav-title { position:absolute; left:50%; transform:translateX(-50%); color:#fff; font-size:15px; font-weight:700; pointer-events:none; }
 .nav-actions { display:flex; gap:8px; align-items:center; margin-left:auto; }
 
-/* Toggle switches */
-.toggle-wrap { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.2); border-radius:100px; padding:5px 10px 5px 8px; cursor:pointer; transition:background 0.2s,border-color 0.2s; user-select:none; }
-.toggle-wrap:hover { background:rgba(255,255,255,0.2); }
-.toggle-wrap.active { background:rgba(255,255,255,0.22); border-color:rgba(255,255,255,0.4); }
-.toggle-icon  { font-size:15px; line-height:1; }
-.toggle-label { font-size:12px; font-weight:700; color:#fff; white-space:nowrap; }
-.toggle-pill  { width:30px; height:16px; border-radius:100px; background:rgba(255,255,255,0.25); position:relative; flex-shrink:0; transition:background 0.25s; }
-.toggle-wrap.active .toggle-pill { background:rgba(255,255,255,0.7); }
-.toggle-knob  { position:absolute; top:2px; left:2px; width:12px; height:12px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.25); transition:transform 0.25s cubic-bezier(0.34,1.4,0.64,1); }
-.toggle-wrap.active .toggle-knob { transform:translateX(14px); }
-.theme-toggle .toggle-pill { background:rgba(100,120,255,0.4); }
-.theme-toggle.active .toggle-pill { background:rgba(60,70,140,0.8); }
+/* 設定按鈕（與首頁一致） */
+.settings-wrap { position:relative; }
+.settings-btn { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.2); border-radius:100px; padding:6px 14px 6px 10px; cursor:pointer; color:#fff; transition:background 0.2s; user-select:none; }
+.settings-btn:hover { background:rgba(255,255,255,0.22); }
+.settings-btn.active { background:rgba(255,255,255,0.22); border-color:rgba(255,255,255,0.4); }
+.settings-btn svg { width:16px; height:16px; flex-shrink:0; }
+.settings-label { font-size:12px; font-weight:700; white-space:nowrap; }
+.settings-menu { position:absolute; top:calc(100% + 8px); right:0; background:var(--surface); border:1.5px solid var(--border); border-radius:16px; padding:6px; min-width:200px; box-shadow:0 8px 32px rgba(0,0,0,0.18); z-index:300; }
+.menu-drop-enter-active { transition:opacity 0.15s ease, transform 0.18s cubic-bezier(0.34,1.4,0.64,1); }
+.menu-drop-leave-active { transition:opacity 0.12s ease, transform 0.12s ease; }
+.menu-drop-enter-from,.menu-drop-leave-to { opacity:0; transform:translateY(-6px) scale(0.97); }
+.menu-row { display:flex; align-items:center; gap:10px; width:100%; padding:9px 12px; border-radius:10px; border:none; background:transparent; cursor:pointer; color:var(--text); font-size:13px; font-weight:600; transition:background 0.15s; text-align:left; }
+.menu-row:hover { background:var(--surface2); }
+.menu-row.active { color:var(--primary); }
+.menu-icon { font-size:16px; flex-shrink:0; width:20px; text-align:center; }
+.menu-text { flex:1; }
+.menu-pill { width:32px; height:17px; border-radius:100px; background:var(--border); position:relative; flex-shrink:0; transition:background 0.22s; }
+.menu-pill.on { background:var(--primary); }
+.menu-knob { position:absolute; top:2px; left:2px; width:13px; height:13px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.2); transition:transform 0.22s cubic-bezier(0.34,1.4,0.64,1); }
+.menu-pill.on .menu-knob { transform:translateX(15px); }
 
 /* ── No result ── */
 .no-result { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:40px; }
@@ -681,6 +730,10 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 .visit-btn:hover { border-color:var(--scam); color:var(--scam); background:var(--scam-bg); }
 .visit-btn.visit-safe { border-color:var(--safe); color:var(--safe-text); background:var(--safe-bg); }
 .visit-btn.visit-safe:hover { background:var(--safe); color:#fff; }
+/* call-btn：電話撥打，預設綠色，詐騙時警示色 */
+.call-btn { text-decoration:none; cursor:pointer; }
+.call-btn:not(.visit-safe) { border-color:var(--scam); color:var(--scam); background:var(--scam-bg); }
+.call-btn:not(.visit-safe):hover { background:var(--scam); color:#fff; }
 /* promo: neutral default, yellow on hover only */
 .visit-btn.visit-promo { border-color:var(--border); color:var(--text-sub); background:var(--surface2); }
 .visit-btn.visit-promo:hover { border-color:var(--warn); color:var(--warn); background:var(--warn-bg); }
@@ -794,7 +847,7 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 @media (max-width:900px) {
   .page-wrap { overflow-x: hidden; }
   .result-main {
-    grid-template-columns: 1fr;
+    flex-direction: column;  /* 單欄垂直排列 */
     padding: 12px 12px 48px;
     gap: 0;
     width: 100%;
@@ -814,15 +867,15 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
   .col-right {
     border-left: 1.5px solid var(--border);
     border-top: none;
-    border-radius: 0 0 0 0;
+    border-radius: 0 0 18px 18px;
     box-shadow: none;
     padding: 16px;
     min-width: 0;
   }
   .col-ai-btn { display: none; }
 
-.col-left .section-card:last-child { flex: 1; }
-.col-right .section-card:last-child { flex: 1; }
+  .col-left .section-card:last-child { flex: 1; }
+  .col-right .section-card:last-child { flex: 1; }
   /* Prevent banner text overflow */
   .rb-title  { font-size: 18px; }
   .rb-input  { max-width: calc(100vw - 140px); }
@@ -832,9 +885,18 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
   .act-btn .as { display: none; }
   /* Score value wrap */
   .score-value { font-size: 11px; }
-  /* Toggle labels hidden on small screens */
-  .toggle-label { display: none; }
-  .toggle-wrap  { padding: 5px 8px; }
+  /* 小螢幕隱藏設定文字標籤 */
+  .settings-label { display: none; }
+  .settings-btn   { padding: 6px 10px; }
+
+  .col-left, .col-right { background: var(--surface); }
+  .mobile-action-bar {
+    order: 999;  /* flex order で最後尾に */
+    border-radius: 0 0 18px 18px;
+    border-top: 1.5px solid var(--border);
+    margin-top: auto;
+  }
+  .result-main { padding-bottom: 24px; }
 }
 
 /* ══════════════════════════════════════════

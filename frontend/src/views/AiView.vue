@@ -3,13 +3,36 @@
 
     <!-- Navbar -->
     <nav class="navbar">
-      <button class="back-btn" @click="closeTab">✕ 關閉</button>
+      <button class="back-btn" @click="closeTab">← 返回</button>
       <span class="nav-title">🤖 AI 深度分析</span>
-      <label class="toggle-wrap theme-toggle" :class="{ active: isDark }" @click="toggleTheme">
-        <span class="toggle-icon">{{ isDark ? '🌙' : '☀️' }}</span>
-        <span class="toggle-label">{{ isDark ? '深色' : '淺色' }}</span>
-        <span class="toggle-pill"><span class="toggle-knob"></span></span>
-      </label>
+      <div class="settings-wrap" ref="settingsWrap">
+        <button class="settings-btn" :class="{ active: menuOpen }" @click="menuOpen = !menuOpen" :aria-label="t('settings')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <span class="settings-label">{{ t('settings') }}</span>
+        </button>
+        <transition name="menu-drop">
+          <div class="settings-menu" v-if="menuOpen">
+            <button class="menu-row" :class="{ active: isElder }" @click="toggleElder">
+              <span class="menu-icon">👴</span>
+              <span class="menu-text">{{ t('elderMode') }}</span>
+              <span class="menu-pill" :class="{ on: isElder }"><span class="menu-knob"></span></span>
+            </button>
+            <button class="menu-row" :class="{ active: isDark }" @click="toggleTheme">
+              <span class="menu-icon">{{ isDark ? '🌙' : '☀️' }}</span>
+              <span class="menu-text">{{ isDark ? t('darkMode') : t('lightMode') }}</span>
+              <span class="menu-pill" :class="{ on: isDark }"><span class="menu-knob"></span></span>
+            </button>
+            <button class="menu-row" :class="{ active: isTTSEnabled }" @click="toggleTTS">
+              <span class="menu-icon">🔊</span>
+              <span class="menu-text">{{ t('voiceRead') }}</span>
+              <span class="menu-pill" :class="{ on: isTTSEnabled }"><span class="menu-knob"></span></span>
+            </button>
+          </div>
+        </transition>
+      </div>
     </nav>
 
     <main class="ai-main" v-if="llmAnalysis">
@@ -78,7 +101,7 @@
     <div class="no-result" v-else>
       <div style="font-size:52px">😕</div>
       <p>找不到 AI 分析資料，請關閉此頁重試。</p>
-      <button class="go-home-btn" @click="closeTab">關閉</button>
+      <button class="go-home-btn" @click="closeTab">← 返回</button>
     </div>
 
     <!-- AI 頁教學導覽 -->
@@ -88,13 +111,29 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTheme } from '../composables/useTheme.js'
+import { useElder } from '../composables/useElder.js'
+import { isTTSEnabled, toggleTTS } from '../composables/useVoice.js'
+import { useLocale, t } from '../composables/useLocale.js'
 import OnboardingTour from '../components/OnboardingTour.vue'
 
 const router = useRouter()
 const { isDark, toggle: toggleTheme } = useTheme()
+const { isElder, toggle: toggleElderFn } = useElder()
+
+function toggleElder() { toggleElderFn() }
+
+const menuOpen     = ref(false)
+const settingsWrap = ref(null)
+
+function onClickOutside(e) {
+  if (e.target.closest('.tour-overlay')) return
+  if (settingsWrap.value && !settingsWrap.value.contains(e.target)) {
+    menuOpen.value = false
+  }
+}
 const llmAnalysis = ref(null)
 const llmAdvice   = ref(null)
 
@@ -149,14 +188,29 @@ onMounted(() => {
       llmAnalysis.value = parsed.llmAnalysis ?? null
       llmAdvice.value   = parsed.llmAdvice   ?? null
       localStorage.removeItem('aiAnalysisData')
+      // 刷新時可從 sessionStorage 恢復
+      sessionStorage.setItem('aiAnalysisData', JSON.stringify(parsed))
+    } else {
+      // 嘗試從 sessionStorage 恢復（刷新情境）
+      const session = sessionStorage.getItem('aiAnalysisData')
+      if (session) {
+        const parsed = JSON.parse(session)
+        llmAnalysis.value = parsed.llmAnalysis ?? null
+        llmAdvice.value   = parsed.llmAdvice   ?? null
+      }
     }
   } catch {}
 
-  // 若是從教學流程進來，強制顯示 AI 頁教學
   if (localStorage.getItem('aiTourPending')) {
     localStorage.removeItem('aiTourPending')
-    localStorage.removeItem('aiTourDone') // 重置，確保教學會跑
+    localStorage.removeItem('aiTourDone')
   }
+
+  document.addEventListener('click', onClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', onClickOutside)
 })
 </script>
 
@@ -203,24 +257,25 @@ onMounted(() => {
   font-size: 15px;
   font-weight: 700;
 }
-.toggle-wrap {
-  display: flex; align-items: center; gap: 6px;
-  background: rgba(255,255,255,0.12);
-  border: 1.5px solid rgba(255,255,255,0.2);
-  border-radius: 100px;
-  padding: 5px 10px 5px 8px;
-  cursor: pointer;
-  user-select: none;
-  transition: background 0.2s;
-}
-.toggle-wrap:hover { background: rgba(255,255,255,0.2); }
-.toggle-wrap.active { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.4); }
-.toggle-icon  { font-size: 15px; }
-.toggle-label { font-size: 12px; font-weight: 700; color: #fff; white-space: nowrap; }
-.toggle-pill  { width: 30px; height: 16px; border-radius: 100px; background: rgba(255,255,255,0.25); position: relative; flex-shrink: 0; transition: background 0.25s; }
-.toggle-wrap.active .toggle-pill { background: rgba(255,255,255,0.7); }
-.toggle-knob  { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.25); transition: transform 0.25s cubic-bezier(0.34,1.4,0.64,1); }
-.toggle-wrap.active .toggle-knob { transform: translateX(14px); }
+.settings-wrap { position:relative; margin-left:auto; }
+.settings-btn { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.2); border-radius:100px; padding:6px 14px 6px 10px; cursor:pointer; color:#fff; transition:background 0.2s; user-select:none; }
+.settings-btn:hover { background:rgba(255,255,255,0.22); }
+.settings-btn.active { background:rgba(255,255,255,0.22); border-color:rgba(255,255,255,0.4); }
+.settings-btn svg { width:16px; height:16px; flex-shrink:0; }
+.settings-label { font-size:12px; font-weight:700; white-space:nowrap; }
+.settings-menu { position:absolute; top:calc(100% + 8px); right:0; background:var(--surface); border:1.5px solid var(--border); border-radius:16px; padding:6px; min-width:200px; box-shadow:0 8px 32px rgba(0,0,0,0.18); z-index:300; }
+.menu-drop-enter-active { transition:opacity 0.15s ease, transform 0.18s cubic-bezier(0.34,1.4,0.64,1); }
+.menu-drop-leave-active { transition:opacity 0.12s ease, transform 0.12s ease; }
+.menu-drop-enter-from,.menu-drop-leave-to { opacity:0; transform:translateY(-6px) scale(0.97); }
+.menu-row { display:flex; align-items:center; gap:10px; width:100%; padding:9px 12px; border-radius:10px; border:none; background:transparent; cursor:pointer; color:var(--text); font-size:13px; font-weight:600; transition:background 0.15s; text-align:left; }
+.menu-row:hover { background:var(--surface2); }
+.menu-row.active { color:var(--primary); }
+.menu-icon { font-size:16px; flex-shrink:0; width:20px; text-align:center; }
+.menu-text { flex:1; }
+.menu-pill { width:32px; height:17px; border-radius:100px; background:var(--border); position:relative; flex-shrink:0; transition:background 0.22s; }
+.menu-pill.on { background:var(--primary); }
+.menu-knob { position:absolute; top:2px; left:2px; width:13px; height:13px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.2); transition:transform 0.22s cubic-bezier(0.34,1.4,0.64,1); }
+.menu-pill.on .menu-knob { transform:translateX(15px); }
 
 /* ── Main ── */
 .ai-main {

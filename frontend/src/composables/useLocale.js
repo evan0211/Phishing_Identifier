@@ -78,6 +78,7 @@ const dict = {
   nextStepsTitle:  { zh: '🧭 下一步建議', en: '🧭 Next Steps' },
   visitSite:       { zh: '🔗 前往此網站', en: '🔗 Visit This Site' },
   visitScam:       { zh: '⚠️ 仍要前往此網站（不建議）', en: '⚠️ Visit Anyway (Not Recommended)' },
+  callNow:         { zh: '📞 一鍵撥打', en: '📞 Call Now' },
   visitWarn:       { zh: '⚠️ 警告：', en: '⚠️ Warning: ' },
   visitWarnMsg:    { zh: '此網站已被標記為詐騙，強烈不建議前往。', en: 'This site is flagged as a scam. Strongly discouraged.' },
   blockBtn:        { zh: '一鍵封鎖',     en: 'Block' },
