@@ -1,4 +1,11 @@
 import { ref, onUnmounted } from 'vue'
+import { locale } from './useLocale.js'
+
+// Returns BCP-47 lang code based on current locale
+function getTTSLang() {
+  return locale.value === 'en' ? 'en-US' : 'zh-TW'
+}
+import { useLocale } from './useLocale.js'
 
 // ── 全域共享狀態（跨元件同步） ──────────────────────────────
 export const isTTSEnabled = ref(false)
@@ -8,7 +15,7 @@ export const currentText  = ref('')
 // ── 基礎朗讀功能 ────────────────────────────────────────────
 export function useVoice() {
   const speak = (text, options = {}) => {
-    const { lang = 'zh-TW', rate = 0.85, pitch = 1, volume = 1 } = options
+    const { lang = getTTSLang(), rate = 0.85, pitch = 1, volume = 1 } = options
     window.speechSynthesis.cancel()
     const utter = new SpeechSynthesisUtterance(text)
     utter.lang   = lang
@@ -63,7 +70,7 @@ function findTextTarget(el) {
 function speakNow(text, rate = 0.85) {
   window.speechSynthesis.cancel()
   const utter = new SpeechSynthesisUtterance(text)
-  utter.lang   = 'zh-TW'
+  utter.lang   = getTTSLang()
   utter.rate   = rate
   utter.pitch  = 1
   utter.volume = 1

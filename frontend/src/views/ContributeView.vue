@@ -1,8 +1,8 @@
 <template>
   <div class="page-wrap" :class="{ elder: isElder }">
     <nav class="navbar">
-      <button class="back-btn" @click="goBack">← 返回</button>
-      <span class="nav-title">協助補充資料</span>
+      <button class="back-btn" @click="goBack">{{ t('back') }}</button>
+      <span class="nav-title">{{ t('contributeTitle') }}</span>
     </nav>
 
     <main class="contribute-main">
@@ -10,20 +10,20 @@
         <div class="cc-header">
           <span class="cc-icon">🙋</span>
           <div>
-            <div class="cc-title">協助補充資料</div>
-            <div class="cc-sub">此筆資料查無紀錄，您的回報能幫助保護更多人</div>
+            <div class="cc-title">{{ t('contributeTitle') }}</div>
+            <div class="cc-sub">{{ t('contributeSubtitle') }}</div>
           </div>
         </div>
 
         <!-- 查詢的號碼/網址 -->
         <div class="cc-target">
-          <span class="cct-label">查詢內容</span>
+          <span class="cct-label">{{ t('contributeQuery') }}</span>
           <span class="cct-val">{{ inputVal }}</span>
         </div>
 
         <!-- 類型選擇 -->
         <div class="cf-row">
-          <label class="cf-label">您認為此來源是？ <span class="cf-required">*</span></label>
+          <label class="cf-label">{{ t('contributeLabel') }} <span class="cf-required">*</span></label>
           <div class="cf-chips">
             <button
               v-for="opt in options" :key="opt.value"
@@ -37,11 +37,11 @@
 
         <!-- 補充說明 -->
         <div class="cf-row">
-          <label class="cf-label">補充說明（選填）</label>
+          <label class="cf-label">{{ t('contributeNote') }}</label>
           <textarea
             class="cf-textarea"
             v-model="note"
-            placeholder="例如：曾收到詐騙簡訊、假冒銀行客服、廣告騷擾…"
+            :placeholder="t('contributePlaceholder')"
             rows="4"
           ></textarea>
         </div>
@@ -50,7 +50,7 @@
           class="cf-submit"
           :disabled="!selectedType || submitting"
           @click="submit">
-          {{ submitting ? '送出中…' : '📤 送出回報' }}
+          {{ submitting ? t('contributeSubmitting') : t('contributeSubmit') }}
         </button>
       </div>
     </main>
@@ -62,14 +62,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useElder } from '../composables/useElder.js'
+import { useLocale, t } from '../composables/useLocale.js'
 import { report } from '../services/api.js'
 
 const router = useRouter()
 const route  = useRoute()
 const { isElder } = useElder()
+const { locale } = useLocale()
 
 const inputVal    = route.query.input || ''
 const inputType   = route.query.type  || 'phone'
@@ -77,12 +79,12 @@ const selectedType = ref('')
 const note         = ref('')
 const submitting   = ref(false)
 
-const options = [
-  { value: 'scam',  label: '🚨 詐騙' },
-  { value: 'warn',  label: '⚠️ 可疑' },
-  { value: 'promo', label: '📣 推銷' },
-  { value: 'safe',  label: '✅ 安全' },
-]
+const options = computed(() => [
+  { value: 'scam',  label: '🚨 ' + t('tagScam')  },
+  { value: 'warn',  label: '⚠️ ' + t('tagWarn')  },
+  { value: 'promo', label: '📣 ' + t('tagPromo')  },
+  { value: 'safe',  label: '✅ ' + t('tagSafe')   },
+])
 
 function goBack() { router.back() }
 
@@ -101,10 +103,13 @@ async function submit() {
   submitting.value = true
   try {
     const d = await report(inputVal, inputType)
-    showToast('🙏 感謝您的回報，案號 ' + d.caseNo, 'ok')
+    const msg = locale.value === 'en'
+      ? '🙏 Thanks for your report, case ' + d.caseNo
+      : '🙏 感謝您的回報，案號 ' + d.caseNo
+    showToast(msg, 'ok')
     setTimeout(() => router.back(), 2000)
   } catch {
-    showToast('❌ 送出失敗，請稍後再試', 'err')
+    showToast(t('contributeToastErr'), 'err')
   } finally {
     submitting.value = false
   }

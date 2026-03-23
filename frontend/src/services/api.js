@@ -134,10 +134,42 @@ export async function getStatsPeriods() {
 }
 
 export function autoCheck(query, type, countryCode = '+886') {
+  // 截圖：走原本 Gogolook 截圖分析
+  if (type === 'image' || type === 'screenshot') return checkScreenshot(query)
+
+  // 電話/網址：走 LLM full analyze（含快取 + Gogolook + AI 加權）
   if (type === 'phone') {
     const phone = query.startsWith('+') ? query : `${countryCode}${query.replace(/^0/, '')}`
-    return checkPhone(phone)
+    return post('/api/report', { type: 'llm', subtype: 'phone', query: phone })
   }
-  if (type === 'image' || type === 'screenshot') return checkScreenshot(query)
-  return checkUrl(query)
+  return post('/api/report', { type: 'llm', subtype: 'full', query, context: { queryType: 'url' } })
+}
+
+// ════════════════════════════════════════════
+// LLM 分析功能（Bedrock Claude）
+// ════════════════════════════════════════════
+
+/**
+ * LLM 文字分析（LINE/簡訊詐騙偵測）
+ * @param {string} text - 要分析的文字內容
+ */
+export function analyzeLLMText(text) {
+  return post('/api/report', { type: 'llm', subtype: 'full', query: text, context: { queryType: 'url' } })
+}
+
+/**
+ * LLM 截圖分析增強（Claude Vision）
+ * @param {string} base64 - base64 編碼的圖片（含 data:image/... 前綴）
+ */
+export function analyzeLLMImage(base64) {
+  return post('/api/report', { type: 'llm', subtype: 'image', query: base64 })
+}
+
+/**
+ * LLM 詐騙對策建議
+ * @param {string} query - 查詢內容（網址或電話）
+ * @param {object} context - 已知的詐騙資訊 { level, fraud_type, reasons }
+ */
+export function getLLMAdvice(query, context = {}) {
+  return post('/api/report', { type: 'llm', subtype: 'advice', query, context })
 }

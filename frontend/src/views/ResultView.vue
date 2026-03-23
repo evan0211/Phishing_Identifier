@@ -3,45 +3,29 @@
 
     <!-- Navbar -->
     <nav class="navbar">
-      <button class="back-btn" @click="goBack">← 返回</button>
-      <span class="nav-title" @click="goBack" style="cursor:pointer">分析結果</span>
+      <button class="back-btn" @click="goBack">{{ t('back') }}</button>
+      <span class="nav-title" @click="goBack" style="cursor:pointer">{{ t('analysisResult') }}</span>
       <div class="nav-actions">
-        <div class="settings-wrap" ref="settingsWrap">
-          <button class="settings-btn" :class="{ active: menuOpen }" @click="menuOpen = !menuOpen" aria-label="設定">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-            </svg>
-            <span class="settings-label">設定</span>
-          </button>
-          <transition name="menu-drop">
-            <div class="settings-menu" v-if="menuOpen">
-              <button class="menu-row" :class="{ active: isElder }" @click="toggleElder">
-                <span class="menu-icon">👴</span>
-                <span class="menu-text">長輩模式</span>
-                <span class="menu-pill" :class="{ on: isElder }"><span class="menu-knob"></span></span>
-              </button>
-              <button class="menu-row" :class="{ active: isDark }" @click="toggleTheme">
-                <span class="menu-icon">{{ isDark ? '🌙' : '☀️' }}</span>
-                <span class="menu-text">{{ isDark ? '深色模式' : '亮色模式' }}</span>
-                <span class="menu-pill" :class="{ on: isDark }"><span class="menu-knob"></span></span>
-              </button>
-              <button class="menu-row" :class="{ active: isTTSEnabled }" @click="toggleTTS">
-                <span class="menu-icon">🔊</span>
-                <span class="menu-text">語音朗讀</span>
-                <span class="menu-pill" :class="{ on: isTTSEnabled }"><span class="menu-knob"></span></span>
-              </button>
-            </div>
-          </transition>
-        </div>
+        <label class="toggle-wrap" :class="{ active: isElder }" :title="t('elderMode')">
+          <input type="checkbox" :checked="isElder" @change="toggleElder" style="display:none">
+          <span class="toggle-icon">👴</span>
+          <span class="toggle-label">{{ t('seniorMode') }}</span>
+          <span class="toggle-pill"><span class="toggle-knob"></span></span>
+        </label>
+        <label class="toggle-wrap theme-toggle" :class="{ active: isDark }">
+          <input type="checkbox" :checked="isDark" @change="toggleTheme" style="display:none">
+          <span class="toggle-icon">{{ isDark ? '🌙' : '☀️' }}</span>
+          <span class="toggle-label">{{ isDark ? t('dark') : t('light') }}</span>
+          <span class="toggle-pill"><span class="toggle-knob"></span></span>
+        </label>
       </div>
     </nav>
 
     <!-- No result guard -->
     <div v-if="!result" class="no-result">
       <div class="no-result-icon">🔍</div>
-      <p>尚無分析結果</p>
-      <button class="go-home-btn" @click="goBack">回到首頁</button>
+      <p>{{ t('noResult') }}</p>
+      <button class="go-home-btn" @click="goBack">{{ t('goHome') }}</button>
     </div>
 
     <!-- Two-column layout -->
@@ -51,12 +35,12 @@
       <div class="col col-left">
 
         <!-- Risk banner -->
-        <div class="risk-banner" :class="mode">
+        <div class="risk-banner" :class="[mode, mode.includes('_') ? mode.split('_')[0] : mode]">
           <div class="rb-badge">
             <span class="rb-icon">{{ ICONS[mode] }}</span>
           </div>
           <div class="rb-info">
-            <div class="rb-tag">{{ TAGS[mode] }}</div>
+            <div class="rb-tag">{{ tagLabel }}</div>
             <div class="rb-title">{{ result.label }}</div>
             <div class="rb-input" :title="lastInput">{{ lastInput }}</div>
           </div>
@@ -64,16 +48,38 @@
 
         <!-- Score bar -->
         <div class="section-card score-card">
-          <div class="score-labels"><span>安全 0</span><span>100 高風險</span></div>
-          <div class="score-track">
-            <div class="score-fill" :style="{ width: barWidth + '%', background: scoreFillColor }"></div>
+          <div class="score-labels"><span>{{ t('safeZero') }}</span><span>{{ t('highRisk100') }}</span></div>
+
+          <!-- Gogolook 分數條 -->
+          <div class="dual-bar-row">
+            <span class="dbar-label">Gogolook</span>
+            <div class="dbar-track">
+              <div class="dbar-fill ggl" :style="{ width: (result?.ggl?.score ?? barWidth) + '%' }"></div>
+            </div>
+            <span class="dbar-val ggl-text">{{ result.score }}</span>
           </div>
-          <div class="score-value" :class="mode">風險分數：{{ result.score }} / 100</div>
+
+          <!-- AI 分數條 -->
+          <div class="dual-bar-row" v-if="llmAnalysis?.score !== undefined">
+            <span class="dbar-label">AI</span>
+            <div class="dbar-track">
+              <div class="dbar-fill ai" :style="{ width: llmBarWidth + '%' }"></div>
+            </div>
+            <span class="dbar-val ai-text">{{ llmAnalysis.score }}</span>
+          </div>
+
+          <!-- 加權綜合分數 -->
+          <div class="weighted-score" v-if="llmAnalysis?.score !== undefined">
+            <span class="ws-label">{{ t('weightedScoreLabel') }}</span>
+            <span class="ws-val" :class="mode">{{ weightedScore }} {{ t('aiScoreSuffix') }}</span>
+            <span class="ws-formula">{{ t('wsFormula') }}</span>
+          </div>
+          <div class="score-value" :class="mode" v-else>{{ t('riskScore') }}{{ result?.ggl?.score ?? result.score }} / 100</div>
         </div>
 
         <!-- Reasons -->
         <div class="section-card reasons-card">
-          <div class="sec-title">📋 分析原因</div>
+          <div class="sec-title">{{ t('analysisReasons') }}</div>
           <ul class="reasons">
             <li v-for="(r, i) in result.reasons" :key="i">
               <span class="ri">{{ RI(mode) }}</span>
@@ -82,63 +88,115 @@
           </ul>
         </div>
 
-        <!-- 查無資料：補充按鈕 -->
-        <button v-if="mode === 'unknown'" class="contribute-btn" @click="goContribute">
-          <span class="cb-icon">🙋</span>
-          <div class="cb-text">
-            <span class="cb-title">協助補充資料</span>
-            <span class="cb-sub">此號碼查無紀錄，您的回報能保護更多人</span>
-          </div>
-          <span class="cb-arrow">→</span>
-        </button>
-
       </div><!-- /col-left -->
 
-      <!-- ── RIGHT COLUMN: 行動建議 ── -->
+
+
+      <!-- ── AI 分析第三欄 ── -->
+      <div class="col col-ai" v-if="llmAnalysis || isLoadingLLM">
+
+        <div class="section-card llm-card">
+          <div class="sec-title">{{ t('aiAnalysis') }}</div>
+          <div class="llm-loading" v-if="isLoadingLLM">
+            <span class="spinner">⏳</span>
+            <span>{{ t('aiAnalyzing') }}</span>
+          </div>
+          <template v-else-if="llmAnalysis">
+            <div class="llm-score-row" v-if="llmAnalysis.score !== undefined">
+              <span class="lsr-label">{{ t('aiRiskScore') }}</span>
+              <span class="lsr-val" :class="llmAnalysis.level">{{ llmAnalysis.score }} {{ t('aiScoreSuffix') }}</span>
+            </div>
+            <div class="llm-fraud-type" v-if="llmAnalysis.fraud_type">
+              <span class="lft-icon">🎯</span>
+              <div class="lft-text">
+                <strong>{{ locale === 'en' ? 'Fraud Type' : '詐騙手法' }}</strong>
+                <span>{{ llmAnalysis.fraud_type }}</span>
+              </div>
+            </div>
+            <div class="llm-suggestion" v-if="llmAnalysis.suggestion">
+              <span class="ls-icon">💡</span>
+              <p>{{ llmAnalysis.suggestion }}</p>
+            </div>
+          </template>
+        </div>
+
+        <div class="section-card advice-card" v-if="llmAdvice">
+          <div class="sec-title">{{ t('proAdvice') }}</div>
+          <div class="advice-section" v-if="llmAdvice.immediate_actions?.length">
+            <div class="advice-title">{{ t('immediateAction') }}</div>
+            <ul class="advice-list">
+              <li v-for="(action, i) in llmAdvice.immediate_actions" :key="i">
+                <span class="al-icon">✓</span><span>{{ action }}</span>
+              </li>
+            </ul>
+          </div>
+          <div class="advice-section" v-if="llmAdvice.avoid_actions?.length">
+            <div class="advice-title">{{ t('doNotDo') }}</div>
+            <ul class="advice-list avoid">
+              <li v-for="(action, i) in llmAdvice.avoid_actions" :key="i">
+                <span class="al-icon">✗</span><span>{{ action }}</span>
+              </li>
+            </ul>
+          </div>
+          <div class="advice-section" v-if="llmAdvice.report_steps?.length">
+            <div class="advice-title">{{ t('reportSteps') }}</div>
+            <ol class="advice-steps">
+              <li v-for="(step, i) in llmAdvice.report_steps" :key="i">{{ step }}</li>
+            </ol>
+          </div>
+          <div class="advice-recovery" v-if="llmAdvice.recovery_tips">
+            <div class="advice-title">{{ t('ifVictim') }}</div>
+            <p>{{ llmAdvice.recovery_tips }}</p>
+          </div>
+        </div>
+
+      </div><!-- /col-ai -->
+
+            <!-- ── RIGHT COLUMN: 行動建議 ── -->
       <div class="col col-right">
 
         <!-- Visit site (URL only) — top of right col -->
         <div class="section-card visit-card" v-if="lastType === 'url'">
-          <div class="visit-warning" v-if="mode === 'scam'">
-            ⚠️ <strong>警告：</strong>此網站已被標記為詐騙，強烈不建議前往。
+          <div class="visit-warning" v-if="isScamLevel">
+            {{ t('visitWarn') }}<strong>{{ t('visitWarnMsg') }}</strong>
           </div>
-          <button class="visit-btn" :class="{ 'visit-safe': mode === 'safe', 'visit-promo': mode === 'promo' }" @click="confirmVisit">
-            {{ mode === 'safe' ? '🔗 前往此網站' : '⚠️ 仍要前往此網站（不建議）' }}
+          <button class="visit-btn" :class="{ 'visit-safe': isSafeLevel, 'visit-promo': mode.startsWith('promo') }" @click="confirmVisit">
+            {{ isSafeLevel ? t('visitSite') : t('visitScam') }}
           </button>
         </div>
 
         <!-- Elder guidance tip -->
         <div class="elder-result-tip" v-if="isElder">
-          <span class="ert-icon">{{ mode === 'scam' ? '🚨' : mode === 'warn' ? '⚠️' : '💡' }}</span>
+          <span class="ert-icon">{{ isScamLevel ? '🚨' : ['suspect_high','suspect_low','promo_warn','warn'].includes(mode) ? '⚠️' : '💡' }}</span>
           <div class="ert-text">
-            <strong>{{ mode === 'scam' ? '此為詐騙！請不要點擊任何連結或輸入資料' : mode === 'warn' ? '此來源可疑，請謹慎處理' : mode === 'unknown' ? '查無此號碼資料，請謹慎判斷' : '此來源安全，您可以放心' }}</strong>
-            <span>{{ mode === 'scam' ? '建議立即使用下方「一鍵封鎖」並撥打 165 反詐騙專線。' : mode === 'warn' ? '建議先封鎖，若有疑問可撥打 165 確認。' : '如仍有疑慮，歡迎撥打 165 反詐騙專線查詢。' }}</span>
+            <strong>{{ ['scam','promo_scam'].includes(mode) ? t('elderScam') : ['suspect_high','promo_warn'].includes(mode) ? t('elderSuspectHigh') : ['suspect_low'].includes(mode) ? t('elderSuspectLow') : mode === 'unknown' ? t('elderUnknown') : t('elderSafe') }}</strong>
+            <span>{{ isScamLevel ? t('elderAdviceScam') : ['suspect_high','suspect_low','promo_warn'].includes(mode) ? t('elderAdviceSuspect') : t('elderAdviceSafe') }}</span>
           </div>
         </div>
 
         <!-- Actions -->
         <div class="section-card actions-card">
-          <div class="sec-title">⚡ 立即行動</div>
+          <div class="sec-title">{{ t('immediateAction') }}</div>
           <div class="actions-col">
             <button class="act-btn btn-block" @click="doAction('block')">
               <span class="ai">🚫</span>
               <div class="act-text">
-                <span class="at">一鍵封鎖</span>
-                <span class="as">加入黑名單，下次自動攔截</span>
+                <span class="at">{{ t('blockBtn') }}</span>
+                <span class="as">{{ t('blockSub') }}</span>
               </div>
             </button>
             <button class="act-btn btn-report" @click="doAction('report')">
               <span class="ai">📢</span>
               <div class="act-text">
-                <span class="at">一鍵通報</span>
-                <span class="as">通報至 165 反詐騙資料庫</span>
+                <span class="at">{{ t('reportBtn') }}</span>
+                <span class="as">{{ t('reportSub') }}</span>
               </div>
             </button>
             <button class="act-btn btn-evidence" @click="doAction('evidence')">
               <span class="ai">📁</span>
               <div class="act-text">
-                <span class="at">一鍵回報證據</span>
-                <span class="as">截圖上傳，協助案件調查</span>
+                <span class="at">{{ t('evidenceBtn') }}</span>
+                <span class="as">{{ t('evidenceSub') }}</span>
               </div>
             </button>
           </div>
@@ -146,7 +204,7 @@
 
         <!-- Next steps -->
         <div class="section-card next-card">
-          <div class="sec-title">🧭 下一步建議</div>
+          <div class="sec-title">{{ t('nextStepsTitle') }}</div>
           <div class="next-list">
             <div class="nsi" :class="mode" v-for="(s, i) in nextSteps" :key="i">
               <span class="nsi-icon">{{ s.i }}</span>
@@ -158,7 +216,7 @@
           </div>
         </div>
 
-      </div><!-- /col-right -->
+</div><!-- /col-right -->
 
     </main>
 
@@ -169,7 +227,7 @@
         <div class="confirm-title">{{ confirmData.title }}</div>
         <div class="confirm-sub">{{ confirmData.sub }}</div>
         <div class="confirm-btns">
-          <button class="confirm-cancel" @click="closeConfirm">取消</button>
+          <button class="confirm-cancel" @click="closeConfirm">{{ t('confirmCancel') }}</button>
           <button class="confirm-ok" @click="confirmData.cb && confirmData.cb()">{{ confirmData.ok }}</button>
         </div>
       </div>
@@ -180,20 +238,20 @@
       <div class="sf-stripes"></div>
       <div class="sf-inner">
         <span class="sf-siren">🚨</span>
-        <div class="sf-badge">⛔ 詐騙網站警告</div>
-        <div class="sf-title">您即將進入<span>詐騙網站</span></div>
+        <div class="sf-badge">{{ t('scamFsBadge') }}</div>
+        <div class="sf-title">{{ t('scamFsTitle') }}<span>{{ t('scamFsTitleSpan') }}</span></div>
         <div class="sf-url">{{ lastInput }}</div>
         <div class="sf-risks">
-          <div class="sf-risk-item"><span>💳</span>您的銀行帳號、密碼可能被竊取</div>
-          <div class="sf-risk-item"><span>🪪</span>個人身分資料可能遭冒用</div>
-          <div class="sf-risk-item"><span>📱</span>裝置可能被植入惡意程式</div>
-          <div class="sf-risk-item"><span>💸</span>財產損失風險極高</div>
+          <div class="sf-risk-item"><span>💳</span>{{ t('scamRisk1') }}</div>
+          <div class="sf-risk-item"><span>🪪</span>{{ t('scamRisk2') }}</div>
+          <div class="sf-risk-item"><span>📱</span>{{ t('scamRisk3') }}</div>
+          <div class="sf-risk-item"><span>💸</span>{{ t('scamRisk4') }}</div>
         </div>
         <div class="sf-btns">
-          <button class="sf-cancel" @click="closeScamFs">✅ 離開，保護自己</button>
+          <button class="sf-cancel" @click="closeScamFs">{{ t('scamLeave') }}</button>
           <div class="sf-slider-wrap" ref="sliderWrap" :class="{ completed: sliderDone }">
             <div class="sf-fill"  ref="sliderFill"></div>
-            <div class="sf-label">← 向右滑動以仍要前往（不建議）</div>
+            <div class="sf-label">{{ t('scamSlider') }}</div>
             <div class="sf-thumb" ref="sliderThumb"
                  @mousedown="sMouseDown" @touchstart.passive="sTouchStart">⚠️</div>
           </div>
@@ -215,87 +273,182 @@ import { useRouter } from 'vue-router'
 import { useTheme } from '../composables/useTheme.js'
 import { useElder } from '../composables/useElder.js'
 import { resultState } from '../composables/useResult.js'
-import { report } from '../services/api.js'
-import { isTTSEnabled, toggleTTS } from '../composables/useVoice.js'
+import { report, analyzeLLMText, getLLMAdvice } from '../services/api.js'
+import { useLocale, t } from '../composables/useLocale.js'
 
 const router = useRouter()
 const { isDark, toggle: toggleTheme } = useTheme()
 const { isElder, toggle: toggleElderFn } = useElder()
+const { locale } = useLocale()
 
 const result    = computed(() => resultState.data)
 const lastInput = computed(() => resultState.lastInput)
 const lastType  = computed(() => resultState.lastType)
-const mode      = computed(() => result.value?.level || '')
-
-const ICONS = { safe:'✅', promo:'📣', warn:'⚠️', scam:'🚨', unknown:'❓' }
-const TAGS  = { safe:'安全', promo:'推銷（安全）', warn:'推銷（可疑）', scam:'詐騙', unknown:'查無資料' }
-const RI    = lv => lv==='scam' ? '🔴' : lv==='warn' ? '🟡' : lv==='unknown' ? '⚪' : '🟢'
-const NEXT  = {
-  safe:  [{ i:'✅', t:'可以安全瀏覽',       s:'此來源無詐騙紀錄，請放心。' }],
-  promo: [{ i:'📋', t:'確認是否為您主動訂閱', s:'若非本人訂閱，可封鎖。' },
-          { i:'🔕', t:'不需要可直接封鎖',    s:'點選一鍵封鎖加入黑名單。' }],
-  warn:  [{ i:'⛔', t:'不要點擊連結',        s:'可疑推銷常隱藏惡意導向。' },
-          { i:'👨‍👩‍👧', t:'詢問家人或朋友確認',  s:'讓信任的人幫你確認。' },
-          { i:'📢', t:'建議通報',            s:'協助保護其他可能受害者。' }],
-  scam:  [{ i:'🚫', t:'立即停止任何操作',    s:'不要點擊、不要輸入資料。' },
-          { i:'💳', t:'立刻聯絡銀行',        s:'撥卡片背面號碼申請凍結。' },
-          { i:'📞', t:'撥打 165 反詐騙',    s:'24 小時，由專人協助。' },
-          { i:'👮', t:'向警察局報案',        s:'保留截圖向派出所報案。' }],
-  unknown: [{ i:'❓', t:'號碼查無資料',       s:'資料庫中無此號碼的詳細資訊。' },
-            { i:'🤔', t:'謹慎判斷是否接聽',   s:'陌生來電請提高警覺。' },
-            { i:'📞', t:'如有疑慮撥打 165',   s:'24 小時反詐騙專線諮詢。' }],
-}
-const nextSteps = computed(() => NEXT[mode.value] || [])
-
-const SCORE_COLORS = {
-  safe:    'var(--safe)',
-  promo:   'var(--promo)',
-  warn:    'linear-gradient(90deg,#ffb300,var(--warn))',
-  scam:    'linear-gradient(90deg,var(--warn),var(--scam))',
-  unknown: 'linear-gradient(90deg,#8faa2e,#a8c44e)',
-}
-const scoreFillColor = computed(() => SCORE_COLORS[mode.value] || 'var(--surface3)')
-const barWidth = ref(0)
-
-onMounted(() => {
-  setTimeout(() => { barWidth.value = result.value?.score || 0 }, 120)
-  document.addEventListener('click', onClickOutside)
+const mode = computed(() => {
+  const lv = result.value?.level || ''
+  // Map new levels to CSS class
+  if (['safe_high','safe_low','safe'].includes(lv)) return 'safe'
+  if (['suspect_low','warn'].includes(lv)) return 'warn'
+  if (['suspect_high'].includes(lv)) return 'warn'
+  if (['promo_safe','promo'].includes(lv)) return 'promo'
+  if (['promo_warn','promo_scam'].includes(lv)) return 'warn'
+  if (lv === 'scam') return 'scam'
+  if (lv === 'unknown') return 'unknown'
+  return lv
 })
-onUnmounted(() => { clearTimeout(toastTimer); document.body.style.overflow=''; document.removeEventListener('click', onClickOutside) })
 
-const menuOpen    = ref(false)
-const settingsWrap = ref(null)
+// 判斷是否為安全等級（用於前往網站按鈕）
+const isSafeLevel = computed(() => {
+  const lv = result.value?.level || ''
+  return ['safe', 'safe_high', 'safe_low', 'promo_safe'].includes(lv)
+})
 
-function onClickOutside(e) {
-  if (settingsWrap.value && !settingsWrap.value.contains(e.target)) menuOpen.value = false
+// 判斷是否為詐騙等級（用於全版警告）
+const isScamLevel = computed(() => {
+  const lv = result.value?.level || ''
+  return ['scam', 'promo_scam'].includes(lv)
+})
+
+// LLM 分析相關
+const llmAnalysis = ref(null)
+const llmAdvice = ref(null)
+const isLoadingLLM = ref(false)
+
+const ICONS = {
+  safe_high: '✅', safe_low: '🟢',
+  suspect_low: '🟡', suspect_high: '🟠',
+  scam: '🚨',
+  promo_safe: '📣', promo_warn: '📣⚠️', promo_scam: '📣🚨',
+  unknown: '❓',
+  // 舊等級 fallback
+  safe: '✅', promo: '📣', warn: '⚠️',
+}
+const TAGS = computed(() => ({
+  safe_high: t('tagSafeHigh'), safe_low: t('tagSafeLow'),
+  suspect_low: t('tagSuspectLow'), suspect_high: t('tagSuspectHigh'),
+  scam: t('tagScam'),
+  promo_safe: t('tagPromoSafe'), promo_warn: t('tagPromoWarn'), promo_scam: t('tagPromoScam'),
+  unknown: t('tagUnknown'),
+  safe: t('tagSafe'), promo: t('tagPromo'), warn: t('tagWarn'),
+}))
+// Template helper — Vue auto-unwraps computed at top level but not via bracket access
+const tagLabel = computed(() => TAGS.value[mode.value] ?? mode.value)
+const RI = lv => {
+  if (['scam','promo_scam'].includes(lv)) return '🔴'
+  if (['suspect_high','promo_warn'].includes(lv)) return '🟠'
+  if (['suspect_low'].includes(lv)) return '🟡'
+  if (lv === 'unknown') return '⚪'
+  return '🟢'
+}
+const NEXT = computed(() => ({
+  safe_high: [{ i:'✅', t: locale.value==='en'?'Fully safe to use':'完全安全可放心使用', s: locale.value==='en'?'Confirmed safe by Gogolook & AI.':'Gogolook 與 AI 雙重確認安全。' }],
+  safe_low:  [{ i:'🟢', t: locale.value==='en'?'Safe, stay alert':'安全但保持警覺', s: locale.value==='en'?'Very low risk, proceed normally.':'風險極低，正常使用即可。' }],
+  suspect_low:  [
+    { i:'🟡', t: locale.value==='en'?'Slightly suspicious, be cautious':'輕度可疑，謹慎使用', s: locale.value==='en'?'Do not share personal data easily.':'不要輕易提供個人資料。' },
+    { i:'👨‍👩‍👧', t: locale.value==='en'?'Ask a trusted person to verify':'詢問家人或朋友確認', s: locale.value==='en'?'Let someone you trust help confirm.':'讓信任的人幫你確認。' }],
+  suspect_high: [
+    { i:'🟠', t: locale.value==='en'?'Highly suspicious, block it':'高度可疑，建議封鎖', s: locale.value==='en'?'Do not click or share any data.':'請勿點擊或提供任何資料。' },
+    { i:'📢', t: locale.value==='en'?'Report it':'建議通報', s: locale.value==='en'?'Help protect other potential victims.':'協助保護其他可能受害者。' }],
+  scam: [
+    { i:'🚫', t: locale.value==='en'?'Stop all activity immediately':'立即停止任何操作', s: locale.value==='en'?'Do not click or enter any data.':'不要點擊、不要輸入資料。' },
+    { i:'💳', t: locale.value==='en'?'Contact your bank now':'立刻聯絡銀行', s: locale.value==='en'?'Call card back number to freeze account.':'撥卡片背面號碼申請凍結。' },
+    { i:'📞', t: locale.value==='en'?'Call 165 anti-scam hotline':'撥打 165 反詐騙', s: locale.value==='en'?'24-hour hotline, staff will assist.':'24 小時，由專人協助。' },
+    { i:'👮', t: locale.value==='en'?'File a police report':'向警察局報案', s: locale.value==='en'?'Bring screenshots to the police station.':'保留截圖向派出所報案。' }],
+  promo_safe: [{ i:'📣', t: locale.value==='en'?'Confirm if you subscribed':'確認是否為主動訂閱', s: locale.value==='en'?'If not subscribed, you may block it.':'若非本人訂閱，可封鎖。' }],
+  promo_warn: [
+    { i:'📣', t: locale.value==='en'?'Marketing with suspicious signs':'行銷但有可疑跡象', s: locale.value==='en'?'Verify if the source is trustworthy.':'請確認來源是否可信。' },
+    { i:'🔕', t: locale.value==='en'?'Block if unwanted':'不需要可直接封鎖', s: locale.value==='en'?'Tap block to add to blacklist.':'點選一鍵封鎖加入黑名單。' }],
+  promo_scam: [
+    { i:'🚫', t: locale.value==='en'?'Suspected scam disguised as promo':'疑似詐騙偽裝推銷', s: locale.value==='en'?'Do not click or share data.':'不要點擊或提供資料。' },
+    { i:'📢', t: locale.value==='en'?'Report it':'建議通報', s: locale.value==='en'?'Help protect other users.':'協助保護其他用戶。' }],
+  unknown: [
+    { i:'❓', t: locale.value==='en'?'Number has no record':'號碼查無資料', s: locale.value==='en'?'No information in the database.':'資料庫中無此號碼資訊。' },
+    { i:'🤔', t: locale.value==='en'?'Be cautious about answering':'謹慎判斷是否接聽', s: locale.value==='en'?'Stay alert for unknown callers.':'陌生來電請提高警覺。' },
+    { i:'📞', t: locale.value==='en'?'Call 165 if in doubt':'如有疑慮撥打 165', s: locale.value==='en'?'24-hour anti-scam hotline.':'24 小時反詐騙專線諮詢。' }],
+  safe:  [{ i:'✅', t: locale.value==='en'?'Safe to browse':'可以安全瀏覽', s: locale.value==='en'?'No scam record for this source.':'此來源無詐騙紀錄。' }],
+  warn:  [{ i:'⚠️', t: locale.value==='en'?'Proceed with caution':'請謹慎使用', s: locale.value==='en'?'Do not provide personal data.':'建議不要提供個人資料。' }],
+  promo: [{ i:'📋', t: locale.value==='en'?'Confirm if you subscribed':'確認是否為主動訂閱', s: locale.value==='en'?'If not subscribed, you may block it.':'若非本人訂閱，可封鎖。' }],
+}))
+const nextSteps = computed(() => NEXT.value[mode.value] || [])
+
+const barWidth    = ref(0)
+const llmBarWidth = ref(0)
+
+// 新格式：Lambda 已計算好加權分數
+const weightedScore = computed(() => result.value?.score ?? 0)
+// Gogolook 原始分數
+const gglScoreVal = computed(() => result.value?.ggl?.score ?? result.value?.score ?? 0)
+
+onMounted(async () => {
+  setTimeout(() => {
+    // Gogolook 條用 ggl.score，AI 條用 ai.score
+    barWidth.value = gglScoreVal.value
+  }, 120)
+
+  // 自動解析新格式 AI 資料
+  if (lastInput.value) {
+    performLLMAnalysis()
+  }
+})
+
+// 解析新格式 AI 資料（result 已包含 ggl + ai + advice）
+function performLLMAnalysis() {
+  const data = result.value
+  if (!data) return
+
+  if (data.ai) {
+    // 新格式：ai 欄位已內嵌
+    llmAnalysis.value = {
+      score:      data.ai.score,
+      fraud_type: data.ai.fraud_type,
+      suggestion: data.ai.suggestion,
+      reasoning:  data.ai.reasoning,
+      level:      data.level,
+    }
+    setTimeout(() => { llmBarWidth.value = data.ai.score ?? 0 }, 120)
+    if (data.advice) llmAdvice.value = data.advice
+  } else if (lastType.value !== 'image' && lastType.value !== 'screenshot') {
+    // 舊格式（截圖或未走 LLM）：不額外呼叫，避免重複消耗 token
+    console.log('[ResultView] 非 LLM 格式，跳過 AI 分析')
+  }
 }
 
 function goBack() { router.push('/') }
-function toggleElder() { toggleElderFn(); showToast(isElder.value ? '👴 長輩模式已開啟' : '長輩模式已關閉', 'ok') }
+function toggleElder() {
+  toggleElderFn()
+  showToast(isElder.value ? '👴 ' + t('elderMode') : t('elderMode'), 'ok')
+}
 
 function confirmVisit() {
   const url = lastInput.value.startsWith('http') ? lastInput.value : `https://${lastInput.value}`
-  if (mode.value === 'safe') { window.open(url, '_blank', 'noopener'); return }
-  if (mode.value === 'scam') { openScamFs(); return }
-  openConfirm('⚠️ 確定前往此網站？', '此網站被標記為可疑，前往請謹慎。', '仍要前往', () => {
+  if (isSafeLevel.value) { window.open(url, '_blank', 'noopener'); return }
+  if (isScamLevel.value) { openScamFs(); return }
+  const title = locale.value === 'en' ? '⚠️ Visit this site?' : '⚠️ 確定前往此網站？'
+  const sub   = locale.value === 'en' ? 'This site is flagged as suspicious. Proceed carefully.' : '此網站被標記為可疑，前往請謹慎。'
+  const ok    = locale.value === 'en' ? 'Proceed Anyway' : '仍要前往'
+  openConfirm(title, sub, ok, () => {
     window.open(url, '_blank', 'noopener'); closeConfirm()
   })
 }
 
-const ACT = {
-  block:    { title:'確認封鎖？',     sub:'此來源將加入黑名單，下次自動攔截。',        ok:'確認封鎖' },
-  report:   { title:'確認通報？',     sub:'將通報至 165 反詐騙資料庫，保護其他用戶。', ok:'確認通報' },
-  evidence: { title:'確認上傳證據？', sub:'將截圖與相關資訊上傳至案件資料庫。',        ok:'確認上傳' },
-}
+const ACT = computed(() => ({
+  block:    { title: t('confirmBlock'),    sub: t('confirmBlockSub'),    ok: t('confirmBlockOk')    },
+  report:   { title: t('confirmReport'),   sub: t('confirmReportSub'),   ok: t('confirmReportOk')   },
+  evidence: { title: t('confirmEvidence'), sub: t('confirmEvidenceSub'), ok: t('confirmEvidenceOk') },
+}))
 async function doAction(type) {
-  const c = ACT[type]
+  const c = ACT.value[type]
   openConfirm(c.title, c.sub, c.ok, async () => {
     closeConfirm()
     try {
       const d = await report(lastInput.value, lastType.value)
-      const msgs = { block:'🚫 已封鎖 — '+d.caseNo, report:'📢 已通報 165，案號 '+d.caseNo, evidence:'📁 證據已上傳，案號 '+d.caseNo }
+      const msgs = {
+        block:    '🚫 ' + (locale.value === 'en' ? 'Blocked — ' : '已封鎖 — ') + d.caseNo,
+        report:   '📢 ' + (locale.value === 'en' ? 'Reported to 165, case ' : '已通報 165，案號 ') + d.caseNo,
+        evidence: '📁 ' + (locale.value === 'en' ? 'Evidence uploaded, case ' : '證據已上傳，案號 ') + d.caseNo,
+      }
       showToast(msgs[type], 'ok')
-    } catch { showToast('❌ 操作失敗', 'err') }
+    } catch { showToast(locale.value === 'en' ? '❌ Action failed' : '❌ 操作失敗', 'err') }
   })
 }
 
@@ -350,10 +503,6 @@ function sTouchStart() {
   document.addEventListener('touchmove',tm,{passive:true}); document.addEventListener('touchend',te)
 }
 
-function goContribute() {
-  router.push({ path: '/contribute', query: { input: lastInput.value, type: lastType.value } })
-}
-
 const toastVisible=ref(false), toastMsg=ref(''), toastType=ref('')
 let toastTimer=null
 function showToast(msg,type=''){toastMsg.value=msg;toastType.value=type;toastVisible.value=true;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{toastVisible.value=false},3200)}
@@ -361,36 +510,27 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 </script>
 
 <style scoped>
-.page-wrap { min-height:100vh; background:var(--bg); color:var(--text); display:flex; flex-direction:column; transition:background 0.25s,color 0.25s; user-select:none; }
+.page-wrap { min-height:100vh; background:var(--bg); color:var(--text); display:flex; flex-direction:column; transition:background 0.25s,color 0.25s; }
 
 /* ── Navbar ── */
 .navbar { background:var(--navbar-bg); padding:10px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:200; transition:background 0.25s; }
-.back-btn { background:rgba(255,255,255,0.15); border:1.5px solid rgba(255,255,255,0.25); border-radius:100px; padding:7px 16px; color:#fff; font-size:13px; font-weight:700; white-space:nowrap; transition:background 0.2s; flex-shrink:0; user-select:none; }
+.back-btn { background:rgba(255,255,255,0.15); border:1.5px solid rgba(255,255,255,0.25); border-radius:100px; padding:7px 16px; color:#fff; font-size:13px; font-weight:700; white-space:nowrap; transition:background 0.2s; flex-shrink:0; }
 .back-btn:hover { background:rgba(255,255,255,0.28); }
-.nav-title { position:absolute; left:50%; transform:translateX(-50%); color:#fff; font-size:15px; font-weight:700; pointer-events:none; user-select:none; }
+.nav-title { position:absolute; left:50%; transform:translateX(-50%); color:#fff; font-size:15px; font-weight:700; pointer-events:none; }
 .nav-actions { display:flex; gap:8px; align-items:center; margin-left:auto; }
 
-/* 設定按鈕 */
-.settings-wrap { position:relative; }
-.settings-btn { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.2); border-radius:100px; padding:6px 14px 6px 10px; cursor:pointer; color:#fff; transition:background 0.2s; user-select:none; }
-.settings-btn:hover { background:rgba(255,255,255,0.22); }
-.settings-btn.active { background:rgba(255,255,255,0.22); border-color:rgba(255,255,255,0.4); }
-.settings-btn svg { width:16px; height:16px; flex-shrink:0; }
-.settings-label { font-size:12px; font-weight:700; white-space:nowrap; }
-.settings-menu { position:absolute; top:calc(100% + 8px); right:0; background:var(--surface); border:1.5px solid var(--border); border-radius:16px; padding:6px; min-width:200px; box-shadow:0 8px 32px rgba(0,0,0,0.18); z-index:300; }
-.menu-drop-enter-active { transition:opacity 0.15s ease, transform 0.15s ease; }
-.menu-drop-leave-active { transition:opacity 0.1s ease, transform 0.1s ease; }
-.menu-drop-enter-from, .menu-drop-leave-to { opacity:0; transform:translateY(-6px); }
-.menu-row { display:flex; align-items:center; gap:10px; width:100%; padding:10px 12px; border-radius:10px; background:transparent; border:none; cursor:pointer; color:var(--text); transition:background 0.15s; }
-.menu-row:hover { background:var(--surface2); }
-.menu-row.active { background:var(--surface2); }
-.menu-icon { font-size:16px; flex-shrink:0; }
-.menu-text { flex:1; font-size:13px; font-weight:700; text-align:left; }
-.menu-pill { width:34px; height:18px; border-radius:100px; background:var(--surface3); position:relative; flex-shrink:0; transition:background 0.25s; }
-.menu-pill.on { background:var(--primary); }
-.menu-knob { position:absolute; top:3px; left:3px; width:12px; height:12px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.2); transition:transform 0.25s cubic-bezier(0.34,1.4,0.64,1); }
-.menu-pill.on .menu-knob { transform:translateX(16px); }
-
+/* Toggle switches */
+.toggle-wrap { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.2); border-radius:100px; padding:5px 10px 5px 8px; cursor:pointer; transition:background 0.2s,border-color 0.2s; user-select:none; }
+.toggle-wrap:hover { background:rgba(255,255,255,0.2); }
+.toggle-wrap.active { background:rgba(255,255,255,0.22); border-color:rgba(255,255,255,0.4); }
+.toggle-icon  { font-size:15px; line-height:1; }
+.toggle-label { font-size:12px; font-weight:700; color:#fff; white-space:nowrap; }
+.toggle-pill  { width:30px; height:16px; border-radius:100px; background:rgba(255,255,255,0.25); position:relative; flex-shrink:0; transition:background 0.25s; }
+.toggle-wrap.active .toggle-pill { background:rgba(255,255,255,0.7); }
+.toggle-knob  { position:absolute; top:2px; left:2px; width:12px; height:12px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.25); transition:transform 0.25s cubic-bezier(0.34,1.4,0.64,1); }
+.toggle-wrap.active .toggle-knob { transform:translateX(14px); }
+.theme-toggle .toggle-pill { background:rgba(100,120,255,0.4); }
+.theme-toggle.active .toggle-pill { background:rgba(60,70,140,0.8); }
 
 /* ── No result ── */
 .no-result { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:40px; }
@@ -401,18 +541,19 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 /* ── BOOK-STYLE TWO-COLUMN MAIN ── */
 .result-main {
   flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
-  max-width: 1200px;
+  display: flex;
+  flex-direction: row;
+  max-width: 1400px;
   width: 100%;
   margin: 24px auto;
   padding: 0 32px 52px;
   align-items: stretch;
+  min-height: 80vh;
 }
 
 /* Left page */
 .col-left {
+  flex: 1; min-width: 0;
   display: flex; flex-direction: column; gap: 14px;
   background: var(--surface);
   border: 1.5px solid var(--border);
@@ -425,12 +566,14 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 
 /* Right page */
 .col-right {
+  flex: 1; min-width: 0;
   display: flex; flex-direction: column; gap: 14px;
   background: var(--surface2);
   border: 1.5px solid var(--border);
   border-radius: 0 18px 18px 0;
+  overflow: hidden;
   padding: 24px;
-  box-shadow: 6px 0 32px rgba(0,0,0,0.10), inset 4px 0 12px rgba(0,0,0,0.04);
+  box-shadow: inset 4px 0 12px rgba(0,0,0,0.04);
   transition: background 0.25s, border-color 0.25s;
 }
 
@@ -439,7 +582,7 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 .col-right { border-left: none; }
 
 /* ── Risk banner ── */
-.risk-banner { border-radius:18px; padding:20px; display:flex; gap:16px; align-items:center; border:2px solid transparent; overflow:hidden; user-select:none; }
+.risk-banner { border-radius:18px; padding:20px; display:flex; gap:16px; align-items:center; border:2px solid transparent; overflow:hidden; }
 .risk-banner.safe  { background:var(--safe-bg);  border-color:var(--safe); }
 .risk-banner.promo { background:var(--promo-bg); border-color:var(--promo); }
 .risk-banner.warn  { background:var(--warn-bg);  border-color:var(--warn); }
@@ -464,14 +607,18 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 .warn  .rb-tag { background:rgba(255,140,0,0.2);  color:var(--warn-text); }
 .scam  .rb-tag { background:rgba(255,45,45,0.2);  color:var(--scam-text); }
 .rb-title { font-size:28px; font-weight:900; line-height:1.3; word-break:break-all; }
-.rb-input { font-size:13px; color:var(--text-muted); font-family:'DM Mono',monospace; margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:0; min-width:100%; display:block; user-select:text; }
+.rb-input { font-size:13px; color:var(--text-muted); font-family:'DM Mono',monospace; margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; display:block; }
 
 /* ── Score card ── */
 .score-card { padding:16px 18px; }
 .score-labels { display:flex; justify-content:space-between; font-size:13px; color:var(--text-muted); margin-bottom:8px; }
 .score-track  { height:10px; background:var(--surface3); border-radius:100px; overflow:hidden; margin-bottom:8px; }
 .score-fill   { height:100%; border-radius:100px; width:0%; transition:width 1s 0.2s cubic-bezier(0.25,1,0.5,1); }
-.score-fill   { height:100%; border-radius:100px; width:0%; transition:width 1s 0.2s cubic-bezier(0.25,1,0.5,1); }
+.safe  .score-fill, .score-fill.safe  { background:var(--safe); }
+.promo .score-fill, .score-fill.promo { background:var(--promo); }
+.warn  .score-fill, .score-fill.warn  { background:linear-gradient(90deg,#ffb300,var(--warn)); }
+.scam  .score-fill, .score-fill.scam    { background:linear-gradient(90deg,var(--warn),var(--scam)); }
+.score-fill.unknown { background:linear-gradient(90deg,#8faa2e,#a8c44e); }
 .score-value { font-size:16px; font-weight:700; text-align:right; }
 .score-value.safe  { color:var(--safe-text); }
 .score-value.promo { color:var(--promo-text); }
@@ -481,11 +628,13 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 /* ── Section cards — no extra bg inside the book pages ── */
 .section-card { background: transparent; border: 1.5px solid var(--border); border-radius: 14px; padding: 16px; transition: border-color 0.25s; box-shadow: none; }
 .col-right .section-card { background: transparent; }
+.col-left .section-card:last-child { flex: 1; }
+.col-right .section-card:last-child { flex: 1; }
 .sec-title { font-size:13px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--text-muted); margin-bottom:14px; }
 
 /* ── Reasons ── */
 .reasons { list-style:none; }
-.reasons li { display:flex; align-items:flex-start; gap:9px; padding:8px 0; font-size:20px; line-height:1.65; border-bottom:1px solid var(--border); user-select:text; }
+.reasons li { display:flex; align-items:flex-start; gap:9px; padding:8px 0; font-size:20px; line-height:1.65; border-bottom:1px solid var(--border); }
 .reasons li:last-child { border-bottom:none; }
 .ri { font-size:20px; flex-shrink:0; margin-top:2px; }
 
@@ -604,21 +753,6 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 .ert-text strong { display:block; font-size:18px; font-weight:900; color:var(--text); line-height:1.3; margin-bottom:4px; }
 .ert-text span   { font-size:12px; color:var(--text-sub); line-height:1.55; }
 
-/* ── 查無資料補充按鈕 ── */
-@keyframes contribute-pulse {
-  0%, 100% { box-shadow: 0 2px 12px rgba(168,196,78,0.2); transform: translateY(0); }
-  50%       { box-shadow: 0 6px 24px rgba(168,196,78,0.45); transform: translateY(-3px); }
-}
-.contribute-btn { display:flex; align-items:center; gap:14px; width:100%; border:2px solid #a8c44e; border-radius:14px; padding:18px 16px; background:linear-gradient(135deg, rgba(168,196,78,0.15), rgba(168,196,78,0.05)); color:var(--text); transition:all 0.18s; text-align:left; animation: contribute-pulse 2s ease-in-out infinite; will-change:transform; }
-.contribute-btn:hover { border-color:#8faa2e; background:linear-gradient(135deg, rgba(168,196,78,0.28), rgba(168,196,78,0.12)); animation:none; transform:translateY(-1px); box-shadow:0 4px 20px rgba(168,196,78,0.35); }
-.cb-icon { font-size:32px; flex-shrink:0; }
-.cb-text { flex:1; display:flex; flex-direction:column; gap:4px; will-change:auto; transform:translateZ(0); }
-.cb-title { font-size:16px; font-weight:900; color:#6a8a1a; }
-.cb-sub   { font-size:13px; color:var(--text-muted); }
-.cb-arrow { font-size:20px; font-weight:900; color:#8faa2e; flex-shrink:0; }
-[data-theme="dark"] .cb-title { color:#c8e060; }
-[data-theme="dark"] .cb-arrow { color:#c8e060; }
-
 /* ── Mobile: stack to single column ── */
 @media (max-width:900px) {
   .page-wrap { overflow-x: hidden; }
@@ -629,6 +763,7 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+    min-height: 100vh;
   }
   .col-left {
     border-right: 1.5px solid var(--border);
@@ -642,11 +777,43 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
   .col-right {
     border-left: 1.5px solid var(--border);
     border-top: none;
-    border-radius: 0 0 18px 18px;
+    border-radius: 0 0 0 0;
     box-shadow: none;
     padding: 16px;
     min-width: 0;
   }
+  .col-ai {
+    border: 1.5px solid var(--border);
+    border-top: none;
+    border-radius: 0 ;
+    padding: 16px;
+  }
+.col-ai {
+  flex: 1;
+  min-width: 0;
+
+  display: flex;              /* 🔥 關鍵 */
+  flex-direction: column;     /* 🔥 關鍵 */
+  gap: 14px;
+
+  border: 1.5px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 18px 18px;
+  padding: 16px;
+}
+.col-ai .llm-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.col-ai .section-card{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.col-left .section-card:last-child { flex: 1; }
+.col-right .section-card:last-child { flex: 1; }
   /* Prevent banner text overflow */
   .rb-title  { font-size: 18px; }
   .rb-input  { max-width: calc(100vw - 140px); }
@@ -656,5 +823,207 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
   .act-btn .as { display: none; }
   /* Score value wrap */
   .score-value { font-size: 11px; }
+  /* Toggle labels hidden on small screens */
+  .toggle-label { display: none; }
+  .toggle-wrap  { padding: 5px 8px; }
 }
+
+/* ══════════════════════════════════════════
+   LLM 分析樣式
+══════════════════════════════════════════ */
+.llm-card {
+  background: linear-gradient(135deg, rgba(100,120,255,0.08), rgba(100,120,255,0.03));
+  border-color: rgba(100,120,255,0.25);
+}
+
+.llm-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  color: var(--text-sub);
+}
+
+.spinner {
+  font-size: 24px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.llm-fraud-type {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.lft-icon { font-size: 24px; flex-shrink: 0; }
+.lft-text strong {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 3px;
+}
+.lft-text span {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.llm-suggestion {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: rgba(100,120,255,0.10);
+  border-radius: 10px;
+  padding: 12px 14px;
+  line-height: 1.6;
+}
+
+.ls-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+
+/* 對策建議卡片 */
+.advice-card {
+  background: linear-gradient(135deg, rgba(255,140,0,0.08), rgba(255,140,0,0.03));
+  border-color: rgba(255,140,0,0.25);
+}
+
+.advice-section { margin-bottom: 16px; }
+.advice-section:last-child { margin-bottom: 0; }
+
+.advice-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.advice-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.advice-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  background: var(--surface2);
+  border-radius: 8px;
+}
+
+.al-icon {
+  flex-shrink: 0;
+  font-weight: 900;
+  color: var(--safe);
+}
+
+.advice-list.avoid .al-icon {
+  color: var(--scam);
+}
+
+.advice-steps {
+  list-style: none;
+  counter-reset: step;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.advice-steps li {
+  counter-increment: step;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  background: var(--surface2);
+  border-radius: 8px;
+}
+
+.advice-steps li::before {
+  content: counter(step);
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.advice-recovery {
+  background: rgba(255,140,0,0.10);
+  border: 1.5px solid rgba(255,140,0,0.25);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.advice-recovery p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  margin-top: 6px;
+}
+
+
+.llm-score-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; padding:8px 12px; background:var(--surface2); border-radius:10px; }
+.lsr-label { font-size:12px; color:var(--text-sub); font-weight:600; }
+.lsr-val { font-size:18px; font-weight:900; }
+.lsr-val.safe    { color:var(--safe); }
+.lsr-val.warn    { color:var(--warn); }
+.lsr-val.scam    { color:var(--scam); }
+
+
+/* ── 雙色分數條 ── */
+.dual-bar-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.dbar-label { font-size:10px; font-weight:700; color:rgba(128,128,128,0.8); width:52px; flex-shrink:0; letter-spacing:0.3px; }
+.dbar-track { flex:1; height:8px; background:rgba(128,128,128,0.15); border-radius:100px; overflow:hidden; }
+.dbar-fill  { height:100%; border-radius:100px; width:0%; transition:width 1.2s cubic-bezier(0.22,1,0.36,1) 0.2s; }
+
+/* Gogolook：固定橘紅漸層（深淺色皆清晰） */
+.dbar-fill.ggl { background: linear-gradient(90deg, #f97316, #ef4444); }
+.dbar-val.ggl-text { font-size:12px; font-weight:800; color:#ef4444; width:24px; text-align:right; flex-shrink:0; }
+
+/* AI：固定藍紫漸層（深淺色皆清晰） */
+.dbar-fill.ai  { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+.dbar-val.ai-text { font-size:12px; font-weight:800; color:#6366f1; width:24px; text-align:right; flex-shrink:0; }
+
+/* 加權綜合分數 */
+.weighted-score { display:flex; align-items:center; gap:8px; margin-top:6px; padding-top:8px; border-top:1px solid var(--border); }
+.ws-label { font-size:11px; color:var(--text-sub); font-weight:600; }
+.ws-val   { font-size:18px; font-weight:900; line-height:1; }
+.ws-formula { font-size:9px; color:var(--text-muted); margin-left:auto; }
+
+/* AI 評分列 */
+.llm-score-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; padding:8px 12px; background:var(--surface2); border-radius:10px; }
+.lsr-label { font-size:12px; color:var(--text-sub); font-weight:600; }
+.lsr-val { font-size:18px; font-weight:900; }
+.lsr-val.safe    { color:#22c55e; }
+.lsr-val.warn    { color:#f97316; }
+.lsr-val.scam    { color:#ef4444; }
+.lsr-val.unknown { color:#a8c44e; }
 </style>
