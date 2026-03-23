@@ -128,7 +128,7 @@
           <div class="action-row">
             <div class="action-left">
               <transition name="ph-slide" mode="out-in">
-                <div class="type-chips" v-if="inputText.trim() || images.length" key="chips">
+                <div class="type-chips" v-if="inputText.trim() || images.length || detectedType === 'phone'" key="chips">
                   <template v-if="images.length">
                     <span class="type-chip active screenshot">{{ t('typeScreenshot') }}</span>
                   </template>
@@ -136,8 +136,9 @@
                     <button
                       v-for="t in typeOptions" :key="t.value"
                       class="type-chip"
-                      :class="{ active: detectedType === t.value }"
+                      :class="{ active: detectedType === t.value, disabled: isLoading }"
                       :data-type="t.value"
+                      :disabled="isLoading"
                       @click="setForcedType(t.value)">
                       {{ t.label }}
                     </button>
@@ -158,7 +159,7 @@
                 v-else
                 class="send-btn"
                 :class="{ 'elder-pulse': isElder && (inputText.trim() || images.length) }"
-                :disabled="!inputText.trim() && !images.length"
+                :disabled="!inputText.trim() && !images.length && detectedType !== 'phone'"
                 @click="doCheck">
                 <span>🔍</span>
                 <span>{{ t('checkNow') }}</span>
@@ -166,9 +167,6 @@
             </div>
           </div>
 
-          <div class="elder-arrow-hint" v-if="isElder && (inputText.trim() || images.length)">
-            <span class="eah-text">{{ t('elderHint') }}</span>
-          </div>
         </div><!-- /input-card -->
         </div><!-- /content-inner -->
       </div><!-- /main-content -->
@@ -294,6 +292,9 @@
         </div>
       </div>
     </transition>
+    <!-- Onboarding 教學導覽 -->
+    <OnboardingTour @set-input="onTourSetInput" @do-check="doCheck" />
+
   </div>
 </template>
 
@@ -308,6 +309,7 @@ import { resultState } from '../composables/useResult.js'
 import { isTTSEnabled, toggleTTS } from '../composables/useVoice.js'
 import { useLocale, t } from '../composables/useLocale.js'
 import PhoneInput from '../components/PhoneInput.vue'
+import OnboardingTour from '../components/OnboardingTour.vue'
 import { autoCheck, report, getStatsPeriods, getChartData } from '../services/api.js'
 const router = useRouter()
 const { isDark, toggle: toggleTheme } = useTheme()
@@ -486,7 +488,7 @@ async function doCheck() {
   isLoading.value = true
   abortController = new AbortController()
   try {
-    const data = await autoCheck(rawQ, type)
+    const data = await autoCheck(rawQ, type, '+886', abortController.signal)
     if (!data.level || (!data.reasons?.length && !data.label)) {
       showToast(t('toastNoData'), 'ok'); return
     }
@@ -517,6 +519,14 @@ function clearInput() {
   forcedType.value   = null
   phoneIsValid.value = false
   phoneE164.value    = ''
+  nextTick(() => autoResize())
+}
+
+// ── Tour: 填入範例文字 ──
+function onTourSetInput(val) {
+  inputText.value  = val
+  phoneMode.value  = false
+  forcedType.value = null
   nextTick(() => autoResize())
 }
 
@@ -896,6 +906,7 @@ header h1 span { color:var(--primary); }
 .type-chips { display:flex; gap:6px; align-items:center; }
 .type-chip  { padding:4px 12px; border-radius:100px; border:1.5px solid var(--border); background:var(--surface2); color:var(--text-sub); font-size:12px; font-weight:700; cursor:pointer; transition:all 0.18s; white-space:nowrap; }
 .type-chip:hover  { border-color:var(--primary); color:var(--primary); }
+.type-chip.disabled, .type-chip:disabled { opacity:0.45; cursor:not-allowed; pointer-events:none; }
 /* 網址 — 藍 */
 .type-chip.active[data-type="url"],
 .type-chip.active[data-type="phone"],

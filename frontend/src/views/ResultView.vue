@@ -88,69 +88,28 @@
           </ul>
         </div>
 
+        <!-- AI 分析展開按鈕 — 左欄底部 -->
+        <button
+          v-if="llmAnalysis || isLoadingLLM"
+          class="ai-expand-btn"
+          :class="{ loading: isLoadingLLM }"
+          :disabled="isLoadingLLM"
+          @click="openAiPage">
+          <span class="aeb-icon">{{ isLoadingLLM ? '⏳' : '🤖' }}</span>
+          <span class="aeb-text">
+            <span class="aeb-title">{{ isLoadingLLM ? t('aiAnalyzing') : t('aiAnalysis') }}</span>
+            <span class="aeb-sub" v-if="!isLoadingLLM && llmAnalysis">
+              {{ llmAnalysis.fraud_type || (t('aiRiskScore') + ' ' + llmAnalysis.score) }}
+            </span>
+          </span>
+          <span class="aeb-arrow">›</span>
+        </button>
+
       </div><!-- /col-left -->
 
 
 
-      <!-- ── AI 分析第三欄 ── -->
-      <div class="col col-ai" v-if="llmAnalysis || isLoadingLLM">
-
-        <div class="section-card llm-card">
-          <div class="sec-title">{{ t('aiAnalysis') }}</div>
-          <div class="llm-loading" v-if="isLoadingLLM">
-            <span class="spinner">⏳</span>
-            <span>{{ t('aiAnalyzing') }}</span>
-          </div>
-          <template v-else-if="llmAnalysis">
-            <div class="llm-score-row" v-if="llmAnalysis.score !== undefined">
-              <span class="lsr-label">{{ t('aiRiskScore') }}</span>
-              <span class="lsr-val" :class="llmAnalysis.level">{{ llmAnalysis.score }} {{ t('aiScoreSuffix') }}</span>
-            </div>
-            <div class="llm-fraud-type" v-if="llmAnalysis.fraud_type">
-              <span class="lft-icon">🎯</span>
-              <div class="lft-text">
-                <strong>{{ locale === 'en' ? 'Fraud Type' : '詐騙手法' }}</strong>
-                <span>{{ llmAnalysis.fraud_type }}</span>
-              </div>
-            </div>
-            <div class="llm-suggestion" v-if="llmAnalysis.suggestion">
-              <span class="ls-icon">💡</span>
-              <p>{{ llmAnalysis.suggestion }}</p>
-            </div>
-          </template>
-        </div>
-
-        <div class="section-card advice-card" v-if="llmAdvice">
-          <div class="sec-title">{{ t('proAdvice') }}</div>
-          <div class="advice-section" v-if="llmAdvice.immediate_actions?.length">
-            <div class="advice-title">{{ t('immediateAction') }}</div>
-            <ul class="advice-list">
-              <li v-for="(action, i) in llmAdvice.immediate_actions" :key="i">
-                <span class="al-icon">✓</span><span>{{ action }}</span>
-              </li>
-            </ul>
-          </div>
-          <div class="advice-section" v-if="llmAdvice.avoid_actions?.length">
-            <div class="advice-title">{{ t('doNotDo') }}</div>
-            <ul class="advice-list avoid">
-              <li v-for="(action, i) in llmAdvice.avoid_actions" :key="i">
-                <span class="al-icon">✗</span><span>{{ action }}</span>
-              </li>
-            </ul>
-          </div>
-          <div class="advice-section" v-if="llmAdvice.report_steps?.length">
-            <div class="advice-title">{{ t('reportSteps') }}</div>
-            <ol class="advice-steps">
-              <li v-for="(step, i) in llmAdvice.report_steps" :key="i">{{ step }}</li>
-            </ol>
-          </div>
-          <div class="advice-recovery" v-if="llmAdvice.recovery_tips">
-            <div class="advice-title">{{ t('ifVictim') }}</div>
-            <p>{{ llmAdvice.recovery_tips }}</p>
-          </div>
-        </div>
-
-      </div><!-- /col-ai -->
+      <!-- ── AI 分析 Panel (overlay) ── -->
 
             <!-- ── RIGHT COLUMN: 行動建議 ── -->
       <div class="col col-right">
@@ -264,6 +223,9 @@
       {{ toastMsg }}
     </div>
 
+    <!-- 結果頁教學導覽 -->
+    <OnboardingTour :steps="resultTourSteps" storage-key="resultTourDone" @open-ai="openAiPage" />
+
   </div>
 </template>
 
@@ -275,6 +237,68 @@ import { useElder } from '../composables/useElder.js'
 import { resultState } from '../composables/useResult.js'
 import { report, analyzeLLMText, getLLMAdvice } from '../services/api.js'
 import { useLocale, t } from '../composables/useLocale.js'
+import OnboardingTour from '../components/OnboardingTour.vue'
+
+// 結果頁教學步驟
+const resultTourSteps = [
+  {
+    icon: '📊',
+    title: '這是分析結果頁',
+    desc: '每次檢測完成後都會來到這裡，顯示完整的風險分析報告。',
+    target: null,
+    openMenu: false,
+  },
+  {
+    icon: '🚨',
+    title: '風險等級橫幅',
+    desc: '最上方的橫幅顯示風險等級（安全／促銷／警告／詐騙）和 AI 標籤，顏色越紅代表風險越高。',
+    target: '.risk-banner',
+    openMenu: false,
+  },
+  {
+    icon: '📈',
+    title: '風險評分',
+    desc: '分數條顯示 Gogolook 資料庫與 AI 各自的評分，以及加權後的綜合風險分數（0–100）。',
+    target: '.score-card',
+    openMenu: false,
+  },
+  {
+    icon: '🔎',
+    title: '分析原因',
+    desc: '列出系統判斷為此風險等級的具體理由，幫助你了解哪些特徵觸發了警示。',
+    target: '.reasons-card',
+    openMenu: false,
+  },
+  {
+    icon: '🌐',
+    title: '前往網站',
+    desc: '若你仍想前往該網址，可點此按鈕。系統會再次警告並要求滑動確認，避免誤觸。',
+    target: '.visit-card',
+    openMenu: false,
+  },
+  {
+    icon: '🚫',
+    title: '立即行動',
+    desc: '右欄提供三個快速行動：封鎖號碼／網址、向 165 通報，以及提交證據協助調查。',
+    target: '.actions-card',
+    openMenu: false,
+  },
+  {
+    icon: '📋',
+    title: '下一步建議',
+    desc: '根據風險等級，系統會給出具體的後續行動建議，幫助你保護自己和身邊的人。',
+    target: '.next-card',
+    openMenu: false,
+  },
+  {
+    icon: '🤖',
+    title: 'AI 深度分析',
+    desc: '點擊此按鈕可開啟 AI 深度分析頁面，查看詐騙手法分類、詳細對策與建議。按「前往 AI 頁 →」帶你看看。',
+    target: '.ai-expand-btn',
+    openMenu: false,
+    openAiTour: true,
+  },
+]
 
 const router = useRouter()
 const { isDark, toggle: toggleTheme } = useTheme()
@@ -452,7 +476,17 @@ async function doAction(type) {
   })
 }
 
+const showAiPanel = ref(false)
 const showConfirm = ref(false)
+
+function openAiPage() {
+  // 同分頁導航，用 localStorage 傳遞資料
+  localStorage.setItem('aiAnalysisData', JSON.stringify({
+    llmAnalysis: llmAnalysis.value,
+    llmAdvice:   llmAdvice.value,
+  }))
+  router.push('/ai')
+}
 const confirmData = ref({ title:'', sub:'', ok:'', cb:null })
 function openConfirm(title, sub, ok, cb) { confirmData.value={title,sub,ok,cb}; showConfirm.value=true }
 function closeConfirm() { showConfirm.value=false }
@@ -543,12 +577,12 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
   flex: 1;
   display: flex;
   flex-direction: row;
-  max-width: 1400px;
+  max-width: 1100px;
   width: 100%;
-  margin: 24px auto;
-  padding: 0 32px 52px;
+  margin: 20px auto;
+  padding: 0 24px 48px;
   align-items: stretch;
-  min-height: 80vh;
+  min-height: 70vh;
 }
 
 /* Left page */
@@ -563,6 +597,9 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
   box-shadow: -6px 0 32px rgba(0,0,0,0.10), inset -4px 0 12px rgba(0,0,0,0.04);
   transition: background 0.25s, border-color 0.25s;
 }
+
+/* AI 展開按鈕欄（左欄和右欄之間不再有第三欄） */
+.col-ai-btn { display: none; } /* 桌面版不顯示為獨立欄，按鈕放在左欄底部 */
 
 /* Right page */
 .col-right {
@@ -634,9 +671,9 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 
 /* ── Reasons ── */
 .reasons { list-style:none; }
-.reasons li { display:flex; align-items:flex-start; gap:9px; padding:8px 0; font-size:20px; line-height:1.65; border-bottom:1px solid var(--border); }
+.reasons li { display:flex; align-items:flex-start; gap:9px; padding:10px 0; font-size:17px; line-height:1.6; border-bottom:1px solid var(--border); }
 .reasons li:last-child { border-bottom:none; }
-.ri { font-size:20px; flex-shrink:0; margin-top:2px; }
+.ri { font-size:17px; flex-shrink:0; margin-top:2px; }
 
 /* ── Visit button ── */
 .visit-warning { background:var(--scam-bg); border:1.5px solid rgba(255,45,45,0.3); border-radius:10px; padding:14px 18px; font-size:16px; color:var(--scam-text); margin-bottom:10px; line-height:1.5; }
@@ -652,10 +689,10 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 /* ── Action buttons — vertical stack ── */
 .actions-col { display:flex; flex-direction:column; gap:10px; }
 .act-btn { display:flex; align-items:center; gap:14px; border:none; border-radius:14px; padding:14px 16px; transition:all 0.18s; text-align:left; width:100%; }
-.act-btn .ai { font-size:30px; flex-shrink:0; }
+.act-btn .ai { font-size:28px; flex-shrink:0; }
 .act-text { display:flex; flex-direction:column; gap:2px; }
-.act-btn .at { font-size:20px; font-weight:900; line-height:1.2; }
-.act-btn .as { font-size:15px; opacity:0.72; line-height:1.3; }
+.act-btn .at { font-size:19px; font-weight:900; line-height:1.2; }
+.act-btn .as { font-size:14px; opacity:0.72; line-height:1.3; }
 .act-btn:active { transform:scale(0.98); }
 
 .btn-block    { background:var(--scam-bg);       color:var(--scam); }
@@ -673,9 +710,9 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 .nsi.warn  { border-left-color:var(--warn); }
 .nsi.scam    { border-left-color:var(--scam); }
 .nsi.unknown { border-left-color:#a8c44e; }
-.nsi-icon { font-size:24px; flex-shrink:0; margin-top:1px; }
-.nsi-text strong { display:block; font-size:20px; color:var(--text); line-height:1.3; }
-.nsi-text span   { display:block; font-size:16px; color:var(--text-sub); margin-top:3px; line-height:1.4; }
+.nsi-icon { font-size:22px; flex-shrink:0; margin-top:1px; }
+.nsi-text strong { display:block; font-size:18px; color:var(--text); line-height:1.3; }
+.nsi-text span   { display:block; font-size:14px; color:var(--text-sub); margin-top:2px; line-height:1.4; }
 
 /* ── Confirm overlay ── */
 .confirm-overlay { display:none; position:fixed; inset:0; z-index:800; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; padding:24px; }
@@ -727,12 +764,12 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
 .page-wrap.elder .rb-title    { font-size:34px; }
 .page-wrap.elder .rb-icon     { font-size:44px; }
 .page-wrap.elder .rb-badge    { width:84px; height:84px; border-radius:20px; }
-.page-wrap.elder .reasons li  { font-size:24px; padding:12px 0; }
-.page-wrap.elder .ri          { font-size:24px; }
-.page-wrap.elder .at          { font-size:24px; }
-.page-wrap.elder .act-btn .as { font-size:17px; }
-.page-wrap.elder .nsi-text strong { font-size:24px; }
-.page-wrap.elder .nsi-text span   { font-size:18px; }
+.page-wrap.elder .reasons li  { font-size:18px; padding:10px 0; }
+.page-wrap.elder .ri          { font-size:18px; }
+.page-wrap.elder .at          { font-size:18px; }
+.page-wrap.elder .act-btn .as { font-size:14px; }
+.page-wrap.elder .nsi-text strong { font-size:18px; }
+.page-wrap.elder .nsi-text span   { font-size:14px; }
 .page-wrap.elder .score-fill  { height:14px; border-radius:100px; }
 .page-wrap.elder .score-track { height:14px; }
 .page-wrap.elder .score-value { font-size:18px; }
@@ -782,35 +819,7 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
     padding: 16px;
     min-width: 0;
   }
-  .col-ai {
-    border: 1.5px solid var(--border);
-    border-top: none;
-    border-radius: 0 ;
-    padding: 16px;
-  }
-.col-ai {
-  flex: 1;
-  min-width: 0;
-
-  display: flex;              /* 🔥 關鍵 */
-  flex-direction: column;     /* 🔥 關鍵 */
-  gap: 14px;
-
-  border: 1.5px solid var(--border);
-  border-top: none;
-  border-radius: 0 0 18px 18px;
-  padding: 16px;
-}
-.col-ai .llm-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-.col-ai .section-card{
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
+  .col-ai-btn { display: none; }
 
 .col-left .section-card:last-child { flex: 1; }
 .col-right .section-card:last-child { flex: 1; }
@@ -827,6 +836,27 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow=''})
   .toggle-label { display: none; }
   .toggle-wrap  { padding: 5px 8px; }
 }
+
+/* ══════════════════════════════════════════
+   AI 展開按鈕 & Panel
+══════════════════════════════════════════ */
+.ai-expand-btn {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; border: 1.5px solid rgba(100,120,255,0.3);
+  border-radius: 14px; padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(100,120,255,0.08), rgba(100,120,255,0.03));
+  cursor: pointer; text-align: left; transition: all 0.18s;
+  margin-top: auto;
+}
+.ai-expand-btn:hover { border-color: rgba(100,120,255,0.6); background: rgba(100,120,255,0.12); }
+.ai-expand-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.aeb-icon { font-size: 28px; flex-shrink: 0; }
+.aeb-text { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.aeb-title { font-size: 16px; font-weight: 700; color: var(--text); }
+.aeb-sub { font-size: 14px; color: var(--text-muted); }
+.aeb-arrow { font-size: 22px; color: rgba(100,120,255,0.6); font-weight: 700; flex-shrink: 0; }
+
+/* Panel overlay — 已移至 AiView 獨立頁面 */
 
 /* ══════════════════════════════════════════
    LLM 分析樣式
