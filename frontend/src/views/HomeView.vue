@@ -102,7 +102,9 @@
               @focus="isFocused = true"
               @blur="isFocused = false"
               @paste="handlePaste"
-              @input="autoResize"
+              @input="onTextInput"
+              @compositionstart="isComposing = true"
+              @compositionend="onCompositionEnd"
               @dblclick.prevent
               @keydown.enter.prevent="doCheck"
               @keydown.meta.enter.prevent="doCheck"
@@ -396,6 +398,7 @@ watch(inputText, (val) => {
 })
 
 const textareaRef = ref(null)
+const isComposing = ref(false) // 追蹤 IME 組字狀態（中文輸入法）
 const statsPage   = ref(null)
 const statsVisible = ref(false)
 const numRefs     = ref([])
@@ -431,6 +434,41 @@ function autoResize() {
   }
   el.style.height = 'auto'
   el.style.height = Math.min(el.scrollHeight, 220) + 'px'
+}
+
+// 過濾中文字元（CJK 統一漢字、注音、全形等）
+const CJK_RE = /[\u2E80-\u2FFF\u3000-\u303F\u3040-\u30FF\u3100-\u312F\u3200-\u32FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFFEF]/g
+
+function stripCJK(str) {
+  return str.replace(CJK_RE, '')
+}
+
+function onTextInput() {
+  // 組字期間不處理，等 compositionend 再過濾
+  if (!isComposing.value) {
+    const el = textareaRef.value
+    if (!el) return
+    const filtered = stripCJK(el.value)
+    if (filtered !== el.value) {
+      // 保留游標位置
+      const pos = el.selectionStart - (el.value.length - filtered.length)
+      inputText.value = filtered
+      el.value = filtered
+      el.setSelectionRange(pos, pos)
+    }
+  }
+  autoResize()
+}
+
+function onCompositionEnd() {
+  isComposing.value = false
+  // 組字結束後立即過濾（中文輸入法確認輸入時）
+  const el = textareaRef.value
+  if (!el) return
+  const filtered = stripCJK(el.value)
+  inputText.value = filtered
+  el.value = filtered
+  autoResize()
 }
 
 // ── Images ──

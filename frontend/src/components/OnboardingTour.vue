@@ -182,16 +182,36 @@ function positionOnEl(el) {
   hole.r = 12
 
   const cardEl = document.querySelector('.tour-card')
-  const cardH = cardEl ? cardEl.offsetHeight + 16 : 300
+  const cardH = cardEl ? Math.max(cardEl.offsetHeight, 260) + 16 : 300
   const cardW = 340
-  const spaceBelow = window.innerHeight - rect.bottom
-  const spaceAbove = rect.top
-  let top
-  if (spaceBelow >= cardH)      top = rect.bottom + 16
-  else if (spaceAbove >= cardH) top = rect.top - cardH
-  else                          top = Math.max(16, window.innerHeight / 2 - cardH / 2 + 60)
+  const gap = 16
+  const spaceBelow = window.innerHeight - rect.bottom - gap
+  const spaceAbove = rect.top - gap
 
-  let left = rect.left + rect.width / 2 - cardW / 2
+  let top, left
+
+  // 目標元素本身很高（超過視窗 40%）→ 卡片固定在右下角，不擋內容
+  if (rect.height > window.innerHeight * 0.4) {
+    top  = window.innerHeight - cardH - gap
+    left = window.innerWidth  - cardW - gap
+    cardStyle.value = { top: top + 'px', left: left + 'px', transform: 'none' }
+    return
+  }
+
+  if (spaceBelow >= cardH) {
+    top = rect.bottom + gap
+  } else if (spaceAbove >= cardH) {
+    top = rect.top - cardH - gap
+  } else {
+    // 選空間較大的那側
+    top = spaceBelow >= spaceAbove
+      ? Math.min(rect.bottom + gap, window.innerHeight - cardH - gap)
+      : Math.max(gap, rect.top - cardH - gap)
+  }
+
+  // clamp 確保不超出視窗
+  top  = Math.max(gap, Math.min(top, window.innerHeight - cardH - gap))
+  left = rect.left + rect.width / 2 - cardW / 2
   left = Math.max(16, Math.min(left, window.innerWidth - cardW - 16))
   cardStyle.value = { top: top + 'px', left: left + 'px', transform: 'none' }
 }
