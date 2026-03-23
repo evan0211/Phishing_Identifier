@@ -36,6 +36,11 @@
                 <span class="menu-text">{{ t('voiceRead') }}</span>
                 <span class="menu-pill" :class="{ on: isTTSEnabled }"><span class="menu-knob"></span></span>
               </button>
+              <!-- 重播教學 -->
+              <button class="menu-row" @click="tourRef?.restart(); menuOpen = false">
+                <span class="menu-icon">🎓</span>
+                <span class="menu-text">重播教學導覽</span>
+              </button>
             </div>
           </transition>
         </div>
@@ -79,6 +84,7 @@
               <PhoneInput
                 :initialValue="inputText"
                 :isElder="isElder"
+                :disabled="isLoading"
                 @update:modelValue="onPhoneInput"
                 @submit="doCheck"
                 @valid="onPhoneValid"
@@ -105,6 +111,7 @@
             <button
               v-if="inputText"
               class="clear-btn"
+              :disabled="isLoading"
               :title="t('clearInput')"
               @click="clearInput">
               ✕
@@ -154,6 +161,7 @@
                 @click="cancelCheck">
                 <span class="send-spinner"></span>
                 <span>{{ t('analyzing') }}</span>
+                <span class="cancel-label">取消</span>
               </button>
               <button
                 v-else
@@ -294,6 +302,7 @@
     </transition>
     <!-- Onboarding 教學導覽 -->
     <OnboardingTour
+      ref="tourRef"
       @set-input="onTourSetInput"
       @do-check="doCheck"
       @open-menu="menuOpen = true"
@@ -726,6 +735,7 @@ function focusOnType(e) {
 // ── 設定選單 ──
 const menuOpen    = ref(false)
 const settingsWrap = ref(null)
+const tourRef      = ref(null)
 
 function onClickOutside(e) {
   // 排除導覽卡片的點擊，避免干擾 tour 開選單的流程
@@ -908,6 +918,7 @@ header h1 span { color:var(--primary); }
 /* 清除按鈕 — 右上角 */
 .clear-btn { position:absolute; top:8px; right:10px; width:20px; height:20px; border-radius:50%; background:rgba(128,128,128,0.18); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text-muted); font-size:10px; font-weight:900; line-height:1; transition:background 0.2s, color 0.2s; z-index:2; }
 .clear-btn:hover { background:var(--scam); color:#fff; }
+.clear-btn:disabled { opacity:0.35; cursor:not-allowed; pointer-events:none; }
 
 /* 類型 chips — action-row 左側 inline */
 .type-chips { display:flex; gap:6px; align-items:center; }
@@ -936,6 +947,7 @@ header h1 span { color:var(--primary); }
 .page-wrap.elder .send-btn { font-size:17px; padding:11px 22px; border-radius:14px; }
 .send-btn.elder-pulse { animation:breathe 1.8s ease-in-out infinite; }
 .cancel-btn { display:flex; align-items:center; justify-content:center; gap:7px; background:var(--surface3,#e5e7eb); color:var(--text-sub); border:1.5px solid var(--border); border-radius:12px; padding:8px 18px; font-size:14px; font-weight:900; transition:background 0.2s,color 0.2s; white-space:nowrap; }
+.cancel-btn .cancel-label { color:var(--scam,#ff2d2d); font-weight:900; }
 .cancel-btn:hover { background:var(--scam-bg); color:var(--scam); border-color:var(--scam); }
 .cancel-btn .send-spinner { border-color:rgba(0,0,0,0.15); border-top-color:var(--text-sub); }
 .cancel-btn:hover .send-spinner { border-color:rgba(255,45,45,0.2); border-top-color:var(--scam); }

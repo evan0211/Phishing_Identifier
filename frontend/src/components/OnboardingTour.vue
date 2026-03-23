@@ -74,7 +74,7 @@ const visible = ref(false)
 const current = ref(0)
 
 // 範例網址（用於切換類型 & 立即檢測示範）
-const DEMO_URL = 'https://www.gogolook.com/zh-tw'
+const DEMO_URL = 'https://ltoportalph-gov.com/'
 
 const defaultSteps = [
   {
@@ -130,7 +130,7 @@ const defaultSteps = [
   {
     icon: '🔍',
     title: '試著檢測看看',
-    desc: `範例網址已填好：\nhttps://www.gogolook.com/zh-tw\n\n按「立即試跑 →」，系統會幫你跑一次完整分析，帶你看結果頁面。`,
+    desc: '範例網址已填好，按「立即試跑 →」，系統會幫你跑一次完整分析，帶你繼續看結果頁介紹。',
     target: '.send-btn',
     openMenu: false,
     runDemo: true,
@@ -206,10 +206,9 @@ function updatePosition() {
   }
 
   if (step.openMenu) {
-    // 先開選單，等 DOM 出現後再等 transition 結束（約 200ms）再定位
     openSettingsMenu()
     waitForEl(step.target, (el) => {
-      setTimeout(() => positionOnEl(el), 220)
+      setTimeout(() => positionOnEl(el), 150)
     }, 800)
     return
   }
@@ -232,7 +231,13 @@ function updatePosition() {
 
 async function next() {
   const step = activeSteps.value[current.value]
-  if (step.runDemo) { finish(); emit('do-check'); return }
+  if (step.runDemo) {
+    // 設 flag 讓結果頁知道要繼續教學
+    localStorage.setItem('resultTourPending', '1')
+    finish()
+    emit('do-check')
+    return
+  }
   if (step.openAiTour) {
     localStorage.setItem('aiTourPending', '1')
     finish()
@@ -287,6 +292,15 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('keydown', onKeydown)
 })
+
+// 暴露 restart 方法，讓父元件可重播教學
+function restart() {
+  localStorage.removeItem(props.storageKey)
+  current.value = 0
+  visible.value = true
+  nextTick(() => updatePosition())
+}
+defineExpose({ restart })
 </script>
 
 <style scoped>

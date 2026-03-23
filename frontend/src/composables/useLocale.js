@@ -32,7 +32,7 @@ const dict = {
   typeUrl:           { zh: '🔗 網址',                         en: '🔗 URL' },
   typePhone:         { zh: '📞 電話',                         en: '📞 Phone' },
   typeScreenshot:    { zh: '📸 截圖',                         en: '📸 Screenshot' },
-  analyzing:         { zh: '分析中… 取消',                    en: 'Analysing… Cancel' },
+  analyzing:         { zh: '分析中…',                          en: 'Analysing…' },
   checkNow:          { zh: '立即檢測',                        en: 'Check Now' },
   elderHint:         { zh: '👆 輸入完畢？請按下「立即檢測」', en: '👆 Done? Press "Check Now"' },
   scrollHint:        { zh: '台灣詐騙現況',                    en: 'Taiwan Scam Stats' },

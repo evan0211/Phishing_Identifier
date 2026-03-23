@@ -123,6 +123,12 @@ const router = useRouter()
 const { isDark, toggle: toggleTheme } = useTheme()
 const { isElder, toggle: toggleElderFn } = useElder()
 
+// 若從教學流程進來，setup 階段同步清除，確保 OnboardingTour 掛載時能偵測到
+if (localStorage.getItem('aiTourPending')) {
+  localStorage.removeItem('aiTourPending')
+  localStorage.removeItem('aiTourDone')
+}
+
 function toggleElder() { toggleElderFn() }
 
 const menuOpen     = ref(false)
@@ -170,6 +176,20 @@ const aiTourSteps = [
     openMenu: false,
   },
   {
+    icon: '📋',
+    title: '舉報步驟',
+    desc: '右欄提供逐步的舉報流程，依序操作即可完成向 165 反詐騙專線或相關單位的通報。',
+    target: '.adv-steps',
+    openMenu: false,
+  },
+  {
+    icon: '🩹',
+    title: '已受騙怎麼辦',
+    desc: '如果你或家人已經受騙，這裡提供緊急處置建議，包含凍結帳戶、報案等具體步驟。',
+    target: '.adv-recovery',
+    openMenu: false,
+  },
+  {
     icon: '✅',
     title: '教學完成，開始使用',
     desc: '你已經了解防詐雷達的所有功能！按「開始使用 ✓」回到首頁，開始保護自己和家人。',
@@ -200,11 +220,6 @@ onMounted(() => {
       }
     }
   } catch {}
-
-  if (localStorage.getItem('aiTourPending')) {
-    localStorage.removeItem('aiTourPending')
-    localStorage.removeItem('aiTourDone')
-  }
 
   document.addEventListener('click', onClickOutside)
 })

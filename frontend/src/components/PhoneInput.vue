@@ -1,6 +1,6 @@
 <template>
   <div class="phone-wrap" :class="{ focused: isFocused }">
-    <div class="cc-btn" @click="showDrop = !showDrop" tabindex="0" @keydown.enter="showDrop = !showDrop">
+    <div class="cc-btn" @click="!disabled && (showDrop = !showDrop)" tabindex="0" @keydown.enter="!disabled && (showDrop = !showDrop)" :style="disabled ? 'pointer-events:none;opacity:0.5' : ''">
       <img class="cc-flag" :src="`https://flagcdn.com/24x18/${selected.code.toLowerCase()}.png`" :alt="selected.name">
       <span class="cc-dial">{{ selected.dial }}</span>
       <span class="cc-arrow">{{ showDrop ? '▲' : '▼' }}</span>
@@ -24,6 +24,7 @@
       :value="display"
       placeholder="請輸入電話號碼"
       aria-label="電話號碼輸入"
+      :disabled="disabled"
       @focus="isFocused = true; showDrop = false"
       @blur="isFocused = false"
       @input="onInput"
@@ -33,6 +34,7 @@
     <button
       v-if="rawDigits"
       class="phone-clear"
+      :disabled="disabled"
       @mousedown.prevent
       @click="clearPhone"
       title="清除">✕</button>
@@ -45,6 +47,7 @@ import { ref, computed, onMounted } from 'vue'
 const props = defineProps({
   initialValue: { type: String, default: '' },
   isElder:      { type: Boolean, default: false },
+  disabled:     { type: Boolean, default: false },
 })
 const emit = defineEmits(['update:modelValue', 'valid', 'submit'])
 
@@ -210,4 +213,5 @@ onMounted(() => {
   transition: background 0.2s, color 0.2s;
 }
 .phone-clear:hover { background: var(--scam, #ff2d2d); color: #fff; }
+.phone-clear:disabled { opacity:0.35; cursor:not-allowed; pointer-events:none; }
 </style>

@@ -250,8 +250,12 @@
       {{ toastMsg }}
     </div>
 
-    <!-- 結果頁教學導覽 -->
-    <OnboardingTour :steps="resultTourSteps" storage-key="resultTourDone" @open-ai="openAiPage" />
+    <!-- 結果頁教學導覽（從教學流程進來才顯示） -->
+    <OnboardingTour
+      :steps="resultTourSteps"
+      storage-key="resultTourDone"
+      @open-ai="openAiPage"
+    />
 
   </div>
 </template>
@@ -267,7 +271,7 @@ import { useLocale, t } from '../composables/useLocale.js'
 import { isTTSEnabled, toggleTTS } from '../composables/useVoice.js'
 import OnboardingTour from '../components/OnboardingTour.vue'
 
-// 結果頁教學步驟
+// 結果頁教學步驟（只在從教學流程進來時顯示）
 const resultTourSteps = [
   {
     icon: '📊',
@@ -279,7 +283,7 @@ const resultTourSteps = [
   {
     icon: '🚨',
     title: '風險等級橫幅',
-    desc: '最上方的橫幅顯示風險等級（安全／促銷／警告／詐騙）和 AI 標籤，顏色越紅代表風險越高。',
+    desc: '最上方的橫幅顯示風險等級（安全／促銷／警告／詐騙），顏色越紅代表風險越高。',
     target: '.risk-banner',
     openMenu: false,
   },
@@ -321,7 +325,7 @@ const resultTourSteps = [
   {
     icon: '🤖',
     title: 'AI 深度分析',
-    desc: '點擊此按鈕可開啟 AI 深度分析頁面，查看詐騙手法分類、詳細對策與建議。按「前往 AI 頁 →」帶你看看。',
+    desc: '點擊此按鈕可進入 AI 深度分析頁面，查看詐騙手法分類、詳細對策與建議。按「前往 AI 頁 →」繼續。',
     target: '.ai-expand-btn',
     openMenu: false,
     openAiTour: true,
@@ -332,6 +336,12 @@ const router = useRouter()
 const { isDark, toggle: toggleTheme } = useTheme()
 const { isElder, toggle: toggleElderFn } = useElder()
 const { locale } = useLocale()
+
+// 若從教學流程進來，在 setup 階段同步清除，確保 OnboardingTour 掛載時能偵測到
+if (localStorage.getItem('resultTourPending')) {
+  localStorage.removeItem('resultTourPending')
+  localStorage.removeItem('resultTourDone')
+}
 
 const result    = computed(() => resultState.data)
 const lastInput = computed(() => resultState.lastInput)
@@ -433,11 +443,9 @@ const gglScoreVal = computed(() => result.value?.ggl?.score ?? result.value?.sco
 
 onMounted(async () => {
   setTimeout(() => {
-    // Gogolook 條用 ggl.score，AI 條用 ai.score
     barWidth.value = gglScoreVal.value
   }, 120)
 
-  // 自動解析新格式 AI 資料
   if (lastInput.value) {
     performLLMAnalysis()
   }
