@@ -59,7 +59,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 
 const props = defineProps({
   // 外部傳入步驟（結果頁用），不傳則用預設首頁步驟
@@ -71,6 +71,18 @@ const props = defineProps({
 const emit = defineEmits(['set-input', 'do-check', 'open-ai', 'finish-all', 'open-menu', 'close-menu'])
 
 const visible = ref(false)
+
+// 導覽顯示時鎖定頁面滾動（html overflow 方式，不影響元素位置計算）
+let _scrollY = 0
+watch(visible, (val) => {
+  if (val) {
+    _scrollY = window.scrollY
+    document.documentElement.style.overflow = 'hidden'
+  } else {
+    document.documentElement.style.overflow = ''
+    window.scrollTo(0, _scrollY)
+  }
+})
 const current = ref(0)
 
 // 範例網址（用於切換類型 & 立即檢測示範）
@@ -173,6 +185,12 @@ function closeSettingsMenu() {
 }
 
 function positionOnEl(el) {
+  // 手機版且元素不在視窗內時，才捲動到目標
+  const rect0 = el.getBoundingClientRect()
+  const outOfView = rect0.bottom < 0 || rect0.top > window.innerHeight
+  if (outOfView) {
+    el.scrollIntoView({ block: 'center', behavior: 'instant' })
+  }
   const rect = el.getBoundingClientRect()
   const pad = 12
   hole.x = rect.left - pad
@@ -183,17 +201,18 @@ function positionOnEl(el) {
 
   const cardEl = document.querySelector('.tour-card')
   const cardH = cardEl ? Math.max(cardEl.offsetHeight, 260) + 16 : 300
-  const cardW = 340
+  const cardW = cardEl ? cardEl.offsetWidth : 340
   const gap = 16
   const spaceBelow = window.innerHeight - rect.bottom - gap
   const spaceAbove = rect.top - gap
 
   let top, left
 
-  // 目標元素本身很高（超過視窗 40%）→ 卡片固定在右下角，不擋內容
+  // 目標元素本身很高（超過視窗 40%）→ 卡片固定在右側中間
   if (rect.height > window.innerHeight * 0.4) {
-    top  = window.innerHeight - cardH - gap
+    top  = window.innerHeight / 2 - cardH / 2
     left = window.innerWidth  - cardW - gap
+    top  = Math.max(gap, Math.min(top, window.innerHeight - cardH - gap))
     cardStyle.value = { top: top + 'px', left: left + 'px', transform: 'none' }
     return
   }
@@ -212,6 +231,10 @@ function positionOnEl(el) {
   // clamp 確保不超出視窗
   top  = Math.max(gap, Math.min(top, window.innerHeight - cardH - gap))
   left = rect.left + rect.width / 2 - cardW / 2
+  // 手機版直接水平置中
+  if (window.innerWidth <= 480) {
+    left = (window.innerWidth - cardW) / 2
+  }
   left = Math.max(16, Math.min(left, window.innerWidth - cardW - 16))
   cardStyle.value = { top: top + 'px', left: left + 'px', transform: 'none' }
 }
@@ -303,6 +326,7 @@ function onKeydown(e) {
 
 onMounted(() => {
   if (!localStorage.getItem(props.storageKey)) {
+    window.scrollTo(0, 0)
     visible.value = true
     nextTick(() => updatePosition())
   }
@@ -317,6 +341,7 @@ onUnmounted(() => {
 function restart() {
   localStorage.removeItem(props.storageKey)
   current.value = 0
+  window.scrollTo(0, 0)
   visible.value = true
   nextTick(() => updatePosition())
 }
@@ -341,6 +366,7 @@ defineExpose({ restart })
 .tour-card {
   position: fixed;
   width: 340px;
+  max-width: calc(100vw - 32px);
   background: #fff;
   border-radius: 20px;
   padding: 24px 22px 18px;
@@ -348,6 +374,7 @@ defineExpose({ restart })
   z-index: 9502;
   pointer-events: all;
   transition: top 0.3s ease, left 0.3s ease;
+  box-sizing: border-box;
 }
 
 [data-theme="dark"] .tour-card { background: #1A1F2E; color: #EEF2FF; }

@@ -444,32 +444,23 @@ function stripCJK(str) {
 }
 
 function onTextInput() {
-  // 組字期間不處理，等 compositionend 再過濾
-  if (!isComposing.value) {
-    const el = textareaRef.value
-    if (!el) return
-    const filtered = stripCJK(el.value)
-    if (filtered !== el.value) {
-      // 保留游標位置
-      const pos = el.selectionStart - (el.value.length - filtered.length)
-      inputText.value = filtered
-      el.value = filtered
-      el.setSelectionRange(pos, pos)
-    }
-  }
   autoResize()
 }
 
 function onCompositionEnd() {
   isComposing.value = false
-  // 組字結束後立即過濾（中文輸入法確認輸入時）
-  const el = textareaRef.value
-  if (!el) return
-  const filtered = stripCJK(el.value)
-  inputText.value = filtered
-  el.value = filtered
+  // 組字結束後過濾（手機輸入法確認輸入時）
+  const filtered = stripCJK(inputText.value)
+  if (filtered !== inputText.value) inputText.value = filtered
   autoResize()
 }
+
+// watch inputText — 非組字期間即時過濾 CJK（涵蓋手機直接輸入情境）
+watch(inputText, (val) => {
+  if (isComposing.value) return
+  const filtered = stripCJK(val)
+  if (filtered !== val) inputText.value = filtered
+})
 
 // ── Images ──
 function pickFiles(e) { Array.from(e.target.files).forEach(addImageFile); e.target.value = '' }
@@ -1280,7 +1271,7 @@ header h1 span { color:var(--primary); }
   .mini-cards { grid-template-columns: 1fr 1fr; }
   .stats-header h2 { font-size:24px; }
   .hc-num { font-size:22px; }
-  header h1 { font-size:18px; }
+  header h1 { font-size:22px; }
   .settings-label { display:none; }
   .settings-btn { padding:6px 10px; }
 }

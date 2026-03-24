@@ -54,7 +54,7 @@
         <!-- Risk banner -->
         <div class="risk-banner" :class="[mode, mode.includes('_') ? mode.split('_')[0] : mode]">
           <div class="rb-badge">
-            <span class="rb-icon">{{ ICONS[mode] }}</span>
+            <span class="rb-badge-score">{{ weightedScore }}</span>
           </div>
           <div class="rb-info">
             <div class="rb-tag">{{ tagLabel }}</div>
@@ -71,7 +71,7 @@
           <div class="dual-bar-row">
             <span class="dbar-label">Gogolook</span>
             <div class="dbar-track">
-              <div class="dbar-fill ggl" :style="{ width: (result?.ggl?.score ?? barWidth) + '%' }"></div>
+              <div class="dbar-fill ggl" :style="{ width: barWidth + '%' }"></div>
             </div>
             <span class="dbar-val ggl-text">{{ result.score }}</span>
           </div>
@@ -89,23 +89,11 @@
           <div class="weighted-score" v-if="llmAnalysis?.score !== undefined">
             <span class="ws-label">{{ t('weightedScoreLabel') }}</span>
             <span class="ws-val" :class="mode">{{ weightedScore }} {{ t('aiScoreSuffix') }}</span>
-            <span class="ws-formula">{{ t('wsFormula') }}</span>
           </div>
           <div class="score-value" :class="mode" v-else>{{ t('riskScore') }}{{ result?.ggl?.score ?? result.score }} / 100</div>
         </div>
 
-        <!-- Reasons -->
-        <div class="section-card reasons-card">
-          <div class="sec-title">{{ t('analysisReasons') }}</div>
-          <ul class="reasons">
-            <li v-for="(r, i) in result.reasons" :key="i">
-              <span class="ri">{{ RI(mode) }}</span>
-              <span>{{ r }}</span>
-            </li>
-          </ul>
-        </div>
-
-        <!-- AI 分析展開按鈕 — 左欄底部 -->
+        <!-- AI 分析展開按鈕 — 分數下方 -->
         <button
           v-if="llmAnalysis || isLoadingLLM"
           class="ai-expand-btn"
@@ -121,6 +109,17 @@
           </span>
           <span class="aeb-arrow">›</span>
         </button>
+
+        <!-- Reasons -->
+        <div class="section-card reasons-card">
+          <div class="sec-title">{{ t('analysisReasons') }}</div>
+          <ul class="reasons">
+            <li v-for="(r, i) in result.reasons" :key="i">
+              <span class="ri">{{ RI(mode) }}</span>
+              <span>{{ r }}</span>
+            </li>
+          </ul>
+        </div>
 
       </div><!-- /col-left -->
 
@@ -685,12 +684,14 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';docume
 }
 .risk-banner.scam  { background:var(--scam-bg);  border-color:var(--scam); }
 
-.rb-badge { width:72px; height:72px; border-radius:18px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; }
+.rb-badge { width:72px; height:72px; border-radius:18px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; gap:2px; }
+.rb-badge-score { font-size:28px; font-weight:900; color:#fff; line-height:1; }
 .safe  .rb-badge { background:var(--safe); }
 .promo .rb-badge { background:var(--promo); }
 .warn  .rb-badge { background:var(--warn); }
 .scam  .rb-badge { background:var(--scam); }
-.rb-icon  { font-size:36px; line-height:1; }
+.unknown .rb-badge { background: rgba(100,120,60,0.5); }
+.rb-badge-score { font-size:28px; font-weight:900; color:#fff; line-height:1; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }.rb-icon  { font-size:36px; line-height:1; }
 
 
 .rb-info { flex:1; min-width:0; overflow:hidden; }
@@ -883,6 +884,7 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';docume
   .col-right .section-card:last-child { flex: 1; }
   /* Prevent banner text overflow */
   .rb-title  { font-size: 18px; }
+  .rb-score  { font-size: 18px; }
   .rb-input  { max-width: calc(100vw - 140px); }
   .rb-info   { min-width: 0; overflow: hidden; }
   /* Actions stacked nicely on mobile */
