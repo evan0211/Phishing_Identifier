@@ -32,14 +32,11 @@
 }
 
 html { font-family: 'Noto Sans TC', sans-serif; }
+
 body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text); transition: background 0.25s, color 0.25s; }
 #app { min-height: 100vh; }
 button { font-family: 'Noto Sans TC', sans-serif; cursor: pointer; }
 
 /* ── Global Elder Mode ── */
-[data-elder="true"] {
-  --elder-scale: 1;
-}
-[data-elder="true"] body {
-  font-size: 18px;
-}
+[data-elder="true"] { --elder-scale: 1; }
+[data-elder="true"] body { font-size: 18px; }

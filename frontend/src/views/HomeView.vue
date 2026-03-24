@@ -847,14 +847,12 @@ onUnmounted(() => {
 @keyframes glowIn { from{opacity:0} to{opacity:1} }
 
 /* ── Navbar ── */
-.navbar { background:var(--navbar-bg); padding:10px 20px; display:flex; align-items:center; justify-content:space-between; transition:background 0.25s, transform 0.18s cubic-bezier(0.4,0,0.2,1); position:fixed; top:0; left:0; right:0; z-index:200; }
+.navbar { background:var(--navbar-bg); padding:10px 16px; display:flex; align-items:center; gap:12px; transition:background 0.25s, transform 0.18s cubic-bezier(0.4,0,0.2,1); position:fixed; top:0; left:0; right:0; width:100%; box-sizing:border-box; z-index:200; height:56px; }
 .navbar.hidden { transform:translateY(-100%); }
-.nav-title { color:rgba(255,255,255,0.9); font-size:14px; font-weight:700; user-select:none; }
-.nav-actions { display:flex; gap:10px; align-items:center; }
-
-/* 設定按鈕 */
-.settings-wrap { position:relative; }
-.settings-btn { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.2); border-radius:100px; padding:6px 14px 6px 10px; cursor:pointer; color:#fff; transition:background 0.2s; user-select:none; }
+.nav-title { color:rgba(255,255,255,0.9); font-size:15px; font-weight:700; user-select:none; }
+.nav-actions { display:flex; gap:10px; align-items:center; margin-left:auto; }
+.settings-wrap { position:relative; margin-left:auto; }
+.settings-btn { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.2); border-radius:100px; padding:7px 14px 7px 10px; cursor:pointer; color:#fff; transition:background 0.2s; user-select:none; }
 .settings-btn:hover { background:rgba(255,255,255,0.22); }
 .settings-btn.active { background:rgba(255,255,255,0.22); border-color:rgba(255,255,255,0.4); }
 .settings-btn svg { width:16px; height:16px; flex-shrink:0; }

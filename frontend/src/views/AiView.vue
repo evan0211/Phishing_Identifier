@@ -4,7 +4,7 @@
     <!-- Navbar -->
     <nav class="navbar">
       <button class="back-btn" @click="closeTab">← 返回</button>
-      <span class="nav-title">🤖 AI 深度分析</span>
+      <span class="nav-title">AI 深度分析</span>
       <div class="settings-wrap" ref="settingsWrap">
         <button class="settings-btn" :class="{ active: menuOpen }" @click="menuOpen = !menuOpen" :aria-label="t('settings')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -242,38 +242,12 @@ onUnmounted(() => {
 }
 
 /* ── Navbar ── */
-.navbar {
-  background: var(--navbar-bg);
-  padding: 10px 20px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  position: sticky;
-  top: 0;
-  z-index: 200;
-}
-.back-btn {
-  background: rgba(255,255,255,0.15);
-  border: 1.5px solid rgba(255,255,255,0.25);
-  border-radius: 100px;
-  padding: 7px 16px;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.back-btn:hover { background: rgba(255,255,255,0.28); }
-.nav-title {
-  flex: 1;
-  text-align: center;
-  color: #fff;
-  font-size: 15px;
-  font-weight: 700;
-}
+.navbar { background:var(--navbar-bg); padding:10px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:200; transition:background 0.25s; height:56px; }
+.back-btn { background:rgba(255,255,255,0.15); border:1.5px solid rgba(255,255,255,0.25); border-radius:100px; padding:7px 16px; color:#fff; font-size:13px; font-weight:700; white-space:nowrap; cursor:pointer; transition:background 0.2s; flex-shrink:0; }
+.back-btn:hover { background:rgba(255,255,255,0.28); }
+.nav-title { position:absolute; left:50%; transform:translateX(-50%); color:#fff; font-size:15px; font-weight:700; pointer-events:none; }
 .settings-wrap { position:relative; margin-left:auto; }
-.settings-btn { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.2); border-radius:100px; padding:6px 14px 6px 10px; cursor:pointer; color:#fff; transition:background 0.2s; user-select:none; }
+.settings-btn { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.2); border-radius:100px; padding:7px 14px 7px 10px; cursor:pointer; color:#fff; transition:background 0.2s; user-select:none; }
 .settings-btn:hover { background:rgba(255,255,255,0.22); }
 .settings-btn.active { background:rgba(255,255,255,0.22); border-color:rgba(255,255,255,0.4); }
 .settings-btn svg { width:16px; height:16px; flex-shrink:0; }
@@ -294,10 +268,10 @@ onUnmounted(() => {
 
 /* ── Main ── */
 .ai-main {
-  max-width: 960px;
+  max-width: 1100px;
   width: 100%;
   margin: 20px auto;
-  padding: 0 24px 52px;
+  padding: 0 24px 48px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -350,6 +324,11 @@ onUnmounted(() => {
   gap: 16px;
 }
 @media (max-width: 640px) { .advice-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .settings-label { display: none; }
+  .settings-btn   { padding: 6px 10px; }
+  .ai-main { padding: 12px 12px 48px; }
+}
 
 .col-card {
   background: var(--surface);

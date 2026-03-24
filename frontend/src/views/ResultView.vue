@@ -475,7 +475,7 @@ function performLLMAnalysis() {
   }
 }
 
-function goBack() { router.push('/') }
+function goBack() { router.back() }
 function toggleElder() {
   toggleElderFn()
   showToast(isElder.value ? '👴 ' + t('elderMode') : t('elderMode'), 'ok')
@@ -596,15 +596,13 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';docume
 .page-wrap { min-height:100vh; background:var(--bg); color:var(--text); display:flex; flex-direction:column; transition:background 0.25s,color 0.25s; }
 
 /* ── Navbar ── */
-.navbar { background:var(--navbar-bg); padding:10px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:200; transition:background 0.25s; }
+.navbar { background:var(--navbar-bg); padding:10px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:200; transition:background 0.25s; height:56px; }
 .back-btn { background:rgba(255,255,255,0.15); border:1.5px solid rgba(255,255,255,0.25); border-radius:100px; padding:7px 16px; color:#fff; font-size:13px; font-weight:700; white-space:nowrap; transition:background 0.2s; flex-shrink:0; }
 .back-btn:hover { background:rgba(255,255,255,0.28); }
 .nav-title { position:absolute; left:50%; transform:translateX(-50%); color:#fff; font-size:15px; font-weight:700; pointer-events:none; }
 .nav-actions { display:flex; gap:8px; align-items:center; margin-left:auto; }
-
-/* 設定按鈕（與首頁一致） */
-.settings-wrap { position:relative; }
-.settings-btn { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.2); border-radius:100px; padding:6px 14px 6px 10px; cursor:pointer; color:#fff; transition:background 0.2s; user-select:none; }
+.settings-wrap { position:relative; margin-left:auto; }
+.settings-btn { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.2); border-radius:100px; padding:7px 14px 7px 10px; cursor:pointer; color:#fff; transition:background 0.2s; user-select:none; }
 .settings-btn:hover { background:rgba(255,255,255,0.22); }
 .settings-btn.active { background:rgba(255,255,255,0.22); border-color:rgba(255,255,255,0.4); }
 .settings-btn svg { width:16px; height:16px; flex-shrink:0; }
@@ -639,13 +637,13 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';docume
   margin: 20px auto;
   padding: 0 24px 48px;
   align-items: stretch;
-  min-height: 70vh;
 }
 
 /* Left page */
 .col-left {
   flex: 1; min-width: 0;
   display: flex; flex-direction: column; gap: 14px;
+  align-content: flex-start;
   background: var(--surface);
   border: 1.5px solid var(--border);
   border-right: none;
@@ -662,6 +660,7 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';docume
 .col-right {
   flex: 1; min-width: 0;
   display: flex; flex-direction: column; gap: 14px;
+  align-content: flex-start;
   background: var(--surface2);
   border: 1.5px solid var(--border);
   border-radius: 0 18px 18px 0;
@@ -722,8 +721,6 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';docume
 /* ── Section cards — no extra bg inside the book pages ── */
 .section-card { background: transparent; border: 1.5px solid var(--border); border-radius: 14px; padding: 16px; transition: border-color 0.25s; box-shadow: none; }
 .col-right .section-card { background: transparent; }
-.col-left .section-card:last-child { flex: 1; }
-.col-right .section-card:last-child { flex: 1; }
 .sec-title { font-size:13px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--text-muted); margin-bottom:14px; }
 
 /* ── Reasons ── */
@@ -916,7 +913,6 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';docume
   border-radius: 14px; padding: 14px 16px;
   background: linear-gradient(135deg, rgba(100,120,255,0.08), rgba(100,120,255,0.03));
   cursor: pointer; text-align: left; transition: all 0.18s;
-  margin-top: auto;
 }
 .ai-expand-btn:hover { border-color: rgba(100,120,255,0.6); background: rgba(100,120,255,0.12); }
 .ai-expand-btn:disabled { opacity: 0.6; cursor: not-allowed; }

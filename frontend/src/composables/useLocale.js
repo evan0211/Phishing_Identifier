@@ -66,7 +66,7 @@ const dict = {
   wsFormula:       { zh: '（Gogolook×55% + AI×45%）', en: '(Gogolook×55% + AI×45%)' },
   riskScore:       { zh: '風險分數：', en: 'Risk Score: ' },
   analysisReasons: { zh: '📋 分析原因', en: '📋 Analysis Reasons' },
-  aiAnalysis:      { zh: '🤖 AI 深度分析', en: '🤖 AI Deep Analysis' },
+  aiAnalysis:      { zh: 'AI 深度分析', en: 'AI Deep Analysis' },
   aiAnalyzing:     { zh: 'AI 正在分析中...', en: 'AI is analysing...' },
   aiRiskScore:     { zh: 'AI 風險評分', en: 'AI Risk Score' },
   aiScoreSuffix:   { zh: '分',          en: 'pts' },
