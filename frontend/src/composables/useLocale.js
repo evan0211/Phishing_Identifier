@@ -17,6 +17,7 @@ export function useLocale() {
 const dict = {
   appName:           { zh: '防詐雷達', en: 'ScamRadar' },
   settings:          { zh: '設定',     en: 'Settings'  },
+  chromeExt:         { zh: '下載插件', en: 'Get Extension' },
   elderMode:         { zh: '長輩模式', en: 'Senior Mode' },
   darkMode:          { zh: '深色模式', en: 'Dark Mode'  },
   lightMode:         { zh: '亮色模式', en: 'Light Mode' },

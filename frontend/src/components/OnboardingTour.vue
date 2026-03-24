@@ -185,10 +185,11 @@ function closeSettingsMenu() {
 }
 
 function positionOnEl(el) {
-  // 手機版且元素不在視窗內時，才捲動到目標
+  // 只有手機版（≤768px）且元素不在視窗內時，才捲動到目標
+  // 電腦版不自動捲動，避免頁面跳動
   const rect0 = el.getBoundingClientRect()
   const outOfView = rect0.bottom < 0 || rect0.top > window.innerHeight
-  if (outOfView) {
+  if (outOfView && window.innerWidth <= 768) {
     el.scrollIntoView({ block: 'center', behavior: 'instant' })
   }
   const rect = el.getBoundingClientRect()
@@ -208,11 +209,33 @@ function positionOnEl(el) {
 
   let top, left
 
-  // 目標元素本身很高（超過視窗 40%）→ 卡片固定在右側中間
+  // 目標元素本身很高（超過視窗 40%）→ 卡片放在元素左側或右側，不重疊
   if (rect.height > window.innerHeight * 0.4) {
-    top  = window.innerHeight / 2 - cardH / 2
-    left = window.innerWidth  - cardW - gap
-    top  = Math.max(gap, Math.min(top, window.innerHeight - cardH - gap))
+    const spaceRight = window.innerWidth - rect.right - gap
+    const spaceLeft  = rect.left - gap
+    top  = Math.max(gap, window.innerHeight / 2 - cardH / 2)
+    top  = Math.min(top, window.innerHeight - cardH - gap)
+    if (spaceRight >= cardW) {
+      left = rect.right + gap
+    } else if (spaceLeft >= cardW) {
+      left = rect.left - cardW - gap
+    } else {
+      // 左右都不夠（手機版）→ 卡片置中放在目標上方，捲動讓目標從卡片下方開始
+      left = (window.innerWidth - cardW) / 2
+      top  = gap
+      // 暫時解鎖 → 捲動讓目標頂部對齊卡片底部 → 重新鎖定
+      document.documentElement.style.overflow = ''
+      const targetScrollY = window.scrollY + rect.top - (cardH + gap * 2)
+      window.scrollTo({ top: Math.max(0, targetScrollY), behavior: 'instant' })
+      document.documentElement.style.overflow = 'hidden'
+      // 捲動後重新取 rect，更新挖洞位置
+      const rect2 = el.getBoundingClientRect()
+      hole.x = rect2.left - pad
+      hole.y = rect2.top - pad
+      hole.w = rect2.width + pad * 2
+      hole.h = rect2.height + pad * 2
+    }
+    left = Math.max(16, Math.min(left, window.innerWidth - cardW - 16))
     cardStyle.value = { top: top + 'px', left: left + 'px', transform: 'none' }
     return
   }

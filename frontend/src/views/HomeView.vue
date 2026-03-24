@@ -5,6 +5,18 @@
     <nav class="navbar" :class="{ hidden: navbarHidden }">
       <span class="nav-title" @click="scrollToMain" style="cursor:pointer">{{ t('appName') }}</span>
       <div class="nav-actions">
+        <!-- 下載 Chrome 插件按鈕（僅電腦版顯示） -->
+        <a
+          class="chrome-btn"
+          href="https://chrome.google.com/webstore"
+          target="_blank"
+          rel="noopener"
+          title="下載 Chrome 插件">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.5 11H19V7a2 2 0 0 0-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4a2 2 0 0 0-2 2v3.8h1.5a2.5 2.5 0 0 1 0 5H2V20a2 2 0 0 0 2 2h3.8v-1.5a2.5 2.5 0 0 1 5 0V22H17a2 2 0 0 0 2-2v-4h1.5a2.5 2.5 0 0 0 0-5z"/>
+          </svg>
+          <span>{{ t('chromeExt') }}</span>
+        </a>
         <!-- 設定按鈕 -->
         <div class="settings-wrap" ref="settingsWrap">
           <button class="settings-btn" :class="{ active: menuOpen }" @click="menuOpen = !menuOpen" :aria-label="t('settings')">
@@ -843,6 +855,19 @@ onUnmounted(() => {
 .nav-title { color:rgba(255,255,255,0.9); font-size:15px; font-weight:700; user-select:none; }
 .nav-actions { display:flex; gap:10px; align-items:center; margin-left:auto; }
 .settings-wrap { position:relative; margin-left:auto; }
+
+/* 下載插件按鈕 — 僅電腦版顯示 */
+.chrome-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.2);
+  border-radius: 100px; padding: 7px 14px;
+  color: #fff; font-size: 12px; font-weight: 700;
+  text-decoration: none; white-space: nowrap;
+  transition: background 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+}
+.chrome-btn:hover { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.4); }
+@media (max-width: 640px) { .chrome-btn { display: none; } }
 .settings-btn { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.2); border-radius:100px; padding:7px 14px 7px 10px; cursor:pointer; color:#fff; transition:background 0.2s; user-select:none; }
 .settings-btn:hover { background:rgba(255,255,255,0.22); }
 .settings-btn.active { background:rgba(255,255,255,0.22); border-color:rgba(255,255,255,0.4); }
