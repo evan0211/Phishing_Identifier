@@ -121,6 +121,11 @@
           </ul>
         </div>
 
+        <!-- 查無資料 — 邀請用戶補充 -->
+        <button class="contribute-btn" v-if="mode === 'unknown'" @click="goContribute">
+          📤 {{ locale === 'en' ? 'Help Us Improve' : '協助補充資料' }}
+        </button>
+
       </div><!-- /col-left -->
 
 
@@ -482,6 +487,9 @@ function performLLMAnalysis() {
 }
 
 function goBack() { router.back() }
+function goContribute() {
+  router.push({ path: '/contribute', query: { input: lastInput.value, type: lastType.value } })
+}
 function toggleElder() {
   toggleElderFn()
   showToast(isElder.value ? '👴 ' + t('elderMode') : t('elderMode'), 'ok')
@@ -519,11 +527,15 @@ async function doAction(type) {
   const c = ACT.value[type]
   openConfirm(c.title, c.sub, c.ok, async () => {
     closeConfirm()
+    // 一鍵通報：導向政府通報平台
+    if (type === 'report') {
+      window.open('https://fraudbuster.digiat.org.tw/accessibility/circular', '_blank', 'noopener')
+      return
+    }
     try {
       const d = await report(lastInput.value, lastType.value)
       const msgs = {
         block:    '🚫 ' + (locale.value === 'en' ? 'Blocked — ' : '已封鎖 — ') + d.caseNo,
-        report:   '📢 ' + (locale.value === 'en' ? 'Reported to 165, case ' : '已通報 165，案號 ') + d.caseNo,
         evidence: '📁 ' + (locale.value === 'en' ? 'Evidence uploaded, case ' : '證據已上傳，案號 ') + d.caseNo,
       }
       showToast(msgs[type], 'ok')
@@ -1131,4 +1143,15 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';docume
 .lsr-val.warn    { color:#f97316; }
 .lsr-val.scam    { color:#ef4444; }
 .lsr-val.unknown { color:#a8c44e; }
+
+/* 查無資料補充按鈕 */
+.contribute-btn {
+  width:100%; padding:12px; border:1.5px solid rgba(168,196,78,0.4); border-radius:12px;
+  background: rgba(168,196,78,0.08); color: #6b8a1a;
+  font-size:14px; font-weight:900; cursor:pointer;
+  transition: background 0.18s, border-color 0.18s;
+  margin-top: 4px;
+}
+.contribute-btn:hover { background: rgba(168,196,78,0.22); border-color: rgba(168,196,78,0.6); }
+[data-theme="dark"] .contribute-btn { color: #c8e06a; }
 </style>
