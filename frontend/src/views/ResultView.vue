@@ -122,9 +122,11 @@
         </div>
 
         <!-- 查無資料 — 邀請用戶補充 -->
-        <button class="contribute-btn" v-if="mode === 'unknown'" @click="goContribute">
-          📤 {{ locale === 'en' ? 'Help Us Improve' : '協助補充資料' }}
-        </button>
+        <div class="section-card contribute-card" v-if="mode === 'unknown'">
+          <button class="contribute-btn" @click="goContribute">
+            📤 {{ locale === 'en' ? 'Help Us Improve' : '協助補充資料' }}
+          </button>
+        </div>
 
       </div><!-- /col-left -->
 
@@ -1144,14 +1146,14 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';docume
 .lsr-val.scam    { color:#ef4444; }
 .lsr-val.unknown { color:#a8c44e; }
 
-/* 查無資料補充按鈕 */
+/* 查無資料補充卡片 */
+.contribute-card { padding: 0; overflow: hidden; }
 .contribute-btn {
-  width:100%; padding:12px; border:1.5px solid rgba(168,196,78,0.4); border-radius:12px;
-  background: rgba(168,196,78,0.08); color: #6b8a1a;
+  width:100%; padding:14px; border:none; border-radius:12px;
+  background: rgba(168,196,78,0.1); color: #6b8a1a;
   font-size:14px; font-weight:900; cursor:pointer;
-  transition: background 0.18s, border-color 0.18s;
-  margin-top: 4px;
+  transition: background 0.18s;
 }
-.contribute-btn:hover { background: rgba(168,196,78,0.22); border-color: rgba(168,196,78,0.6); }
+.contribute-btn:hover { background: rgba(168,196,78,0.22); }
 [data-theme="dark"] .contribute-btn { color: #c8e06a; }
 </style>
