@@ -66,6 +66,8 @@ const props = defineProps({
   steps: { type: Array, default: null },
   // localStorage key，避免不同頁面互相影響
   storageKey: { type: String, default: 'tourDone' },
+  // 首頁不需要自動捲動（元素都在視窗內）
+  noScroll: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['set-input', 'do-check', 'open-ai', 'finish-all', 'open-menu', 'close-menu'])
@@ -75,13 +77,8 @@ const visible = ref(false)
 // 導覽顯示時鎖定頁面滾動（html overflow 方式，不影響元素位置計算）
 let _scrollY = 0
 watch(visible, (val) => {
-  if (val) {
-    _scrollY = window.scrollY
-    document.documentElement.style.overflow = 'hidden'
-  } else {
-    document.documentElement.style.overflow = ''
-    window.scrollTo(0, _scrollY)
-  }
+  // visible = false 時確保解鎖（finish/skip 已處理，這裡作為保險）
+  if (!val) document.documentElement.style.overflow = ''
 })
 const current = ref(0)
 
@@ -184,12 +181,25 @@ function closeSettingsMenu() {
   }
 }
 
-function positionOnEl(el) {
-  // 只有手機版（≤768px）且元素不在視窗內時，才捲動到目標
-  // 電腦版不自動捲動，避免頁面跳動
+function positionOnEl(el, skipScroll = false, cardSide = null) {
+  if (props.noScroll || skipScroll) {
+    // 首頁或選單：不捲動也不鎖 overflow，直接定位
+    _doPosition(el, cardSide)
+    return
+  }
+  // 先解鎖，捲到目標，再鎖回
+  document.documentElement.style.overflow = ''
+  const scrollBlock = window.innerWidth <= 768 ? 'start' : 'center'
+  el.scrollIntoView({ behavior: 'instant', block: scrollBlock })
+  _scrollY = window.scrollY
+  document.documentElement.style.overflow = 'hidden'
+  _doPosition(el, cardSide)
+}
+
+function _doPosition(el, cardSide) {
   const rect0 = el.getBoundingClientRect()
   const outOfView = rect0.bottom < 0 || rect0.top > window.innerHeight
-  if (outOfView && window.innerWidth <= 768) {
+  if (outOfView) {
     el.scrollIntoView({ block: 'center', behavior: 'instant' })
   }
   const rect = el.getBoundingClientRect()
@@ -204,10 +214,27 @@ function positionOnEl(el) {
   const cardH = cardEl ? Math.max(cardEl.offsetHeight, 260) + 16 : 300
   const cardW = cardEl ? cardEl.offsetWidth : 340
   const gap = 16
-  const spaceBelow = window.innerHeight - rect.bottom - gap
-  const spaceAbove = rect.top - gap
 
   let top, left
+
+  // 電腦版且指定 cardSide → 強制左右定位
+  if (cardSide && window.innerWidth > 768) {
+    top = Math.max(gap, Math.min(
+      rect.top + rect.height / 2 - cardH / 2,
+      window.innerHeight - cardH - gap
+    ))
+    if (cardSide === 'right') {
+      left = rect.right + gap
+    } else {
+      left = rect.left - cardW - gap
+    }
+    left = Math.max(16, Math.min(left, window.innerWidth - cardW - 16))
+    cardStyle.value = { top: top + 'px', left: left + 'px', transform: 'none' }
+    return
+  }
+
+  const spaceBelow = window.innerHeight - rect.bottom - gap
+  const spaceAbove = rect.top - gap
 
   // 目標元素本身很高（超過視窗 40%）→ 卡片放在元素左側或右側，不重疊
   if (rect.height > window.innerHeight * 0.4) {
@@ -223,12 +250,10 @@ function positionOnEl(el) {
       // 左右都不夠（手機版）→ 卡片置中放在目標上方，捲動讓目標從卡片下方開始
       left = (window.innerWidth - cardW) / 2
       top  = gap
-      // 暫時解鎖 → 捲動讓目標頂部對齊卡片底部 → 重新鎖定
       document.documentElement.style.overflow = ''
       const targetScrollY = window.scrollY + rect.top - (cardH + gap * 2)
       window.scrollTo({ top: Math.max(0, targetScrollY), behavior: 'instant' })
       document.documentElement.style.overflow = 'hidden'
-      // 捲動後重新取 rect，更新挖洞位置
       const rect2 = el.getBoundingClientRect()
       hole.x = rect2.left - pad
       hole.y = rect2.top - pad
@@ -245,16 +270,13 @@ function positionOnEl(el) {
   } else if (spaceAbove >= cardH) {
     top = rect.top - cardH - gap
   } else {
-    // 選空間較大的那側
     top = spaceBelow >= spaceAbove
       ? Math.min(rect.bottom + gap, window.innerHeight - cardH - gap)
       : Math.max(gap, rect.top - cardH - gap)
   }
 
-  // clamp 確保不超出視窗
   top  = Math.max(gap, Math.min(top, window.innerHeight - cardH - gap))
   left = rect.left + rect.width / 2 - cardW / 2
-  // 手機版直接水平置中
   if (window.innerWidth <= 480) {
     left = (window.innerWidth - cardW) / 2
   }
@@ -267,6 +289,11 @@ function updatePosition() {
 
   if (!step.target) {
     hole.w = 0
+    if (!props.noScroll) {
+      // 非首頁才鎖 overflow
+      _scrollY = window.scrollY
+      document.documentElement.style.overflow = 'hidden'
+    }
     cardStyle.value = { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
     return
   }
@@ -274,7 +301,8 @@ function updatePosition() {
   if (step.openMenu) {
     openSettingsMenu()
     waitForEl(step.target, (el) => {
-      setTimeout(() => positionOnEl(el), 150)
+      // 選單是 fixed 定位，不需要捲動
+      setTimeout(() => positionOnEl(el, true), 150)
     }, 800)
     return
   }
@@ -286,7 +314,7 @@ function updatePosition() {
       cardStyle.value = { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
       return
     }
-    positionOnEl(el)
+    positionOnEl(el, false, step.cardSide ?? null)
   }, 0)
 
   if (step.fillDemo) {
@@ -330,14 +358,16 @@ async function next() {
 function skip() {
   if (activeSteps.value[current.value]?.openMenu) closeSettingsMenu()
   visible.value = false
-  // 跳過時一次標記所有頁面的導覽為已完成，避免後續頁面再跳出
+  document.documentElement.style.overflow = ''
+  window.scrollTo(0, 0)
   ;['tourDone', 'resultTourDone', 'aiTourDone'].forEach(k => localStorage.setItem(k, '1'))
 }
 
 function finish() {
   if (activeSteps.value[current.value]?.openMenu) closeSettingsMenu()
   visible.value = false
-  // 正常完成只標記當前頁
+  document.documentElement.style.overflow = ''
+  window.scrollTo(0, 0)
   localStorage.setItem(props.storageKey, '1')
 }
 
@@ -348,6 +378,8 @@ function onKeydown(e) {
 }
 
 onMounted(() => {
+  // 確保初始狀態 overflow 乾淨
+  document.documentElement.style.overflow = ''
   if (!localStorage.getItem(props.storageKey)) {
     window.scrollTo(0, 0)
     visible.value = true
@@ -358,6 +390,8 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('keydown', onKeydown)
+  // 元件卸載時確保解鎖，避免殘留
+  document.documentElement.style.overflow = ''
 })
 
 // 暴露 restart 方法，讓父元件可重播教學

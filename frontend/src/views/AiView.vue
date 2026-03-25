@@ -167,6 +167,7 @@ const aiTourSteps = [
     desc: 'AI 風險評分、偵測到的詐騙手法類型，以及一句話建議，讓你快速掌握重點。',
     target: '.summary-banner',
     openMenu: false,
+    cardSide: 'right',
   },
   {
     icon: '⚡',
@@ -174,6 +175,7 @@ const aiTourSteps = [
     desc: '左欄列出你應該立刻做的事，以及絕對不能做的行為，幫助你避免損失擴大。',
     target: '.col-card',
     openMenu: false,
+    cardSide: 'right',
   },
   {
     icon: '📋',
@@ -181,6 +183,7 @@ const aiTourSteps = [
     desc: '右欄提供逐步的舉報流程，依序操作即可完成向 165 反詐騙專線或相關單位的通報。',
     target: '.adv-steps',
     openMenu: false,
+    cardSide: 'left',
   },
   {
     icon: '🩹',
@@ -188,6 +191,7 @@ const aiTourSteps = [
     desc: '如果你或家人已經受騙，這裡提供緊急處置建議，包含凍結帳戶、報案等具體步驟。',
     target: '.adv-recovery',
     openMenu: false,
+    cardSide: 'left',
   },
   {
     icon: '✅',

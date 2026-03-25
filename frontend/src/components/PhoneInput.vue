@@ -19,8 +19,8 @@
     <input
       ref="inputRef"
       class="phone-input"
-      type="tel"
-      inputmode="numeric"
+      type="text"
+      inputmode="text"
       :value="display"
       placeholder="請輸入電話號碼"
       aria-label="電話號碼輸入"
@@ -48,6 +48,7 @@ const props = defineProps({
   initialValue: { type: String, default: '' },
   isElder:      { type: Boolean, default: false },
   disabled:     { type: Boolean, default: false },
+  noAutoFocus:  { type: Boolean, default: false }, // 手機版切換時不自動彈鍵盤
 })
 const emit = defineEmits(['update:modelValue', 'valid', 'submit'])
 
@@ -139,13 +140,16 @@ function clearPhone() {
 }
 
 onMounted(() => {
-  inputRef.value?.focus()
+  if (!props.noAutoFocus) inputRef.value?.focus()
   // 初始值帶入時，主動 emit 一次 valid 狀態
   if (rawDigits.value) {
     const e164 = selected.value.dial + rawDigits.value
     emit('valid', { isValid: rawDigits.value.length === selected.value.maxLen, e164 })
   }
 })
+
+// 暴露 focus 方法，讓父元件在切換模式時手動呼叫
+defineExpose({ focus: () => inputRef.value?.focus() })
 </script>
 
 <style scoped>

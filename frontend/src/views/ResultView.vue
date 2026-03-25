@@ -285,6 +285,7 @@ const resultTourSteps = [
     desc: '最上方的橫幅顯示風險等級（安全／促銷／警告／詐騙），顏色越紅代表風險越高。',
     target: '.risk-banner',
     openMenu: false,
+    cardSide: 'right',
   },
   {
     icon: '📈',
@@ -292,6 +293,7 @@ const resultTourSteps = [
     desc: '分數條顯示 Gogolook 資料庫與 AI 各自的評分，以及加權後的綜合風險分數（0–100）。',
     target: '.score-card',
     openMenu: false,
+    cardSide: 'right',
   },
   {
     icon: '🔎',
@@ -299,6 +301,7 @@ const resultTourSteps = [
     desc: '列出系統判斷為此風險等級的具體理由，幫助你了解哪些特徵觸發了警示。',
     target: '.reasons-card',
     openMenu: false,
+    cardSide: 'right',
   },
   {
     icon: '🌐',
@@ -306,6 +309,7 @@ const resultTourSteps = [
     desc: '若你仍想前往該網址，可點此按鈕。系統會再次警告並要求滑動確認，避免誤觸。',
     target: '.visit-card',
     openMenu: false,
+    cardSide: 'left',
   },
   {
     icon: '🚫',
@@ -313,6 +317,7 @@ const resultTourSteps = [
     desc: '右欄提供三個快速行動：封鎖號碼／網址、向 165 通報，以及提交證據協助調查。',
     target: '.actions-card',
     openMenu: false,
+    cardSide: 'left',
   },
   {
     icon: '📋',
@@ -320,6 +325,7 @@ const resultTourSteps = [
     desc: '根據風險等級，系統會給出具體的後續行動建議，幫助你保護自己和身邊的人。',
     target: '.next-card',
     openMenu: false,
+    cardSide: 'left',
   },
   {
     icon: '🤖',
@@ -327,6 +333,7 @@ const resultTourSteps = [
     desc: '點擊此按鈕可進入 AI 深度分析頁面，查看詐騙手法分類、詳細對策與建議。按「前往 AI 頁 →」繼續。',
     target: '.ai-expand-btn',
     openMenu: false,
+    cardSide: 'right',
     openAiTour: true,
   },
 ]
