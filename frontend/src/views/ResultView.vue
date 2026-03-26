@@ -534,6 +534,11 @@ async function doAction(type) {
       window.open('https://fraudbuster.digiat.org.tw/accessibility/circular', '_blank', 'noopener')
       return
     }
+    // 回報證據：導向 165 反詐騙通報平台
+    if (type === 'evidence') {
+      window.open('https://165.npa.gov.tw/#/report/call/02', '_blank', 'noopener')
+      return
+    }
     try {
       const d = await report(lastInput.value, lastType.value)
       const msgs = {
@@ -840,22 +845,22 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';docume
 .toast.err { background:var(--scam); }
 
 /* ── Elder mode highlights ── */
-.page-wrap.elder .risk-banner { padding:26px; }
-.page-wrap.elder .rb-title    { font-size:34px; }
-.page-wrap.elder .rb-icon     { font-size:44px; }
-.page-wrap.elder .rb-badge    { width:84px; height:84px; border-radius:20px; }
-.page-wrap.elder .reasons li  { font-size:18px; padding:10px 0; }
-.page-wrap.elder .ri          { font-size:18px; }
-.page-wrap.elder .at          { font-size:18px; }
-.page-wrap.elder .act-btn .as { font-size:14px; }
-.page-wrap.elder .nsi-text strong { font-size:18px; }
-.page-wrap.elder .nsi-text span   { font-size:14px; }
-.page-wrap.elder .score-fill  { height:14px; border-radius:100px; }
-.page-wrap.elder .score-track { height:14px; }
-.page-wrap.elder .score-value { font-size:18px; }
-.page-wrap.elder .score-labels { font-size:15px; }
-.page-wrap.elder .act-btn     { padding:20px 18px; }
-.page-wrap.elder .visit-btn   { font-size:22px; padding:18px; }
+.page-wrap.elder .risk-banner { padding:22px; }
+.page-wrap.elder .rb-title    { font-size:26px; }
+.page-wrap.elder .rb-icon     { font-size:38px; }
+.page-wrap.elder .rb-badge    { width:72px; height:72px; border-radius:18px; }
+.page-wrap.elder .reasons li  { font-size:16px; padding:8px 0; }
+.page-wrap.elder .ri          { font-size:16px; }
+.page-wrap.elder .at          { font-size:16px; }
+.page-wrap.elder .act-btn .as { font-size:13px; }
+.page-wrap.elder .nsi-text strong { font-size:16px; }
+.page-wrap.elder .nsi-text span   { font-size:13px; }
+.page-wrap.elder .score-fill  { height:12px; border-radius:100px; }
+.page-wrap.elder .score-track { height:12px; }
+.page-wrap.elder .score-value { font-size:16px; }
+.page-wrap.elder .score-labels { font-size:13px; }
+.page-wrap.elder .act-btn     { padding:16px 16px; }
+.page-wrap.elder .visit-btn   { font-size:18px; padding:14px; }
 .page-wrap.elder .risk-banner.scam { box-shadow:0 0 0 4px rgba(255,45,45,0.25),0 0 24px rgba(255,45,45,0.12); }
 .page-wrap.elder .risk-banner.warn { box-shadow:0 0 0 4px rgba(255,140,0,0.22); }
 

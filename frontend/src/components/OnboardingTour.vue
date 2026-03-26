@@ -360,6 +360,7 @@ function skip() {
   visible.value = false
   document.documentElement.style.overflow = ''
   window.scrollTo(0, 0)
+  emit('set-input', '')
   ;['tourDone', 'resultTourDone', 'aiTourDone'].forEach(k => localStorage.setItem(k, '1'))
 }
 

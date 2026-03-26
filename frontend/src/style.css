@@ -39,4 +39,4 @@ button { font-family: 'Noto Sans TC', sans-serif; cursor: pointer; }
 
 /* ── Global Elder Mode ── */
 [data-elder="true"] { --elder-scale: 1; }
-[data-elder="true"] body { font-size: 18px; }
+[data-elder="true"] body { font-size: 17px; }

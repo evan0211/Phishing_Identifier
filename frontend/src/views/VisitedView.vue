@@ -183,9 +183,9 @@ onUnmounted(() => { clearTimeout(toastTimer) })
 .btn-leave { width:100%; background:var(--safe); color:#fff; border:none; border-radius:14px; padding:16px; font-size:15px; font-weight:900; transition:background 0.18s; box-shadow:0 4px 18px rgba(0,196,122,0.3); }
 .btn-leave:hover { background:#00a868; }
 
-.page-wrap.elder .step-text strong { font-size:16px; }
-.page-wrap.elder .step-text span   { font-size:14px; }
-.page-wrap.elder .btn-leave        { font-size:18px; padding:18px; }
+.page-wrap.elder .step-text strong { font-size:15px; }
+.page-wrap.elder .step-text span   { font-size:13px; }
+.page-wrap.elder .btn-leave        { font-size:16px; padding:14px; }
 
 .overlay { position:fixed; bottom:28px; right:28px; z-index:999; display:flex; flex-direction:column; align-items:flex-end; gap:10px; }
 .float-actions { display:flex; flex-direction:column; align-items:flex-end; gap:8px; }

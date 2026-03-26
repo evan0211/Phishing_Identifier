@@ -161,7 +161,7 @@ async function submit() {
 .toast.ok  { background:#00C47A; }
 .toast.err { background:var(--scam); }
 
-.page-wrap.elder .cc-title  { font-size:26px; }
-.page-wrap.elder .cf-chip   { font-size:18px; padding:10px 22px; }
-.page-wrap.elder .cf-submit { font-size:20px; padding:18px; }
+.page-wrap.elder .cc-title  { font-size:20px; }
+.page-wrap.elder .cf-chip   { font-size:15px; padding:8px 18px; }
+.page-wrap.elder .cf-submit { font-size:17px; padding:14px; }
 </style>

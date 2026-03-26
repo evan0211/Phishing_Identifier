@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-wrap" :class="{ elder: isElder }">
 
     <!-- Navbar — 在 page-wrap 頂層，window scroll 才能控制 -->
@@ -90,22 +90,26 @@
             </div>
           </div>
 
-          <!-- Phone input (vue-tel-input) -->
-          <transition name="cc-fade">
-            <div class="phone-input-row" v-if="detectedType === 'phone'">
-              <PhoneInput
-                :initialValue="inputText"
-                :isElder="isElder"
-                :disabled="isLoading"
-                @update:modelValue="onPhoneInput"
-                @submit="doCheck"
-                @valid="onPhoneValid"
-              />
-            </div>
-          </transition>
-
-          <!-- Textarea — hidden when images are uploaded or phone mode -->
-          <div class="textarea-wrap" v-if="!images.length && detectedType !== 'phone'">
+          <!-- Textarea — hidden when images are uploaded -->
+          <div class="textarea-outer" v-if="!images.length">
+            <!-- 電話模式：國碼選擇器，與輸入框同行左側 -->
+            <transition name="cc-fade">
+              <div class="cc-prefix" v-if="detectedType === 'phone'">
+                <div class="cc-btn" @click="!isLoading && (showCCDrop = !showCCDrop)">
+                  <img class="cc-flag" :src="`https://flagcdn.com/24x18/${selectedCountry.code.toLowerCase()}.png`" :alt="selectedCountry.name">
+                  <span class="cc-dial">{{ selectedCountry.dial }}</span>
+                  <span class="cc-arrow">{{ showCCDrop ? '▲' : '▼' }}</span>
+                </div>
+                <div class="cc-drop" v-if="showCCDrop">
+                  <div v-for="c in countries" :key="c.code" class="cc-item" :class="{ active: c.code === selectedCountry.code }" @click="selectCountry(c)">
+                    <img class="cc-flag" :src="`https://flagcdn.com/24x18/${c.code.toLowerCase()}.png`" :alt="c.name">
+                    <span class="cc-item-name">{{ c.name }}</span>
+                    <span class="cc-item-dial">{{ c.dial }}</span>
+                  </div>
+                </div>
+              </div>
+            </transition>
+            <div class="textarea-wrap">
             <textarea
               ref="textareaRef"
               class="smart-input"
@@ -144,6 +148,7 @@
               </svg>
             </label>
           </div>
+          </div><!-- /textarea-outer -->
 
           <!-- Bottom action row: detect badge left, send right -->
           <div class="action-row">
@@ -316,6 +321,7 @@
     </transition>
     <!-- Onboarding 教學導覽 -->
     <OnboardingTour
+      no-scroll
       ref="tourRef"
       @set-input="onTourSetInput"
       @do-check="doCheck"
@@ -336,7 +342,6 @@ import { useElder } from '../composables/useElder.js'
 import { resultState } from '../composables/useResult.js'
 import { isTTSEnabled, toggleTTS } from '../composables/useVoice.js'
 import { useLocale, t } from '../composables/useLocale.js'
-import PhoneInput from '../components/PhoneInput.vue'
 import OnboardingTour from '../components/OnboardingTour.vue'
 import { autoCheck, report, getStatsPeriods, getChartData } from '../services/api.js'
 const router = useRouter()
@@ -351,6 +356,26 @@ const isLoading   = ref(false)
 let abortController = null // 用於取消進行中的 fetch 請求
 const phoneIsValid = ref(false)
 const phoneE164    = ref('')
+
+// 國碼選擇器狀態
+const countries = [
+  { dial: '+886', name: '台灣',   code: 'TW' },
+  { dial: '+86',  name: '中國',   code: 'CN' },
+  { dial: '+852', name: '香港',   code: 'HK' },
+  { dial: '+853', name: '澳門',   code: 'MO' },
+  { dial: '+1',   name: '美國',   code: 'US' },
+  { dial: '+81',  name: '日本',   code: 'JP' },
+  { dial: '+82',  name: '韓國',   code: 'KR' },
+  { dial: '+65',  name: '新加坡', code: 'SG' },
+]
+const selectedCountry = ref(countries[0])
+const showCCDrop      = ref(false)
+
+function selectCountry(c) {
+  selectedCountry.value = c
+  showCCDrop.value = false
+  phoneE164.value = c.dial + inputText.value.replace(/\D/g, '')
+}
 const phoneMode   = ref(false)  // 鎖定電話模式，避免格式化字串干擾
 const forcedType  = ref(null)   // 使用者手動選擇的類型（null = 自動偵測）
 
@@ -535,7 +560,7 @@ async function doCheck() {
   }
   // 截圖模式：取第一張圖的 base64（含 data:image/... 前綴）
   const rawQ = type === 'phone'
-    ? (phoneE164.value || (countryCode.value + inputText.value.trim().replace(/[-\s()]/g, '')))
+    ? (selectedCountry.value.dial + inputText.value.trim().replace(/\D/g, ''))
     : type === 'screenshot'
       ? (images.value[0]?.src ?? '')
       : inputText.value.trim()
@@ -902,7 +927,7 @@ header { text-align:center; flex-shrink:0; }
 header { text-align:center; }
 header h1 { font-size:28px; font-weight:700; letter-spacing:-0.5px; line-height:1.5; color:var(--text); user-select:none; }
 header h1 span { color:var(--primary); }
-.page-wrap.elder header h1 { font-size:34px; }
+.page-wrap.elder header h1 { font-size:30px; }
 
 /* Input card */
 .input-card { width:100%; max-width:720px; background:var(--surface); border:1.5px solid var(--border); border-radius:20px; box-shadow:0 8px 40px rgba(0,0,0,0.12); transition:background 0.25s; backdrop-filter:blur(12px); }
@@ -911,6 +936,99 @@ header h1 span { color:var(--primary); }
 /* Country code */
 .country-row { display:flex; align-items:center; gap:12px; padding:12px 18px 0; flex-wrap:wrap; }
 .phone-input-row { padding: 12px 14px 0; }
+
+/* 電話輸入外層：flex row，國碼在左，輸入框在右 */
+.textarea-outer {
+  display: flex;
+  align-items: stretch;
+  margin: 12px 14px 0;
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface2);
+  transition: border-color 0.2s, background 0.2s;
+  overflow: hidden;
+  position: relative;
+}
+.input-card.focused .textarea-outer { border-color: var(--primary); background: var(--surface); }
+
+.cc-prefix {
+  display: flex;
+  align-items: flex-start;
+  padding: 14px 0 14px 14px;
+  flex-shrink: 0;
+  position: relative;
+}
+.cc-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 8px; border-radius: 8px;
+  background: transparent;
+  border: 1.5px solid var(--border);
+  cursor: pointer; user-select: none;
+  transition: background 0.15s;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.cc-btn:hover { background: var(--surface3, rgba(0,0,0,0.06)); }
+.cc-flag { width: 20px; height: 15px; object-fit: cover; border-radius: 2px; }
+.cc-dial { font-size: 13px; font-weight: 700; color: var(--text); }
+.cc-arrow { font-size: 9px; color: var(--text-muted); }
+.cc-drop {
+  position: absolute; top: calc(100% - 8px); left: 14px;
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 10px; z-index: 300; min-width: 180px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18); overflow: hidden;
+}
+.cc-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 14px; cursor: pointer; font-size: 13px;
+  transition: background 0.12s; user-select: none;
+}
+.cc-item:hover, .cc-item.active { background: var(--surface2); }
+.cc-item-name { flex: 1; color: var(--text); }
+.cc-item-dial { color: var(--text-muted); font-size: 12px; }
+
+.textarea-outer .textarea-wrap {
+  flex: 1;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding-left: 8px;
+}
+
+/* 電話國碼前綴 — 內嵌在 textarea-wrap 頂部 */
+.phone-prefix {
+  display: flex; align-items: center;
+  padding: 10px 14px 0;
+  position: relative;
+}
+.cc-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 6px 10px; border-radius: 8px;
+  background: var(--surface3, rgba(0,0,0,0.06));
+  border: 1.5px solid var(--border);
+  cursor: pointer; user-select: none;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.cc-btn:hover { background: var(--surface2); }
+.cc-flag { width: 22px; height: 16px; object-fit: cover; border-radius: 2px; }
+.cc-dial { font-size: 13px; font-weight: 700; color: var(--text); }
+.cc-arrow { font-size: 9px; color: var(--text-muted); }
+.cc-drop {
+  position: absolute; top: calc(100% - 2px); left: 14px;
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 10px; z-index: 300; min-width: 180px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18); overflow: hidden;
+}
+.cc-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 14px; cursor: pointer; font-size: 13px;
+  transition: background 0.12s; user-select: none;
+}
+.cc-item:hover, .cc-item.active { background: var(--surface2); }
+.cc-item-name { flex: 1; color: var(--text); }
+.cc-item-dial { color: var(--text-muted); font-size: 12px; }
 .cc-fade-enter-active { transition:opacity 0.18s ease; }
 .cc-fade-leave-active { transition:opacity 0.14s ease; }
 .cc-fade-enter-from,.cc-fade-leave-to { opacity:0; }
@@ -951,8 +1069,8 @@ header h1 span { color:var(--primary); }
 .input-card.focused .textarea-wrap { border-color:var(--primary); background:var(--surface); }
 .smart-input { width:100%; resize:none; border:none; outline:none; background:transparent; font-family:'Noto Sans TC',sans-serif; font-size:16px; color:var(--text); line-height:1.7; height:68px; min-height:68px; max-height:220px; overflow-y:auto; box-sizing:border-box; display:block; }
 .smart-input::placeholder { color:transparent; }
-.page-wrap.elder .smart-input { font-size:22px; height:140px; min-height:140px; }
-.page-wrap.elder .smart-input::placeholder { font-size:20px; }
+.page-wrap.elder .smart-input { font-size:18px; height:100px; min-height:100px; }
+.page-wrap.elder .smart-input::placeholder { font-size:17px; }
 
 /* Animated placeholder — scrolls top→bottom: new enters from top, old exits to bottom */
 .animated-placeholder { position:absolute; top:14px; left:18px; right:18px; pointer-events:none; font-size:15px; color:var(--text-muted); line-height:1.7; overflow:hidden; height:1.7em; }
@@ -960,7 +1078,7 @@ header h1 span { color:var(--primary); }
 .ph-slide-leave-active { transition:transform 0.3s ease, opacity 0.25s ease; }
 .ph-slide-enter-from   { transform:translateY(-100%); opacity:0; }
 .ph-slide-leave-to     { transform:translateY(100%); opacity:0; }
-.page-wrap.elder .animated-placeholder { font-size:20px; }
+.page-wrap.elder .animated-placeholder { font-size:17px; }
 
 /* Camera button — absolute bottom-right inside textarea-wrap */
 .camera-btn { position:absolute; bottom:8px; right:10px; width:30px; height:30px; border-radius:8px; background:transparent; border:1.5px solid var(--border); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text-muted); transition:background 0.2s, color 0.2s, border-color 0.2s; flex-shrink:0; }
@@ -981,7 +1099,7 @@ header h1 span { color:var(--primary); }
 .type-chip.active[data-type="url"],
 .type-chip.active[data-type="phone"],
 .type-chip.active.screenshot { background:#dce4ff; border-color:#4d6ef5; color:#2D47E8; }
-.page-wrap.elder .type-chip { font-size:15px; padding:5px 16px; }
+.page-wrap.elder .type-chip { font-size:13px; padding:5px 14px; }
 
 /* Action row — detect badge left, send right */
 .action-row { display:flex; align-items:center; justify-content:space-between; padding:2px 14px 16px; margin-top:14px; gap:10px; }
@@ -996,14 +1114,14 @@ header h1 span { color:var(--primary); }
 .send-btn { display:flex; align-items:center; justify-content:center; gap:7px; background:var(--primary); color:#fff; border:none; border-radius:12px; padding:8px 18px; font-size:14px; font-weight:900; transition:background 0.2s,transform 0.2s,box-shadow 0.2s; box-shadow:0 3px 14px rgba(45,71,232,0.3); white-space:nowrap; }
 .send-btn:hover:not(:disabled) { background:var(--primary-dark); transform:translateY(-1px); box-shadow:0 5px 20px rgba(45,71,232,0.42); }
 .send-btn:disabled { opacity:0.45; cursor:not-allowed; transform:none; box-shadow:none; }
-.page-wrap.elder .send-btn { font-size:17px; padding:11px 22px; border-radius:14px; }
+.page-wrap.elder .send-btn { font-size:15px; padding:9px 20px; border-radius:12px; }
 .send-btn.elder-pulse { animation:breathe 1.8s ease-in-out infinite; }
 .cancel-btn { display:flex; align-items:center; justify-content:center; gap:7px; background:var(--surface3,#e5e7eb); color:var(--text-sub); border:1.5px solid var(--border); border-radius:12px; padding:8px 18px; font-size:14px; font-weight:900; transition:background 0.2s,color 0.2s; white-space:nowrap; }
 .cancel-btn .cancel-label { color:var(--scam,#ff2d2d); font-weight:900; }
 .cancel-btn:hover { background:var(--scam-bg); color:var(--scam); border-color:var(--scam); }
 .cancel-btn .send-spinner { border-color:rgba(0,0,0,0.15); border-top-color:var(--text-sub); }
 .cancel-btn:hover .send-spinner { border-color:rgba(255,45,45,0.2); border-top-color:var(--scam); }
-.page-wrap.elder .cancel-btn { font-size:17px; padding:11px 22px; border-radius:14px; }
+.page-wrap.elder .cancel-btn { font-size:15px; padding:9px 20px; border-radius:12px; }
 @keyframes breathe {
   0%,100% { box-shadow:0 3px 14px rgba(45,71,232,0.35), 0 0 0 0 rgba(45,71,232,0.45); transform:scale(1); }
   50%      { box-shadow:0 6px 26px rgba(45,71,232,0.55), 0 0 0 12px rgba(45,71,232,0); transform:scale(1.05); }
@@ -1014,8 +1132,6 @@ header h1 span { color:var(--primary); }
 .page-wrap.elder .eah-text { font-size:17px; }
 .send-spinner { width:16px; height:16px; border:2.5px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; }
 @keyframes spin { to{transform:rotate(360deg)} }
-
-.page-wrap.elder header h1 { font-size:28px; }
 
 /* ── Scroll arrow ── */
 .scroll-arrow {
@@ -1040,7 +1156,7 @@ header h1 span { color:var(--primary); }
 .stats-header h2 { font-size:32px; font-weight:900; letter-spacing:-0.5px; line-height:1.2; }
 .stats-header h2 span { color:var(--scam); }
 .stats-header p  { margin-top:8px; font-size:13px; color:var(--text-muted); }
-.page-wrap.elder .stats-header h2 { font-size:38px; }
+.page-wrap.elder .stats-header h2 { font-size:34px; }
 
 /* Stats tabs */
 .stats-tabs { display:flex; gap:6px; justify-content:center; margin:16px 0 4px; flex-wrap:wrap; }
