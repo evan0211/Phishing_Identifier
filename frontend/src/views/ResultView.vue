@@ -245,7 +245,7 @@
             <div class="sf-fill"  ref="sliderFill"></div>
             <div class="sf-label">{{ t('scamSlider') }}</div>
             <div class="sf-thumb" ref="sliderThumb"
-                 @mousedown="sMouseDown" @touchstart.passive="sTouchStart">⚠️</div>
+                 @mousedown="sMouseDown" @touchstart.passive="sTouchStart"><span style="position:relative;top:-5px">⚠️</span></div>
           </div>
         </div>
       </div>
@@ -729,7 +729,7 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';docume
 }
 .risk-banner.scam  { background:var(--scam-bg);  border-color:var(--scam); }
 
-.rb-badge { width:72px; height:72px; border-radius:18px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; gap:2px; }
+.rb-badge { width:72px; height:72px; border-radius:18px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; gap:2px; margin-top:-10px; }
 .rb-badge-score { font-size:28px; font-weight:900; color:#fff; line-height:1; }
 .safe  .rb-badge { background:var(--safe); }
 .promo .rb-badge { background:var(--promo); }
@@ -852,7 +852,7 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';docume
 .sf-slider-wrap { position:relative; height:56px; border-radius:100px; background:rgba(255,45,45,0.18); border:1.5px solid rgba(255,45,45,0.35); overflow:hidden; user-select:none; touch-action:none; }
 .sf-fill  { position:absolute; top:0; left:0; height:100%; background:linear-gradient(90deg,rgba(255,45,45,0.5),rgba(255,45,45,0.2)); pointer-events:none; }
 .sf-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:rgba(255,255,255,0.4); pointer-events:none; }
-.sf-thumb { position:absolute; top:4px; left:4px; width:48px; height:48px; border-radius:50%; background:var(--scam); display:flex; align-items:center; justify-content:center; font-size:22px; box-shadow:0 2px 14px rgba(255,45,45,0.6); cursor:grab; }
+.sf-thumb { position:absolute; top:50%; left:4px; transform:translateY(-50%); width:48px; height:48px; border-radius:50%; background:var(--scam); display:flex; align-items:center; justify-content:center; font-size:22px; box-shadow:0 2px 14px rgba(255,45,45,0.6); cursor:grab; }
 .sf-thumb:active { cursor:grabbing; }
 .sf-slider-wrap.completed .sf-thumb { background:#c00; }
 .sf-slider-wrap.completed .sf-label { opacity:0; }
