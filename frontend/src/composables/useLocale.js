@@ -85,7 +85,7 @@ const dict = {
   blockBtn:        { zh: '一鍵封鎖',     en: 'Block' },
   blockSub:        { zh: '加入黑名單，下次自動攔截', en: 'Blacklist & auto-block next time' },
   reportBtn:       { zh: '一鍵通報',     en: 'Report' },
-  reportSub:       { zh: '通報至 165 反詐騙資料庫', en: 'Report to 165 anti-scam database' },
+  reportSub:       { zh: '網路詐騙通報查詢網', en: 'Online Fraud Report & Query' },
   evidenceBtn:     { zh: '一鍵回報證據', en: 'Submit Evidence' },
   evidenceSub:     { zh: '截圖上傳，協助案件調查', en: 'Upload screenshot to assist investigation' },
   confirmCancel:   { zh: '取消',         en: 'Cancel' },

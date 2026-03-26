@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="page-wrap" :class="{ elder: isElder }">
 
     <!-- Navbar — 在 page-wrap 頂層，window scroll 才能控制 -->
     <nav class="navbar" :class="{ hidden: navbarHidden }">
-      <span class="nav-title" @click="scrollToMain" style="cursor:pointer">{{ t('appName') }}</span>
+      <NavLogo />
       <div class="nav-actions">
         <!-- 下載 Chrome 插件按鈕（僅電腦版顯示） -->
         <a
@@ -345,6 +345,7 @@ import { useElder } from '../composables/useElder.js'
 import { resultState } from '../composables/useResult.js'
 import { isTTSEnabled, toggleTTS } from '../composables/useVoice.js'
 import { useLocale, t } from '../composables/useLocale.js'
+import NavLogo from '../components/NavLogo.vue'
 import OnboardingTour from '../components/OnboardingTour.vue'
 import { autoCheck, report, getStatsPeriods, getChartData } from '../services/api.js'
 const router = useRouter()
@@ -514,9 +515,18 @@ function stripCJK(str) {
 }
 
 function onTextInput() {
-  // 電話模式：只允許數字和 +、-、空格、括號
+  // 電話模式：只允許數字和 +、-、空格、括號，最多 15 碼
   if (detectedType.value === 'phone') {
-    const filtered = inputText.value.replace(/[^\d\+\-\s\(\)]/g, '')
+    let filtered = inputText.value.replace(/[^\d\+\-\s\(\)]/g, '')
+    const digits = filtered.replace(/\D/g, '')
+    if (digits.length > 15) {
+      // 截斷到 15 個數字
+      let count = 0
+      filtered = filtered.split('').filter(c => {
+        if (/\d/.test(c)) { count++; return count <= 15 }
+        return true
+      }).join('')
+    }
     if (filtered !== inputText.value) inputText.value = filtered
   }
   autoResize()
@@ -541,9 +551,19 @@ watch(inputText, (val) => {
 function pickFiles(e) { Array.from(e.target.files).forEach(addImageFile); e.target.value = '' }
 function addImageFile(file) {
   if (!file || !file.type.startsWith('image/')) return
-  const r = new FileReader()
-  r.onload = ev => images.value.push({ src: ev.target.result, file, name: file.name })
-  r.readAsDataURL(file)
+  // 統一轉成 JPEG，確保後端相容
+  const img = new Image()
+  const url = URL.createObjectURL(file)
+  img.onload = () => {
+    const canvas = document.createElement('canvas')
+    canvas.width  = img.naturalWidth
+    canvas.height = img.naturalHeight
+    canvas.getContext('2d').drawImage(img, 0, 0)
+    const jpeg = canvas.toDataURL('image/jpeg', 0.92)
+    URL.revokeObjectURL(url)
+    images.value.push({ src: jpeg, file, name: file.name })
+  }
+  img.src = url
 }
 function removeImage(i) { images.value.splice(i, 1) }
 async function handlePaste(e) {
@@ -603,6 +623,13 @@ async function doCheck() {
       ? (images.value[0]?.src ?? '')
       : inputText.value.trim()
   if (!rawQ) { showToast(t('toastNoContent'), 'err'); return }
+
+  // 檢查黑名單
+  const blocked = JSON.parse(localStorage.getItem('blocklist') || '[]')
+  if (blocked.includes(rawQ)) {
+    router.push({ path: '/blocked', query: { q: rawQ } })
+    return
+  }
   isLoading.value = true
   abortController = new AbortController()
   try {
@@ -926,6 +953,7 @@ onUnmounted(() => {
 .navbar { background:var(--navbar-bg); padding:10px 16px; display:flex; align-items:center; gap:12px; transition:background 0.25s, transform 0.18s cubic-bezier(0.4,0,0.2,1); position:fixed; top:0; left:0; right:0; width:100%; box-sizing:border-box; z-index:200; height:56px; }
 .navbar.hidden { transform:translateY(-100%); }
 .nav-title { color:rgba(255,255,255,0.9); font-size:15px; font-weight:700; user-select:none; }
+.nav-logo { height:44px; user-select:none; }
 .nav-actions { display:flex; gap:10px; align-items:center; margin-left:auto; }
 .settings-wrap { position:relative; margin-left:auto; }
 

@@ -212,16 +212,18 @@ function closeSettingsMenu() {
 
 function positionOnEl(el, skipScroll = false, cardSide = null) {
   if (props.noScroll || skipScroll) {
-    // 首頁或選單：不捲動也不鎖 overflow，直接定位
     _doPosition(el, cardSide)
     return
   }
-  // 先解鎖，捲到目標，再鎖回
+  // 先解鎖，捲到目標
   document.documentElement.style.overflow = ''
   const scrollBlock = window.innerWidth <= 768 ? 'start' : 'center'
   el.scrollIntoView({ behavior: 'instant', block: scrollBlock })
   _scrollY = window.scrollY
-  document.documentElement.style.overflow = 'hidden'
+  // 手機版不鎖 overflow，避免卡片位置計算錯誤
+  if (window.innerWidth > 768) {
+    document.documentElement.style.overflow = 'hidden'
+  }
   _doPosition(el, cardSide)
 }
 
@@ -305,11 +307,6 @@ function _doPosition(el, cardSide) {
   }
 
   top  = Math.max(gap, Math.min(top, window.innerHeight - cardH - gap))
-  // 手機版：卡片最多到螢幕 60% 位置，避免被底部元素擋住
-  if (window.innerWidth <= 480) {
-    top = Math.min(top, window.innerHeight * 0.55 - cardH / 2)
-    top = Math.max(gap, top)
-  }
   left = rect.left + rect.width / 2 - cardW / 2
   if (window.innerWidth <= 480) {
     left = (window.innerWidth - cardW) / 2

@@ -1,9 +1,12 @@
-<template>
+﻿<template>
   <div class="page-wrap" :class="{ elder: isElder }">
     <nav class="navbar">
-      <button class="back-btn" @click="goBack">{{ t('back') }}</button>
-      <span class="nav-title">{{ t('contributeTitle') }}</span>
+      <div class="nav-row-top">
+        <NavLogo />
+      </div>
     </nav>
+
+    <div class="sub-nav"><button class="back-link" @click="goBack">{{ t('back') }}</button></div>
 
     <main class="contribute-main">
       <div class="contribute-card">
@@ -65,6 +68,7 @@
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useElder } from '../composables/useElder.js'
+import NavLogo from '../components/NavLogo.vue'
 import { useLocale, t } from '../composables/useLocale.js'
 import { report } from '../services/api.js'
 
@@ -119,10 +123,13 @@ async function submit() {
 <style scoped>
 .page-wrap { min-height:100vh; background:var(--bg); color:var(--text); display:flex; flex-direction:column; }
 
-.navbar { background:var(--navbar-bg); padding:10px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:200; }
-.back-btn { background:rgba(255,255,255,0.15); border:1.5px solid rgba(255,255,255,0.25); border-radius:100px; padding:7px 16px; color:#fff; font-size:13px; font-weight:700; }
-.back-btn:hover { background:rgba(255,255,255,0.28); }
-.nav-title { color:#fff; font-size:15px; font-weight:700; }
+.navbar { background:var(--navbar-bg); padding:10px 16px; display:flex; align-items:center; position:sticky; top:0; z-index:200; height:56px; }
+.nav-row-top { display:flex; align-items:center; }
+.nav-title { color:#fff; font-size:15px; font-weight:700; cursor:pointer; }
+.nav-logo { height:44px; cursor:pointer; user-select:none; }
+.sub-nav { padding:8px 16px; }
+.back-link { background:none; border:none; padding:0; color:var(--primary); font-size:13px; font-weight:600; cursor:pointer; transition:opacity 0.2s; }
+.back-link:hover { opacity:0.7; }
 
 .contribute-main { flex:1; display:flex; align-items:flex-start; justify-content:center; padding:32px 20px; }
 

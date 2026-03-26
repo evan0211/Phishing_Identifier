@@ -17,15 +17,20 @@ export function useVoice() {
   const speak = (text, options = {}) => {
     const { lang = getTTSLang(), rate = 0.85, pitch = 1, volume = 1 } = options
     window.speechSynthesis.cancel()
-    const utter = new SpeechSynthesisUtterance(text)
-    utter.lang   = lang
-    utter.rate   = rate
-    utter.pitch  = pitch
-    utter.volume = volume
-    utter.onstart = () => { isSpeaking.value = true;  currentText.value = text }
-    utter.onend   = () => { isSpeaking.value = false }
-    utter.onerror = () => { isSpeaking.value = false }
-    window.speechSynthesis.speak(utter)
+    const doSpeak = () => {
+      const utter = new SpeechSynthesisUtterance(text)
+      utter.lang   = lang
+      utter.rate   = rate
+      utter.pitch  = pitch
+      utter.volume = volume
+      utter.onstart = () => { isSpeaking.value = true;  currentText.value = text }
+      utter.onend   = () => { isSpeaking.value = false }
+      utter.onerror = () => { isSpeaking.value = false }
+      window.speechSynthesis.speak(utter)
+    }
+    const voices = window.speechSynthesis.getVoices()
+    if (voices.length > 0) { doSpeak() }
+    else { window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.onvoiceschanged = null; doSpeak() } }
   }
 
   return { speak }
@@ -69,15 +74,29 @@ function findTextTarget(el) {
 
 function speakNow(text, rate = 0.85) {
   window.speechSynthesis.cancel()
-  const utter = new SpeechSynthesisUtterance(text)
-  utter.lang   = getTTSLang()
-  utter.rate   = rate
-  utter.pitch  = 1
-  utter.volume = 1
-  utter.onstart = () => { isSpeaking.value = true;  currentText.value = text }
-  utter.onend   = () => { isSpeaking.value = false }
-  utter.onerror = () => { isSpeaking.value = false }
-  window.speechSynthesis.speak(utter)
+
+  const doSpeak = () => {
+    const utter = new SpeechSynthesisUtterance(text)
+    utter.lang   = getTTSLang()
+    utter.rate   = rate
+    utter.pitch  = 1
+    utter.volume = 1
+    utter.onstart = () => { isSpeaking.value = true;  currentText.value = text }
+    utter.onend   = () => { isSpeaking.value = false }
+    utter.onerror = () => { isSpeaking.value = false }
+    window.speechSynthesis.speak(utter)
+  }
+
+  // 等待 voices 載入（部分瀏覽器需要）
+  const voices = window.speechSynthesis.getVoices()
+  if (voices.length > 0) {
+    doSpeak()
+  } else {
+    window.speechSynthesis.onvoiceschanged = () => {
+      window.speechSynthesis.onvoiceschanged = null
+      doSpeak()
+    }
+  }
 }
 
 function onMouseOver(e) {

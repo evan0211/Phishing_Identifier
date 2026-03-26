@@ -1,15 +1,16 @@
-<template>
+﻿<template>
   <div class="page-wrap" :class="{ elder: isElder }">
 
     <nav class="navbar">
-      <button class="back-btn" @click="goHome">{{ t('visitedBack') }}</button>
-      <span class="nav-title">{{ t('visitedNavTitle') }}</span>
-      <label class="toggle-wrap theme-toggle" :class="{ active: isDark }">
-        <input type="checkbox" :checked="isDark" @change="toggleTheme" style="display:none">
-        <span class="toggle-icon">{{ isDark ? '🌙' : '☀️' }}</span>
-        <span class="toggle-label">{{ isDark ? t('dark') : t('light') }}</span>
-        <span class="toggle-pill"><span class="toggle-knob"></span></span>
-      </label>
+      <div class="nav-row-top">
+        <span class="nav-title" @click="$router.push('/')" style="cursor:pointer">{{ t('appName') }}</span>
+        <label class="toggle-wrap theme-toggle" :class="{ active: isDark }" style="margin-left:auto">
+          <input type="checkbox" :checked="isDark" @change="toggleTheme" style="display:none">
+          <span class="toggle-icon">{{ isDark ? '🌙' : '☀️' }}</span>
+          <span class="toggle-label">{{ isDark ? t('dark') : t('light') }}</span>
+          <span class="toggle-pill"><span class="toggle-knob"></span></span>
+        </label>
+      </div>
     </nav>
 
     <div class="top-banner">
@@ -137,9 +138,12 @@ onUnmounted(() => { clearTimeout(toastTimer) })
 [data-theme="dark"] .page-wrap::before { content:''; position:fixed; inset:0; z-index:0; pointer-events:none; background:linear-gradient(rgba(255,45,45,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,45,45,0.04) 1px,transparent 1px); background-size:40px 40px; animation:gridpulse 4s ease-in-out infinite; }
 @keyframes gridpulse { 0%,100%{opacity:0.5} 50%{opacity:1} }
 
-.navbar { background:#b00000; padding:10px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:200; }
-.back-btn { background:rgba(255,255,255,0.2); border:1.5px solid rgba(255,255,255,0.3); border-radius:100px; padding:7px 16px; color:#fff; font-size:13px; font-weight:700; white-space:nowrap; transition:background 0.2s; }
-.back-btn:hover { background:rgba(255,255,255,0.32); }
+.navbar { background:#b00000; padding:10px 16px; display:flex; align-items:center; position:sticky; top:0; z-index:200; height:56px; }
+.nav-row-top { display:flex; align-items:center; gap:12px; width:100%; }
+.nav-title { color:#fff; font-size:15px; font-weight:700; cursor:pointer; }
+.sub-nav { padding:8px 16px; }
+.back-link { background:none; border:none; padding:0; color:#b00000; font-size:13px; font-weight:600; cursor:pointer; transition:opacity 0.2s; }
+.back-link:hover { opacity:0.7; }
 .nav-title { flex:1; text-align:center; color:#fff; font-size:14px; font-weight:700; }
 
 .toggle-wrap { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.15); border:1.5px solid rgba(255,255,255,0.25); border-radius:100px; padding:5px 10px 5px 8px; cursor:pointer; transition:background 0.2s; user-select:none; }

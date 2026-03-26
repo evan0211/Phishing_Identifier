@@ -3,8 +3,7 @@
 
     <!-- Navbar -->
     <nav class="navbar">
-      <button class="back-btn" @click="goBack">{{ t('back') }}</button>
-      <span class="nav-title" @click="goBack" style="cursor:pointer">{{ t('analysisResult') }}</span>
+      <NavLogo />
       <div class="nav-actions">
         <!-- 設定按鈕（與首頁一致） -->
         <div class="settings-wrap" ref="settingsWrap">
@@ -38,6 +37,8 @@
       </div>
     </nav>
 
+    <div class="sub-nav"><button class="back-link" @click="goBack">{{ t('back') }}</button></div>
+
     <!-- No result guard -->
     <div v-if="!result" class="no-result">
       <div class="no-result-icon">🔍</div>
@@ -54,7 +55,7 @@
         <!-- Risk banner -->
         <div class="risk-banner" :class="[mode, mode.includes('_') ? mode.split('_')[0] : mode]">
           <div class="rb-badge">
-            <span class="rb-badge-score">{{ weightedScore }}</span>
+            <span class="rb-badge-score">{{ weightedScore != null ? weightedScore : '?' }}</span>
           </div>
           <div class="rb-info">
             <div class="rb-tag">{{ tagLabel }}</div>
@@ -86,11 +87,10 @@
           </div>
 
           <!-- 加權綜合分數 -->
-          <div class="weighted-score" v-if="llmAnalysis?.score !== undefined">
+          <div class="weighted-score">
             <span class="ws-label">{{ t('weightedScoreLabel') }}</span>
-            <span class="ws-val" :class="mode">{{ weightedScore }} {{ t('aiScoreSuffix') }}</span>
+            <span class="ws-val" :class="mode">{{ weightedScore != null ? weightedScore + ' ' + t('aiScoreSuffix') : '?' }}</span>
           </div>
-          <div class="score-value" :class="mode" v-else>{{ t('riskScore') }}{{ gglScoreVal }} / 100</div>
         </div>
 
         <!-- AI 分析展開按鈕 — 分數下方 -->
@@ -275,6 +275,7 @@ import { resultState } from '../composables/useResult.js'
 import { report, analyzeLLMText, getLLMAdvice } from '../services/api.js'
 import { useLocale, t } from '../composables/useLocale.js'
 import { isTTSEnabled, toggleTTS } from '../composables/useVoice.js'
+import NavLogo from '../components/NavLogo.vue'
 import OnboardingTour from '../components/OnboardingTour.vue'
 
 // 結果頁教學步驟（只在從教學流程進來時顯示）
@@ -450,7 +451,8 @@ const barWidth    = ref(0)
 const llmBarWidth = ref(0)
 
 // 新格式：Lambda 已計算好加權分數
-const weightedScore = computed(() => result.value?.score ?? 0)
+// ggl unknown 時用 AI 分數代替
+const weightedScore = computed(() => result.value?.score ?? result.value?.ai?.score ?? null)
 // Gogolook 原始分數
 const gglScoreVal = computed(() => result.value?.ggl?.score ?? 0)  // 只取 Gogolook 原始分數
 
@@ -482,9 +484,16 @@ function performLLMAnalysis() {
     }
     setTimeout(() => { llmBarWidth.value = data.ai.score ?? 0 }, 120)
     if (data.advice) llmAdvice.value = data.advice
-  } else if (lastType.value !== 'image' && lastType.value !== 'screenshot') {
-    // 舊格式（截圖或未走 LLM）：不額外呼叫，避免重複消耗 token
-    console.log('[ResultView] 非 LLM 格式，跳過 AI 分析')
+  } else {
+    // 沒有 ai 欄位但有結果，仍顯示 AI 分析入口（讓用戶可以進入 AI 頁）
+    llmAnalysis.value = {
+      score:      data.score ?? 0,
+      fraud_type: null,
+      suggestion: null,
+      reasoning:  null,
+      level:      data.level,
+    }
+    setTimeout(() => { llmBarWidth.value = data.score ?? 0 }, 120)
   }
 }
 
@@ -526,24 +535,31 @@ const ACT = computed(() => ({
   evidence: { title: t('confirmEvidence'), sub: t('confirmEvidenceSub'), ok: t('confirmEvidenceOk') },
 }))
 async function doAction(type) {
+  // 一鍵通報：直接導向，不需確認
+  if (type === 'report') {
+    window.open('https://fraudbuster.digiat.org.tw/accessibility/circular', '_blank', 'noopener')
+    return
+  }
+  // 回報證據：直接導向，不需確認
+  if (type === 'evidence') {
+    window.open('https://165.npa.gov.tw/#/report/call/02', '_blank', 'noopener')
+    return
+  }
   const c = ACT.value[type]
   openConfirm(c.title, c.sub, c.ok, async () => {
     closeConfirm()
-    // 一鍵通報：導向政府通報平台
-    if (type === 'report') {
-      window.open('https://fraudbuster.digiat.org.tw/accessibility/circular', '_blank', 'noopener')
-      return
-    }
-    // 回報證據：導向 165 反詐騙通報平台
-    if (type === 'evidence') {
-      window.open('https://165.npa.gov.tw/#/report/call/02', '_blank', 'noopener')
-      return
-    }
     try {
       const d = await report(lastInput.value, lastType.value)
+      // 封鎖：存到 localStorage 黑名單
+      if (type === 'block') {
+        const blocked = JSON.parse(localStorage.getItem('blocklist') || '[]')
+        if (!blocked.includes(lastInput.value)) {
+          blocked.push(lastInput.value)
+          localStorage.setItem('blocklist', JSON.stringify(blocked))
+        }
+      }
       const msgs = {
-        block:    '🚫 ' + (locale.value === 'en' ? 'Blocked — ' : '已封鎖 — ') + d.caseNo,
-        evidence: '📁 ' + (locale.value === 'en' ? 'Evidence uploaded, case ' : '證據已上傳，案號 ') + d.caseNo,
+        block: '🚫 ' + (locale.value === 'en' ? 'Blocked — ' : '已封鎖 — ') + d.caseNo,
       }
       showToast(msgs[type], 'ok')
     } catch { showToast(locale.value === 'en' ? '❌ Action failed' : '❌ 操作失敗', 'err') }
@@ -626,6 +642,9 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';docume
 .back-btn:hover { background:rgba(255,255,255,0.28); }
 .nav-title { position:absolute; left:50%; transform:translateX(-50%); color:#fff; font-size:15px; font-weight:700; pointer-events:none; }
 .nav-actions { display:flex; gap:8px; align-items:center; margin-left:auto; }
+.sub-nav { padding:8px 16px; }
+.back-link { background:none; border:none; padding:0; color:var(--primary); font-size:13px; font-weight:600; cursor:pointer; transition:opacity 0.2s; }
+.back-link:hover { opacity:0.7; }
 .settings-wrap { position:relative; margin-left:auto; }
 .settings-btn { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.2); border-radius:100px; padding:7px 14px 7px 10px; cursor:pointer; color:#fff; transition:background 0.2s; user-select:none; }
 .settings-btn:hover { background:rgba(255,255,255,0.22); }

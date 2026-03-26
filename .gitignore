@@ -32,7 +32,6 @@ desktop.ini
 .vscode/*
 !.vscode/extensions.json
 .idea/
-.kiro/
 *.suo
 *.ntvs*
 *.njsproj

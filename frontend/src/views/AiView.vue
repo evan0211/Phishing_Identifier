@@ -1,39 +1,42 @@
-<template>
+﻿<template>
   <div class="page-wrap" :data-theme="isDark ? 'dark' : 'light'">
 
     <!-- Navbar -->
     <nav class="navbar">
-      <button class="back-btn" @click="closeTab">← 返回</button>
-      <span class="nav-title">AI 深度分析</span>
-      <div class="settings-wrap" ref="settingsWrap">
-        <button class="settings-btn" :class="{ active: menuOpen }" @click="menuOpen = !menuOpen" :aria-label="t('settings')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
-          <span class="settings-label">{{ t('settings') }}</span>
-        </button>
-        <transition name="menu-drop">
-          <div class="settings-menu" v-if="menuOpen">
-            <button class="menu-row" :class="{ active: isElder }" @click="toggleElder">
-              <span class="menu-icon">👴</span>
-              <span class="menu-text">{{ t('elderMode') }}</span>
-              <span class="menu-pill" :class="{ on: isElder }"><span class="menu-knob"></span></span>
+      <NavLogo />
+      <div class="nav-actions">
+        <div class="settings-wrap" ref="settingsWrap">
+            <button class="settings-btn" :class="{ active: menuOpen }" @click="menuOpen = !menuOpen" :aria-label="t('settings')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+              <span class="settings-label">{{ t('settings') }}</span>
             </button>
-            <button class="menu-row" :class="{ active: isDark }" @click="toggleTheme">
-              <span class="menu-icon">{{ isDark ? '🌙' : '☀️' }}</span>
-              <span class="menu-text">{{ isDark ? t('darkMode') : t('lightMode') }}</span>
-              <span class="menu-pill" :class="{ on: isDark }"><span class="menu-knob"></span></span>
-            </button>
-            <button class="menu-row" :class="{ active: isTTSEnabled }" @click="toggleTTS">
-              <span class="menu-icon">🔊</span>
-              <span class="menu-text">{{ t('voiceRead') }}</span>
-              <span class="menu-pill" :class="{ on: isTTSEnabled }"><span class="menu-knob"></span></span>
-            </button>
-          </div>
-        </transition>
+            <transition name="menu-drop">
+              <div class="settings-menu" v-if="menuOpen">
+                <button class="menu-row" :class="{ active: isElder }" @click="toggleElder">
+                  <span class="menu-icon">👴</span>
+                  <span class="menu-text">{{ t('elderMode') }}</span>
+                  <span class="menu-pill" :class="{ on: isElder }"><span class="menu-knob"></span></span>
+                </button>
+                <button class="menu-row" :class="{ active: isDark }" @click="toggleTheme">
+                  <span class="menu-icon">{{ isDark ? '🌙' : '☀️' }}</span>
+                  <span class="menu-text">{{ isDark ? t('darkMode') : t('lightMode') }}</span>
+                  <span class="menu-pill" :class="{ on: isDark }"><span class="menu-knob"></span></span>
+                </button>
+                <button class="menu-row" :class="{ active: isTTSEnabled }" @click="toggleTTS">
+                  <span class="menu-icon">🔊</span>
+                  <span class="menu-text">{{ t('voiceRead') }}</span>
+                  <span class="menu-pill" :class="{ on: isTTSEnabled }"><span class="menu-knob"></span></span>
+                </button>
+              </div>
+            </transition>
+        </div>
       </div>
     </nav>
+
+    <div class="sub-nav"><button class="back-link" @click="closeTab">{{ locale === 'en' ? '← Back' : '← 返回' }}</button></div>
 
     <main class="ai-main" v-if="llmAnalysis">
 
@@ -117,6 +120,7 @@ import { useTheme } from '../composables/useTheme.js'
 import { useElder } from '../composables/useElder.js'
 import { isTTSEnabled, toggleTTS } from '../composables/useVoice.js'
 import { useLocale, t } from '../composables/useLocale.js'
+import NavLogo from '../components/NavLogo.vue'
 import OnboardingTour from '../components/OnboardingTour.vue'
 
 const router = useRouter()
@@ -245,12 +249,15 @@ onUnmounted(() => {
   transition: background 0.25s, color 0.25s;
 }
 
-/* ── Navbar ── */
 .navbar { background:var(--navbar-bg); padding:10px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:200; transition:background 0.25s; height:56px; }
-.back-btn { background:rgba(255,255,255,0.15); border:1.5px solid rgba(255,255,255,0.25); border-radius:100px; padding:7px 16px; color:#fff; font-size:13px; font-weight:700; white-space:nowrap; cursor:pointer; transition:background 0.2s; flex-shrink:0; }
-.back-btn:hover { background:rgba(255,255,255,0.28); }
-.nav-title { position:absolute; left:50%; transform:translateX(-50%); color:#fff; font-size:15px; font-weight:700; pointer-events:none; }
-.settings-wrap { position:relative; margin-left:auto; }
+.nav-row-top { display:flex; align-items:center; gap:12px; width:100%; }
+.nav-title { color:#fff; font-size:15px; font-weight:700; cursor:pointer; }
+.nav-logo { height:44px; cursor:pointer; user-select:none; }
+.nav-actions { display:flex; gap:10px; align-items:center; margin-left:auto; }
+.sub-nav { padding:8px 16px; }
+.back-link { background:none; border:none; padding:0; color:var(--primary); font-size:13px; font-weight:600; cursor:pointer; transition:opacity 0.2s; }
+.back-link:hover { opacity:0.7; }
+.settings-wrap { position:relative; }
 .settings-btn { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.2); border-radius:100px; padding:7px 14px 7px 10px; cursor:pointer; color:#fff; transition:background 0.2s; user-select:none; }
 .settings-btn:hover { background:rgba(255,255,255,0.22); }
 .settings-btn.active { background:rgba(255,255,255,0.22); border-color:rgba(255,255,255,0.4); }
