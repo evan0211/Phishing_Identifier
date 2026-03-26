@@ -63,7 +63,7 @@ const dict = {
   goHome:          { zh: '回到首頁',   en: 'Go Home' },
   safeZero:        { zh: '安全 0',     en: 'Safe 0' },
   highRisk100:     { zh: '100 高風險', en: '100 High Risk' },
-  weightedScoreLabel: { zh: '詐騙評分', en: 'Scam Score' },
+  weightedScoreLabel: { zh: '綜合評分', en: 'Overall Score' },
   wsFormula:       { zh: '（Gogolook×55% + AI×45%）', en: '(Gogolook×55% + AI×45%)' },
   riskScore:       { zh: '風險分數：', en: 'Risk Score: ' },
   analysisReasons: { zh: '📋 分析原因', en: '📋 Analysis Reasons' },

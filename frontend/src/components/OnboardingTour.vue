@@ -305,6 +305,11 @@ function _doPosition(el, cardSide) {
   }
 
   top  = Math.max(gap, Math.min(top, window.innerHeight - cardH - gap))
+  // 手機版：卡片最多到螢幕 60% 位置，避免被底部元素擋住
+  if (window.innerWidth <= 480) {
+    top = Math.min(top, window.innerHeight * 0.55 - cardH / 2)
+    top = Math.max(gap, top)
+  }
   left = rect.left + rect.width / 2 - cardW / 2
   if (window.innerWidth <= 480) {
     left = (window.innerWidth - cardW) / 2
@@ -386,10 +391,10 @@ async function next() {
 
 function skip() {
   if (activeSteps.value[current.value]?.openMenu) closeSettingsMenu()
+  emit('set-input', '')
   visible.value = false
   document.documentElement.style.overflow = ''
   window.scrollTo(0, 0)
-  emit('set-input', '')
   // 清除所有 tour 相關 key，包含 pending flag
   ;['tourDone', 'resultTourDone', 'aiTourDone', 'resultTourPending', 'aiTourPending'].forEach(k => localStorage.setItem(k, '1'))
   localStorage.removeItem('resultTourPending')
@@ -505,7 +510,6 @@ defineExpose({ restart })
   transition: background 0.18s;
 }
 .tour-start-btn:hover { background: #1A2FC7; }
-[data-theme="dark"] .tour-start-btn { background: #4132e3; }
 
 .tour-guide-btn {
   flex: 1; background: #2D47E8; color: #fff;

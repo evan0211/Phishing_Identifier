@@ -117,6 +117,8 @@
                 class="smart-input"
                 v-model="inputText"
                 :placeholder="''"
+                :inputmode="detectedType === 'phone' ? 'tel' : 'text'"
+                :disabled="isLoading"
                 @focus="isFocused = true"
                 @blur="isFocused = false"
                 @paste="handlePaste"
@@ -512,6 +514,11 @@ function stripCJK(str) {
 }
 
 function onTextInput() {
+  // 電話模式：只允許數字和 +、-、空格、括號
+  if (detectedType.value === 'phone') {
+    const filtered = inputText.value.replace(/[^\d\+\-\s\(\)]/g, '')
+    if (filtered !== inputText.value) inputText.value = filtered
+  }
   autoResize()
 }
 
@@ -635,6 +642,10 @@ function clearInput() {
 
 // ── Tour: 填入範例文字 ──
 function onTourSetInput(val) {
+  if (!val) {
+    clearInput()
+    return
+  }
   inputText.value  = val
   phoneMode.value  = false
   forcedType.value = null

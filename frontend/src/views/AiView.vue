@@ -332,6 +332,11 @@ onUnmounted(() => {
   .settings-label { display: none; }
   .settings-btn   { padding: 6px 10px; }
   .ai-main { padding: 12px 12px 48px; }
+  .summary-banner { flex-direction: column; }
+  .sb-divider { width: 100%; height: 1.5px; }
+  .sb-score { padding: 16px; }
+  .sb-fraud { padding: 16px; }
+  .sb-suggestion { padding: 16px; }
 }
 
 .col-card {

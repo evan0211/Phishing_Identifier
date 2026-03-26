@@ -73,7 +73,7 @@
             <div class="dbar-track">
               <div class="dbar-fill ggl" :style="{ width: barWidth + '%' }"></div>
             </div>
-            <span class="dbar-val ggl-text">{{ result.score }}</span>
+            <span class="dbar-val ggl-text">{{ gglScoreVal }}</span>
           </div>
 
           <!-- AI 分數條 -->
@@ -90,7 +90,7 @@
             <span class="ws-label">{{ t('weightedScoreLabel') }}</span>
             <span class="ws-val" :class="mode">{{ weightedScore }} {{ t('aiScoreSuffix') }}</span>
           </div>
-          <div class="score-value" :class="mode" v-else>{{ t('riskScore') }}{{ result?.ggl?.score ?? result.score }} / 100</div>
+          <div class="score-value" :class="mode" v-else>{{ t('riskScore') }}{{ gglScoreVal }} / 100</div>
         </div>
 
         <!-- AI 分析展開按鈕 — 分數下方 -->
@@ -278,58 +278,72 @@ import { isTTSEnabled, toggleTTS } from '../composables/useVoice.js'
 import OnboardingTour from '../components/OnboardingTour.vue'
 
 // 結果頁教學步驟（只在從教學流程進來時顯示）
-const resultTourSteps = computed(() => {
-  const zh = locale.value !== 'en'
-  return [
+const resultTourSteps = [
   {
     icon: '📊',
-    title: zh ? '這是分析結果頁' : 'Analysis Result Page',
-    desc: zh ? '每次檢測完成後都會來到這裡，顯示完整的風險分析報告。' : 'After each check, you\'ll see the full risk analysis report here.',
-    target: null, openMenu: false,
+    title: '這是分析結果頁',
+    desc: '每次檢測完成後都會來到這裡，顯示完整的風險分析報告。',
+    target: null,
+    openMenu: false,
   },
   {
     icon: '🚨',
-    title: zh ? '風險等級橫幅' : 'Risk Level Banner',
-    desc: zh ? '最上方的橫幅顯示風險等級（安全／促銷／警告／詐騙），顏色越紅代表風險越高。' : 'The top banner shows the risk level (safe/promo/warn/scam). Redder = higher risk.',
-    target: '.risk-banner', openMenu: false, cardSide: 'right',
+    title: '風險等級橫幅',
+    desc: '最上方的橫幅顯示風險等級（安全／促銷／警告／詐騙），顏色越紅代表風險越高。',
+    target: '.risk-banner',
+    openMenu: false,
+    cardSide: 'right',
   },
   {
     icon: '📈',
-    title: zh ? '風險評分' : 'Risk Score',
-    desc: zh ? '分數條顯示 Gogolook 資料庫與 AI 各自的評分，以及加權後的綜合風險分數（0–100）。' : 'Score bars show Gogolook and AI scores, plus the weighted combined score (0–100).',
-    target: '.score-card', openMenu: false, cardSide: 'right',
+    title: '風險評分',
+    desc: '分數條顯示 Gogolook 資料庫與 AI 各自的評分，以及加權後的綜合風險分數（0–100）。',
+    target: '.score-card',
+    openMenu: false,
+    cardSide: 'right',
   },
   {
     icon: '🔎',
-    title: zh ? '分析原因' : 'Analysis Reasons',
-    desc: zh ? '列出系統判斷為此風險等級的具體理由，幫助你了解哪些特徵觸發了警示。' : 'Lists the specific reasons for this risk level, helping you understand what triggered the alert.',
-    target: '.reasons-card', openMenu: false, cardSide: 'right',
+    title: '分析原因',
+    desc: '列出系統判斷為此風險等級的具體理由，幫助你了解哪些特徵觸發了警示。',
+    target: '.reasons-card',
+    openMenu: false,
+    cardSide: 'right',
   },
   {
     icon: '🌐',
-    title: zh ? '前往網站' : 'Visit Site',
-    desc: zh ? '若你仍想前往該網址，可點此按鈕。系統會再次警告並要求滑動確認，避免誤觸。' : 'If you still want to visit the URL, click here. The system will warn again and require a slide to confirm.',
-    target: '.visit-card', openMenu: false, cardSide: 'left',
+    title: '前往網站',
+    desc: '若你仍想前往該網址，可點此按鈕。系統會再次警告並要求滑動確認，避免誤觸。',
+    target: '.visit-card',
+    openMenu: false,
+    cardSide: 'left',
   },
   {
     icon: '🚫',
-    title: zh ? '立即行動' : 'Take Action',
-    desc: zh ? '右欄提供三個快速行動：封鎖號碼／網址、向 165 通報，以及提交證據協助調查。' : 'Three quick actions: block the source, report to 165, or submit evidence.',
-    target: '.actions-card', openMenu: false, cardSide: 'left',
+    title: '立即行動',
+    desc: '右欄提供三個快速行動：封鎖號碼／網址、向 165 通報，以及提交證據協助調查。',
+    target: '.actions-card',
+    openMenu: false,
+    cardSide: 'left',
   },
   {
     icon: '📋',
-    title: zh ? '下一步建議' : 'Next Steps',
-    desc: zh ? '根據風險等級，系統會給出具體的後續行動建議，幫助你保護自己和身邊的人。' : 'Based on the risk level, the system provides specific next-step recommendations.',
-    target: '.next-card', openMenu: false, cardSide: 'left',
+    title: '下一步建議',
+    desc: '根據風險等級，系統會給出具體的後續行動建議，幫助你保護自己和身邊的人。',
+    target: '.next-card',
+    openMenu: false,
+    cardSide: 'left',
   },
   {
     icon: '🤖',
-    title: zh ? 'AI 深度分析' : 'AI Deep Analysis',
-    desc: zh ? '點擊此按鈕可進入 AI 深度分析頁面，查看詐騙手法分類、詳細對策與建議。按「前往 AI 頁 →」繼續。' : 'Click to enter the AI analysis page for fraud type classification and detailed advice. Click "Go to AI →" to continue.',
-    target: '.ai-expand-btn', openMenu: false, cardSide: 'right', openAiTour: true,
+    title: 'AI 深度分析',
+    desc: '點擊此按鈕可進入 AI 深度分析頁面，查看詐騙手法分類、詳細對策與建議。按「前往 AI 頁 →」繼續。',
+    target: '.ai-expand-btn',
+    openMenu: false,
+    cardSide: 'right',
+    openAiTour: true,
   },
-]})
+]
 
 const router = useRouter()
 const { isDark, toggle: toggleTheme } = useTheme()
@@ -438,7 +452,7 @@ const llmBarWidth = ref(0)
 // 新格式：Lambda 已計算好加權分數
 const weightedScore = computed(() => result.value?.score ?? 0)
 // Gogolook 原始分數
-const gglScoreVal = computed(() => result.value?.ggl?.score ?? result.value?.score ?? 0)
+const gglScoreVal = computed(() => result.value?.ggl?.score ?? 0)  // 只取 Gogolook 原始分數
 
 onMounted(async () => {
   setTimeout(() => {
@@ -800,7 +814,7 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';docume
 .confirm-ok:hover { background:var(--primary-dark); }
 
 /* ── Scam fullscreen ── */
-.scam-fullscreen { display:none; position:fixed; inset:0; z-index:9000; background:#0a0a0a; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:40px 24px; padding-bottom:80px; }
+.scam-fullscreen { display:none; position:fixed; inset:0; z-index:9000; background:#0a0a0a; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:40px 24px; }
 .scam-fullscreen.show { display:flex; animation:scamIn 0.35s ease; }
 @keyframes scamIn { from{opacity:0;transform:scale(1.03)} to{opacity:1;transform:scale(1)} }
 .sf-stripes { position:absolute; inset:0; pointer-events:none; background:repeating-linear-gradient(-45deg,rgba(255,45,45,0.07) 0,rgba(255,45,45,0.07) 24px,transparent 24px,transparent 48px); }
@@ -819,7 +833,7 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';docume
 .sf-slider-wrap { position:relative; height:56px; border-radius:100px; background:rgba(255,45,45,0.18); border:1.5px solid rgba(255,45,45,0.35); overflow:hidden; user-select:none; touch-action:none; }
 .sf-fill  { position:absolute; top:0; left:0; height:100%; background:linear-gradient(90deg,rgba(255,45,45,0.5),rgba(255,45,45,0.2)); pointer-events:none; }
 .sf-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:rgba(255,255,255,0.4); pointer-events:none; }
-.sf-thumb { position:absolute; top:0; bottom:0; left:4px; margin:auto 0; width:48px; height:48px; border-radius:50%; background:var(--scam); display:block; text-align:center; font-size:22px; line-height:40px; box-shadow:0 2px 14px rgba(255,45,45,0.6); cursor:grab; }
+.sf-thumb { position:absolute; top:4px; left:4px; width:48px; height:48px; border-radius:50%; background:var(--scam); display:flex; align-items:center; justify-content:center; font-size:22px; box-shadow:0 2px 14px rgba(255,45,45,0.6); cursor:grab; }
 .sf-thumb:active { cursor:grabbing; }
 .sf-slider-wrap.completed .sf-thumb { background:#c00; }
 .sf-slider-wrap.completed .sf-label { opacity:0; }
