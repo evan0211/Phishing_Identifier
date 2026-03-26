@@ -40,3 +40,23 @@ button { font-family: 'Noto Sans TC', sans-serif; cursor: pointer; }
 /* ── Global Elder Mode ── */
 [data-elder="true"] { --elder-scale: 1; }
 [data-elder="true"] body { font-size: 17px; }
+
+/* ── 國碼下拉選單（teleport 到 body，需全域樣式）── */
+.cc-drop {
+  position: fixed;
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 10px; z-index: 9999; min-width: 180px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18); overflow: hidden;
+}
+.cc-drop .cc-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 14px; cursor: pointer; font-size: 13px;
+  font-family: 'Noto Sans TC', sans-serif;
+  transition: background 0.12s; user-select: none;
+  color: var(--text);
+}
+.cc-drop .cc-item:hover,
+.cc-drop .cc-item.active { background: var(--surface2); }
+.cc-drop .cc-item .cc-flag { width: 20px; height: 15px; object-fit: cover; border-radius: 2px; }
+.cc-drop .cc-item .cc-item-name { flex: 1; }
+.cc-drop .cc-item .cc-item-dial { color: var(--text-muted); font-size: 12px; }

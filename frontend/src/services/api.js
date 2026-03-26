@@ -1,10 +1,5 @@
-/**
- * 防詐雷達 — API Service
- * 每個請求帶上 type 欄位，Lambda 靠 type 判斷路由
- */
-
 const API_BASE = import.meta.env.VITE_API_BASE
-  ?? 'https://l2y5p95avj.execute-api.ap-east-2.amazonaws.com/prod'
+  ?? 'https://ohep7v33l0.execute-api.us-east-1.amazonaws.com/prod'
 
 async function post(path, payload, signal) {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -134,16 +129,16 @@ export async function getStatsPeriods() {
   }
 }
 
-export function autoCheck(query, type, countryCode = '+886', signal) {
+export function autoCheck(query, type, countryCode = '+886', signal, lang = 'zh') {
   // 截圖：走原本 Gogolook 截圖分析
-  if (type === 'image' || type === 'screenshot') return post('/api/check/screenshot', { type: 'screenshot', query }, signal)
+  if (type === 'image' || type === 'screenshot') return post('/api/check/screenshot', { type: 'screenshot', query, lang }, signal)
 
   // 電話/網址：走 LLM full analyze（含快取 + Gogolook + AI 加權）
   if (type === 'phone') {
     const phone = query.startsWith('+') ? query : `${countryCode}${query.replace(/^0/, '')}`
-    return post('/api/report', { type: 'llm', subtype: 'phone', query: phone }, signal)
+    return post('/api/report', { type: 'llm', subtype: 'phone', query: phone, lang }, signal)
   }
-  return post('/api/report', { type: 'llm', subtype: 'full', query, context: { queryType: 'url' } }, signal)
+  return post('/api/report', { type: 'llm', subtype: 'full', query, lang, context: { queryType: 'url' } }, signal)
 }
 
 // ════════════════════════════════════════════

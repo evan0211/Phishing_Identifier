@@ -34,24 +34,42 @@
 
       <!-- 說明卡片 -->
       <div class="tour-card" :style="cardStyle">
-        <div class="tour-step-badge">{{ current + 1 }} / {{ activeSteps.length }}</div>
-        <div class="tour-icon">{{ activeSteps[current].icon }}</div>
-        <div class="tour-title">{{ activeSteps[current].title }}</div>
-        <div class="tour-desc">{{ activeSteps[current].desc }}</div>
-        <div class="tour-btns">
-          <button class="tour-skip" @click="skip">跳過教學</button>
-          <button class="tour-next" @click="next">
-            {{ activeSteps[current].runDemo ? '立即試跑 →' : activeSteps[current].openAiTour ? '前往 AI 頁 →' : current < activeSteps.length - 1 ? '下一步 →' : '開始使用 ✓' }}
-          </button>
-        </div>
-        <div class="tour-dots">
-          <span
-            v-for="(_, i) in activeSteps" :key="i"
-            class="tour-dot"
-            :class="{ active: i === current }"
-            @click="current = i; updatePosition()">
-          </span>
-        </div>
+        <!-- 第一步：歡迎畫面，提供兩個選擇 -->
+        <template v-if="current === 0 && !props.steps">
+          <div class="tour-icon">🛡️</div>
+          <div class="tour-title">{{ locale === 'en' ? 'Welcome to ScamRadar' : '歡迎使用防詐雷達' }}</div>
+          <div class="tour-desc">{{ locale === 'en' ? 'A tool to identify scam URLs, phone numbers, and screenshots.' : '幫助你辨識詐騙網址、電話和截圖的工具。' }}</div>
+          <div class="tour-welcome-btns">
+            <button class="tour-start-btn" @click="skip">
+              {{ locale === 'en' ? '🚀 Start Using' : '🚀 直接開始使用' }}
+            </button>
+            <button class="tour-guide-btn" @click="next">
+              {{ locale === 'en' ? '🎓 Take a Tour' : '🎓 導覽模式' }}
+            </button>
+          </div>
+        </template>
+
+        <!-- 其他步驟：一般導覽卡片 -->
+        <template v-else>
+          <div class="tour-step-badge">{{ current }} / {{ activeSteps.length - 1 }}</div>
+          <div class="tour-icon">{{ activeSteps[current].icon }}</div>
+          <div class="tour-title">{{ activeSteps[current].title }}</div>
+          <div class="tour-desc">{{ activeSteps[current].desc }}</div>
+          <div class="tour-btns">
+            <button class="tour-skip" @click="skip">{{ locale === 'en' ? 'Skip' : '跳過教學' }}</button>
+            <button class="tour-next" @click="next">
+              {{ activeSteps[current].runDemo ? (locale === 'en' ? 'Run Demo →' : '立即試跑 →') : activeSteps[current].openAiTour ? (locale === 'en' ? 'Go to AI →' : '前往 AI 頁 →') : current < activeSteps.length - 1 ? (locale === 'en' ? 'Next →' : '下一步 →') : (locale === 'en' ? 'Start ✓' : '開始使用 ✓') }}
+            </button>
+          </div>
+          <div class="tour-dots">
+            <span
+              v-for="(_, i) in activeSteps" :key="i"
+              class="tour-dot"
+              :class="{ active: i === current }"
+              @click="current = i; updatePosition()">
+            </span>
+          </div>
+        </template>
       </div>
 
     </div>
@@ -60,6 +78,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { locale } from '../composables/useLocale.js'
 
 const props = defineProps({
   // 外部傳入步驟（結果頁用），不傳則用預設首頁步驟
@@ -85,69 +104,79 @@ const current = ref(0)
 // 範例網址（用於切換類型 & 立即檢測示範）
 const DEMO_URL = 'https://ltoportalph-gov.com/'
 
-const defaultSteps = [
+const defaultSteps = computed(() => {
+  const zh = locale.value !== 'en'
+  return [
   {
     icon: '🛡️',
-    title: '歡迎使用防詐雷達',
-    desc: '這是一款幫助你辨識詐騙網址、電話和截圖的工具。讓我帶你快速了解各項功能。',
+    title: zh ? '歡迎使用防詐雷達' : 'Welcome to ScamRadar',
+    desc: zh ? '這是一款幫助你辨識詐騙網址、電話和截圖的工具。讓我帶你快速了解各項功能。'
+             : 'A tool to help you identify scam URLs, phone numbers, and screenshots. Let me walk you through the features.',
     target: null,
     openMenu: false,
   },
   {
     icon: '📝',
-    title: '輸入可疑內容',
-    desc: '在輸入框貼上可疑的網址、電話號碼，或上傳截圖。系統會自動判斷類型。\n\n我們已幫你填入範例網址，你可以直接試試看。',
+    title: zh ? '輸入可疑內容' : 'Enter Suspicious Content',
+    desc: zh ? '在輸入框貼上可疑的網址、電話號碼，或上傳截圖。系統會自動判斷類型。\n\n我們已幫你填入範例網址，你可以直接試試看。'
+             : 'Paste a suspicious URL, phone number, or upload a screenshot. The system auto-detects the type.\n\nWe\'ve pre-filled a sample URL — feel free to try it.',
     target: '.input-card',
     openMenu: false,
     fillDemo: true,
   },
   {
     icon: '📸',
-    title: '上傳截圖',
-    desc: '點擊輸入框右下角的相機圖示，可上傳詐騙截圖，系統會自動辨識圖中內容。',
+    title: zh ? '上傳截圖' : 'Upload Screenshot',
+    desc: zh ? '點擊輸入框右下角的相機圖示，可上傳詐騙截圖，系統會自動辨識圖中內容。'
+             : 'Click the camera icon at the bottom-right of the input box to upload a scam screenshot.',
     target: '.camera-btn',
     openMenu: false,
   },
   {
     icon: '🌐',
-    title: '切換語言',
-    desc: '點擊右下角的「中 | EN」按鈕，可在繁體中文與英文之間切換介面語言。',
+    title: zh ? '切換語言' : 'Switch Language',
+    desc: zh ? '點擊右下角的「中 | EN」按鈕，可在繁體中文與英文之間切換介面語言。'
+             : 'Click the "中 | EN" button at the bottom-right to toggle between Traditional Chinese and English.',
     target: '.lang-toggle',
     openMenu: false,
   },
   {
     icon: '⚙️',
-    title: '輔助功能總覽',
-    desc: '點擊右上角設定，可一次看到所有輔助功能：\n👴 長輩模式 — 放大字體、簡化介面\n🌙 深色模式 — 護眼夜間主題\n🔊 語音朗讀 — 滑鼠懸停自動朗讀內容',
+    title: zh ? '輔助功能總覽' : 'Accessibility Features',
+    desc: zh ? '點擊右上角設定，可一次看到所有輔助功能：\n👴 長輩模式 — 放大字體、簡化介面\n🌙 深色模式 — 護眼夜間主題\n🔊 語音朗讀 — 滑鼠懸停自動朗讀內容'
+             : 'Click the settings icon (top-right) to access all features:\n👴 Senior Mode — larger fonts\n🌙 Dark Mode — eye-friendly theme\n🔊 Voice Read — hover to hear content',
     target: '.settings-menu',
     openMenu: true,
   },
   {
     icon: '👴',
-    title: '長輩模式',
-    desc: '開啟後字體放大、動畫提示更明顯，適合長輩或視力不佳的使用者。',
+    title: zh ? '長輩模式' : 'Senior Mode',
+    desc: zh ? '開啟後字體放大、動畫提示更明顯，適合長輩或視力不佳的使用者。'
+             : 'Enables larger fonts and clearer visual hints — ideal for elderly users or those with low vision.',
     target: '.menu-row',
     openMenu: true,
   },
   {
     icon: '🔗',
-    title: '切換檢測類型',
-    desc: '系統已自動偵測為「網址」類型。試著點「電話」再切回「網址」，看看 chip 的切換效果。',
+    title: zh ? '切換檢測類型' : 'Switch Detection Type',
+    desc: zh ? '系統已自動偵測為「網址」類型。試著點「電話」再切回「網址」，看看 chip 的切換效果。'
+             : 'The system auto-detected "URL" type. Try clicking "Phone" then back to "URL" to see the chip switch.',
     target: '.type-chips',
     openMenu: false,
   },
   {
     icon: '🔍',
-    title: '試著檢測看看',
-    desc: '範例網址已填好，按「立即試跑 →」，系統會幫你跑一次完整分析，帶你繼續看結果頁介紹。',
+    title: zh ? '試著檢測看看' : 'Try a Detection',
+    desc: zh ? '範例網址已填好，按「立即試跑 →」，系統會幫你跑一次完整分析，帶你繼續看結果頁介紹。'
+             : 'The sample URL is ready. Click "Run Demo →" to run a full analysis and continue to the result page.',
     target: '.send-btn',
     openMenu: false,
     runDemo: true,
   },
-]
+]})
 
 // 實際使用的步驟：外部傳入優先，否則用預設
-const activeSteps = computed(() => props.steps ?? defaultSteps)
+const activeSteps = computed(() => props.steps ?? defaultSteps.value)
 
 // 挖洞區域
 const hole = reactive({ x: 0, y: 0, w: 0, h: 0, r: 12 })
@@ -361,7 +390,10 @@ function skip() {
   document.documentElement.style.overflow = ''
   window.scrollTo(0, 0)
   emit('set-input', '')
-  ;['tourDone', 'resultTourDone', 'aiTourDone'].forEach(k => localStorage.setItem(k, '1'))
+  // 清除所有 tour 相關 key，包含 pending flag
+  ;['tourDone', 'resultTourDone', 'aiTourDone', 'resultTourPending', 'aiTourPending'].forEach(k => localStorage.setItem(k, '1'))
+  localStorage.removeItem('resultTourPending')
+  localStorage.removeItem('aiTourPending')
 }
 
 function finish() {
@@ -396,12 +428,13 @@ onUnmounted(() => {
 })
 
 // 暴露 restart 方法，讓父元件可重播教學
-function restart() {
+async function restart() {
   localStorage.removeItem(props.storageKey)
   current.value = 0
   window.scrollTo(0, 0)
   visible.value = true
-  nextTick(() => updatePosition())
+  await nextTick()
+  updatePosition()
 }
 defineExpose({ restart })
 </script>
@@ -460,6 +493,27 @@ defineExpose({ restart })
 .tour-btns {
   display: flex; gap: 8px; margin-bottom: 14px;
 }
+
+.tour-welcome-btns {
+  display: flex; flex-direction: row; gap: 10px; margin-top: 4px;
+}
+
+.tour-start-btn {
+  flex: 1; background: #2D47E8; color: #fff;
+  border: none; border-radius: 10px; padding: 12px;
+  font-size: 14px; font-weight: 900; cursor: pointer;
+  transition: background 0.18s;
+}
+.tour-start-btn:hover { background: #1A2FC7; }
+[data-theme="dark"] .tour-start-btn { background: #4132e3; }
+
+.tour-guide-btn {
+  flex: 1; background: #2D47E8; color: #fff;
+  border: none; border-radius: 10px; padding: 12px;
+  font-size: 14px; font-weight: 900; cursor: pointer;
+  transition: background 0.18s;
+}
+.tour-guide-btn:hover { background: #1A2FC7; }
 
 .tour-skip {
   flex: 1; background: #F3F4F6; color: #6B7280;
