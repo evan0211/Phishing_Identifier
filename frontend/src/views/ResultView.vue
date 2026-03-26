@@ -59,7 +59,7 @@
           </div>
           <div class="rb-info">
             <div class="rb-tag">{{ tagLabel }}</div>
-            <div class="rb-title">{{ result.label }}</div>
+            <div class="rb-title">{{ translateBackend(result.label) }}</div>
             <div class="rb-input" :title="lastInput">{{ lastInput }}</div>
           </div>
         </div>
@@ -117,7 +117,7 @@
             <!-- 長輩模式只顯示前 2 條 -->
             <li v-for="(r, i) in (isElder ? result.reasons.slice(0,2) : result.reasons)" :key="i">
               <span class="ri">{{ RI(mode) }}</span>
-              <span>{{ r }}</span>
+              <span>{{ translateBackend(r) }}</span>
             </li>
           </ul>
         </div>
@@ -274,7 +274,7 @@ import { useTheme } from '../composables/useTheme.js'
 import { useElder } from '../composables/useElder.js'
 import { resultState } from '../composables/useResult.js'
 import { report, analyzeLLMText, getLLMAdvice } from '../services/api.js'
-import { useLocale, t, locale } from '../composables/useLocale.js'
+import { useLocale, t, locale, translateBackend } from '../composables/useLocale.js'
 import { isTTSEnabled, toggleTTS } from '../composables/useVoice.js'
 import NavLogo from '../components/NavLogo.vue'
 import OnboardingTour from '../components/OnboardingTour.vue'

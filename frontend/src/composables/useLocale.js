@@ -191,3 +191,48 @@ export function t(key) {
 export function tRef(key) {
   return computed(() => t(key))
 }
+
+// Gogolook 固定字串對照表（中→英）
+const gogolookMap = {
+  '此為詐騙內容':           'Scam Content Detected',
+  '此為可疑內容':           'Suspicious Content',
+  '此為安全內容':           'Safe Content',
+  '此為促銷內容':           'Promotional Content',
+  '查無資料':               'No Data Found',
+  'Gogolook 信任分數':      'Gogolook Trust Score',
+  '網域註冊日期':           'Domain Registration Date',
+  '網域註冊國家':           'Domain Registration Country',
+  '此號碼為詐騙電話':       'Scam Phone Number',
+  '此號碼為可疑電話':       'Suspicious Phone Number',
+  '此號碼為安全電話':       'Safe Phone Number',
+  '此號碼查無資料':         'No Data for This Number',
+  '低信任分數':             'Low Trust Score',
+  '高風險網域':             'High-Risk Domain',
+  '新註冊網域':             'Newly Registered Domain',
+  '配合極低信任分數':       'Combined with Very Low Trust Score',
+  '顯示這是高風險詐騙網站': 'Indicates High-Risk Scam Site',
+  '缺乏SSL憑證':            'Missing SSL Certificate',
+  '缺乏 SSL 憑證':          'Missing SSL Certificate',
+  '假冒政府機關':           'Impersonating Government Agency',
+  '假冒金融機構':           'Impersonating Financial Institution',
+  '網路購物詐騙':           'Online Shopping Scam',
+  '投資詐騙':               'Investment Scam',
+  '感情詐騙':               'Romance Scam',
+  '工作詐騙':               'Job Scam',
+}
+
+/**
+ * 翻譯後端回傳的動態字串（Gogolook reasons / label）
+ * 英文模式下嘗試對照翻譯，找不到就原文回傳
+ */
+export function translateBackend(text) {
+  if (!text || locale.value !== 'en') return text
+  // 完整比對
+  if (gogolookMap[text]) return gogolookMap[text]
+  // 部分替換（處理含冒號的格式，如「Gogolook 信任分數：1 / 100」）
+  let result = text
+  for (const [zh, en] of Object.entries(gogolookMap)) {
+    result = result.replace(zh, en)
+  }
+  return result
+}
