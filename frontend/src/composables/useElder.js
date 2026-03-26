@@ -15,6 +15,9 @@ watch(isElder, val => {
 export function useElder() {
   return {
     isElder,
-    toggle() { isElder.value = !isElder.value }
+    toggle() {
+      isElder.value = !isElder.value
+      location.reload()
+    }
   }
 }

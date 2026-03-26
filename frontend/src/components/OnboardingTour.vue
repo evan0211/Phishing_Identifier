@@ -99,6 +99,14 @@ watch(visible, (val) => {
   // visible = false 時確保解鎖（finish/skip 已處理，這裡作為保險）
   if (!val) document.documentElement.style.overflow = ''
 })
+
+// 語言切換時重新計算位置（刷新卡片內容）
+watch(locale, () => {
+  if (visible.value) {
+    nextTick(() => updatePosition())
+  }
+})
+
 const current = ref(0)
 
 // 範例網址（用於切換類型 & 立即檢測示範）

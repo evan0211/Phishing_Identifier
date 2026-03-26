@@ -31,6 +31,12 @@
                 <span class="menu-text">{{ t('voiceRead') }}</span>
                 <span class="menu-pill" :class="{ on: isTTSEnabled }"><span class="menu-knob"></span></span>
               </button>
+              <!-- 語言切換 -->
+              <button class="menu-row" @click="toggleLocale">
+                <span class="menu-icon">🌐</span>
+                <span class="menu-text">{{ locale === 'zh' ? 'Switch to English' : '切換為中文' }}</span>
+                <span class="menu-lang-badge">{{ locale === 'zh' ? 'EN' : '中' }}</span>
+              </button>
             </div>
           </transition>
         </div>
@@ -64,8 +70,8 @@
           </div>
         </div>
 
-        <!-- Score bar -->
-        <div class="section-card score-card">
+        <!-- Score bar — 長輩模式隱藏 -->
+        <div class="section-card score-card" v-if="!isElder">
           <div class="score-labels"><span>{{ t('safeZero') }}</span><span>{{ t('highRisk100') }}</span></div>
 
           <!-- Gogolook 分數條 -->
@@ -93,9 +99,9 @@
           </div>
         </div>
 
-        <!-- AI 分析展開按鈕 — 分數下方 -->
+        <!-- AI 分析展開按鈕 — 長輩模式隱藏 -->
         <button
-          v-if="llmAnalysis || isLoadingLLM"
+          v-if="(llmAnalysis || isLoadingLLM) && !isElder"
           class="ai-expand-btn"
           :class="{ loading: isLoadingLLM }"
           :disabled="isLoadingLLM"
@@ -114,7 +120,8 @@
         <div class="section-card reasons-card">
           <div class="sec-title">{{ t('analysisReasons') }}</div>
           <ul class="reasons">
-            <li v-for="(r, i) in result.reasons" :key="i">
+            <!-- 長輩模式只顯示前 2 條 -->
+            <li v-for="(r, i) in (isElder ? result.reasons.slice(0,2) : result.reasons)" :key="i">
               <span class="ri">{{ RI(mode) }}</span>
               <span>{{ r }}</span>
             </li>
@@ -194,8 +201,8 @@
           </div>
         </div>
 
-        <!-- Next steps -->
-        <div class="section-card next-card">
+        <!-- Next steps — 長輩模式隱藏 -->
+        <div class="section-card next-card" v-if="!isElder">
           <div class="sec-title">{{ t('nextStepsTitle') }}</div>
           <div class="next-list">
             <div class="nsi" :class="mode" v-for="(s, i) in nextSteps" :key="i">
@@ -273,83 +280,70 @@ import { useTheme } from '../composables/useTheme.js'
 import { useElder } from '../composables/useElder.js'
 import { resultState } from '../composables/useResult.js'
 import { report, analyzeLLMText, getLLMAdvice } from '../services/api.js'
-import { useLocale, t } from '../composables/useLocale.js'
+import { useLocale, t, locale } from '../composables/useLocale.js'
 import { isTTSEnabled, toggleTTS } from '../composables/useVoice.js'
 import NavLogo from '../components/NavLogo.vue'
 import OnboardingTour from '../components/OnboardingTour.vue'
 
-// 結果頁教學步驟（只在從教學流程進來時顯示）
-const resultTourSteps = [
-  {
-    icon: '📊',
-    title: '這是分析結果頁',
-    desc: '每次檢測完成後都會來到這裡，顯示完整的風險分析報告。',
-    target: null,
-    openMenu: false,
-  },
-  {
-    icon: '🚨',
-    title: '風險等級橫幅',
-    desc: '最上方的橫幅顯示風險等級（安全／促銷／警告／詐騙），顏色越紅代表風險越高。',
-    target: '.risk-banner',
-    openMenu: false,
-    cardSide: 'right',
-  },
-  {
-    icon: '📈',
-    title: '風險評分',
-    desc: '分數條顯示 Gogolook 資料庫與 AI 各自的評分，以及加權後的綜合風險分數（0–100）。',
-    target: '.score-card',
-    openMenu: false,
-    cardSide: 'right',
-  },
-  {
-    icon: '🔎',
-    title: '分析原因',
-    desc: '列出系統判斷為此風險等級的具體理由，幫助你了解哪些特徵觸發了警示。',
-    target: '.reasons-card',
-    openMenu: false,
-    cardSide: 'right',
-  },
-  {
-    icon: '🌐',
-    title: '前往網站',
-    desc: '若你仍想前往該網址，可點此按鈕。系統會再次警告並要求滑動確認，避免誤觸。',
-    target: '.visit-card',
-    openMenu: false,
-    cardSide: 'left',
-  },
-  {
-    icon: '🚫',
-    title: '立即行動',
-    desc: '右欄提供三個快速行動：封鎖號碼／網址、向 165 通報，以及提交證據協助調查。',
-    target: '.actions-card',
-    openMenu: false,
-    cardSide: 'left',
-  },
-  {
-    icon: '📋',
-    title: '下一步建議',
-    desc: '根據風險等級，系統會給出具體的後續行動建議，幫助你保護自己和身邊的人。',
-    target: '.next-card',
-    openMenu: false,
-    cardSide: 'left',
-  },
-  {
-    icon: '🤖',
-    title: 'AI 深度分析',
-    desc: '點擊此按鈕可進入 AI 深度分析頁面，查看詐騙手法分類、詳細對策與建議。按「前往 AI 頁 →」繼續。',
-    target: '.ai-expand-btn',
-    openMenu: false,
-    cardSide: 'right',
-    openAiTour: true,
-  },
-]
+// 結果頁教學步驟 — 用 computed 讓語言切換即時生效
+const resultTourSteps = computed(() => {
+  const zh = locale.value !== 'en'
+  return [
+    {
+      icon: '📊',
+      title: zh ? '這是分析結果頁' : 'Analysis Result Page',
+      desc: zh ? '每次檢測完成後都會來到這裡，顯示完整的風險分析報告。' : 'After each scan, you\'ll land here to see the full risk analysis report.',
+      target: null, openMenu: false,
+    },
+    {
+      icon: '🚨',
+      title: zh ? '風險等級橫幅' : 'Risk Level Banner',
+      desc: zh ? '最上方的橫幅顯示風險等級（安全／促銷／警告／詐騙），顏色越紅代表風險越高。' : 'The banner shows the risk level (Safe / Promo / Warn / Scam) — the redder, the riskier.',
+      target: '.risk-banner', openMenu: false, cardSide: 'right',
+    },
+    {
+      icon: '📈',
+      title: zh ? '風險評分' : 'Risk Score',
+      desc: zh ? '分數條顯示 Gogolook 資料庫與 AI 各自的評分，以及加權後的綜合風險分數（0–100）。' : 'Score bars show Gogolook and AI scores, plus a weighted overall risk score (0–100).',
+      target: '.score-card', openMenu: false, cardSide: 'right',
+    },
+    {
+      icon: '🔎',
+      title: zh ? '分析原因' : 'Analysis Reasons',
+      desc: zh ? '列出系統判斷為此風險等級的具體理由，幫助你了解哪些特徵觸發了警示。' : 'Lists the specific reasons behind the risk rating so you know what triggered the alert.',
+      target: '.reasons-card', openMenu: false, cardSide: 'right',
+    },
+    {
+      icon: '🌐',
+      title: zh ? '前往網站' : 'Visit Site',
+      desc: zh ? '若你仍想前往該網址，可點此按鈕。系統會再次警告並要求滑動確認，避免誤觸。' : 'If you still want to visit the URL, click here. A confirmation slider prevents accidental access.',
+      target: '.visit-card', openMenu: false, cardSide: 'left',
+    },
+    {
+      icon: '🚫',
+      title: zh ? '立即行動' : 'Immediate Actions',
+      desc: zh ? '右欄提供三個快速行動：封鎖號碼／網址、向 165 通報，以及提交證據協助調查。' : 'Three quick actions: block the source, report to 165, or submit evidence for investigation.',
+      target: '.actions-card', openMenu: false, cardSide: 'left',
+    },
+    {
+      icon: '📋',
+      title: zh ? '下一步建議' : 'Next Steps',
+      desc: zh ? '根據風險等級，系統會給出具體的後續行動建議，幫助你保護自己和身邊的人。' : 'Tailored follow-up advice based on the risk level to help protect you and those around you.',
+      target: '.next-card', openMenu: false, cardSide: 'left',
+    },
+    {
+      icon: '🤖',
+      title: zh ? 'AI 深度分析' : 'AI Deep Analysis',
+      desc: zh ? '點擊此按鈕可進入 AI 深度分析頁面，查看詐騙手法分類、詳細對策與建議。按「前往 AI 頁 →」繼續。' : 'Click to open the AI Deep Analysis page for fraud type classification and detailed advice. Click "Go to AI →" to continue.',
+      target: '.ai-expand-btn', openMenu: false, cardSide: 'right', openAiTour: true,
+    },
+  ]
+})
 
 const router = useRouter()
 const { isDark, toggle: toggleTheme } = useTheme()
 const { isElder, toggle: toggleElderFn } = useElder()
-const { locale } = useLocale()
+const { toggle: toggleLocale } = useLocale()
 
 // 若從教學流程進來，在 setup 階段同步清除，確保 OnboardingTour 掛載時能偵測到
 if (localStorage.getItem('resultTourPending')) {
@@ -475,15 +469,38 @@ function performLLMAnalysis() {
 
   if (data.ai) {
     // 新格式：ai 欄位已內嵌
+    // reasoning 可能是字串或陣列，統一轉成陣列
+    const rawReasons = data.ai.reasoning
+    const reasons = Array.isArray(rawReasons)
+      ? rawReasons
+      : rawReasons ? rawReasons.split(/\n|。/).map(s => s.trim()).filter(Boolean) : []
+
     llmAnalysis.value = {
       score:      data.ai.score,
       fraud_type: data.ai.fraud_type,
       suggestion: data.ai.suggestion,
       reasoning:  data.ai.reasoning,
+      reasons,
       level:      data.level,
     }
     setTimeout(() => { llmBarWidth.value = data.ai.score ?? 0 }, 120)
-    if (data.advice) llmAdvice.value = data.advice
+    if (data.advice) {
+      llmAdvice.value = data.advice
+    } else if (data.ai.score >= 70) {
+      // 沒有 advice 但高風險，建立基本 fallback
+      llmAdvice.value = {
+        immediate_actions: locale.value === 'en'
+          ? ['Do not click any links', 'Do not provide personal information', 'Block this source immediately']
+          : ['不要點擊任何連結', '不要提供個人資料', '立即封鎖此來源'],
+        avoid_actions: locale.value === 'en'
+          ? ['Do not transfer money', 'Do not install unknown apps']
+          : ['不要轉帳匯款', '不要安裝來路不明的程式'],
+        report_steps: locale.value === 'en'
+          ? ['Call 165 anti-scam hotline', 'Report at 165.npa.gov.tw', 'File a police report if needed']
+          : ['撥打 165 反詐騙專線', '至 165.npa.gov.tw 線上通報', '如有損失可向警察局報案'],
+        recovery_tips: null,
+      }
+    }
   } else {
     // 沒有 ai 欄位但有結果，仍顯示 AI 分析入口（讓用戶可以進入 AI 頁）
     llmAnalysis.value = {
@@ -664,6 +681,7 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';docume
 .menu-pill.on { background:var(--primary); }
 .menu-knob { position:absolute; top:2px; left:2px; width:13px; height:13px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.2); transition:transform 0.22s cubic-bezier(0.34,1.4,0.64,1); }
 .menu-pill.on .menu-knob { transform:translateX(15px); }
+.menu-lang-badge { font-size:12px; font-weight:900; color:var(--primary); background:rgba(45,71,232,0.1); border-radius:6px; padding:2px 7px; flex-shrink:0; }
 
 /* ── No result ── */
 .no-result { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:40px; }
@@ -864,22 +882,21 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';docume
 .toast.err { background:var(--scam); }
 
 /* ── Elder mode highlights ── */
-.page-wrap.elder .risk-banner { padding:22px; }
-.page-wrap.elder .rb-title    { font-size:26px; }
-.page-wrap.elder .rb-icon     { font-size:38px; }
-.page-wrap.elder .rb-badge    { width:72px; height:72px; border-radius:18px; }
-.page-wrap.elder .reasons li  { font-size:16px; padding:8px 0; }
-.page-wrap.elder .ri          { font-size:16px; }
-.page-wrap.elder .at          { font-size:16px; }
-.page-wrap.elder .act-btn .as { font-size:13px; }
-.page-wrap.elder .nsi-text strong { font-size:16px; }
-.page-wrap.elder .nsi-text span   { font-size:13px; }
-.page-wrap.elder .score-fill  { height:12px; border-radius:100px; }
-.page-wrap.elder .score-track { height:12px; }
-.page-wrap.elder .score-value { font-size:16px; }
-.page-wrap.elder .score-labels { font-size:13px; }
-.page-wrap.elder .act-btn     { padding:16px 16px; }
-.page-wrap.elder .visit-btn   { font-size:18px; padding:14px; }
+.page-wrap.elder .risk-banner { padding:26px; }
+.page-wrap.elder .rb-title    { font-size:30px; }
+.page-wrap.elder .rb-tag      { font-size:16px; padding:6px 18px; }
+.page-wrap.elder .rb-badge    { width:80px; height:80px; border-radius:18px; }
+.page-wrap.elder .rb-badge-score { font-size:34px; }
+.page-wrap.elder .rb-input    { font-size:15px; }
+.page-wrap.elder .reasons li  { font-size:18px; padding:12px 0; line-height:1.7; }
+.page-wrap.elder .ri          { font-size:20px; }
+.page-wrap.elder .sec-title   { font-size:15px; }
+.page-wrap.elder .at          { font-size:18px; }
+.page-wrap.elder .act-btn .as { font-size:14px; display:block; }
+.page-wrap.elder .nsi-text strong { font-size:18px; }
+.page-wrap.elder .nsi-text span   { font-size:15px; }
+.page-wrap.elder .act-btn     { padding:18px 16px; }
+.page-wrap.elder .visit-btn   { font-size:20px; padding:16px; }
 .page-wrap.elder .risk-banner.scam { box-shadow:0 0 0 4px rgba(255,45,45,0.25),0 0 24px rgba(255,45,45,0.12); }
 .page-wrap.elder .risk-banner.warn { box-shadow:0 0 0 4px rgba(255,140,0,0.22); }
 
@@ -925,8 +942,8 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';docume
   }
   .col-ai-btn { display: none; }
 
-  .col-left .section-card:last-child { flex: 1; }
-  .col-right .section-card:last-child { flex: 1; }
+  .col-left .section-card:last-child { flex: unset; }
+  .col-right .section-card:last-child { flex: unset; }
   /* Prevent banner text overflow */
   .rb-title  { font-size: 18px; }
   .rb-score  { font-size: 18px; }

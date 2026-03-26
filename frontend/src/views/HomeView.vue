@@ -8,9 +8,8 @@
         <!-- 下載 Chrome 插件按鈕（僅電腦版顯示） -->
         <a
           class="chrome-btn"
-          href="https://chrome.google.com/webstore"
-          target="_blank"
-          rel="noopener"
+          href="/ToF-chrome.zip"
+          download="ToF-chrome.zip"
           title="下載 Chrome 插件">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M20.5 11H19V7a2 2 0 0 0-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4a2 2 0 0 0-2 2v3.8h1.5a2.5 2.5 0 0 1 0 5H2V20a2 2 0 0 0 2 2h3.8v-1.5a2.5 2.5 0 0 1 5 0V22H17a2 2 0 0 0 2-2v-4h1.5a2.5 2.5 0 0 0 0-5z"/>
@@ -42,11 +41,16 @@
                 <span class="menu-text">{{ isDark ? t('darkMode') : t('lightMode') }}</span>
                 <span class="menu-pill" :class="{ on: isDark }"><span class="menu-knob"></span></span>
               </button>
-              <!-- TTS -->
               <button class="menu-row" :class="{ active: isTTSEnabled }" @click="toggleTTS">
                 <span class="menu-icon">🔊</span>
                 <span class="menu-text">{{ t('voiceRead') }}</span>
                 <span class="menu-pill" :class="{ on: isTTSEnabled }"><span class="menu-knob"></span></span>
+              </button>
+              <!-- 語言切換 -->
+              <button class="menu-row" @click="toggleLocale">
+                <span class="menu-icon">🌐</span>
+                <span class="menu-text">{{ locale === 'zh' ? 'Switch to English' : '切換為中文' }}</span>
+                <span class="menu-lang-badge">{{ locale === 'zh' ? 'EN' : '中' }}</span>
               </button>
               <!-- 重播教學 -->
               <button class="menu-row" @click.stop="tourRef?.restart(); menuOpen = false">
@@ -202,8 +206,8 @@
         </div><!-- /content-inner -->
       </div><!-- /main-content -->
 
-      <!-- Scroll-down arrow -->
-      <button class="scroll-arrow" @click="scrollToStats" :aria-label="t('checkScroll')">
+      <!-- Scroll-down arrow — 長輩模式隱藏 -->
+      <button class="scroll-arrow" v-if="!isElder" @click="scrollToStats" :aria-label="t('checkScroll')">
         <span class="sa-text">{{ t('scrollHint') }}</span>
         <span class="sa-icon">↓</span>
       </button>
@@ -351,7 +355,7 @@ import { autoCheck, report, getStatsPeriods, getChartData } from '../services/ap
 const router = useRouter()
 const { isDark, toggle: toggleTheme } = useTheme()
 const { isElder, toggle: toggleElder } = useElder()
-const { locale } = useLocale()
+const { locale, toggle: toggleLocale } = useLocale()
 
 const isFocused   = ref(false)
 const inputText   = ref('')
@@ -931,7 +935,7 @@ onUnmounted(() => {
 .page-wrap { background:var(--bg); color:var(--text); transition:background 0.25s,color 0.25s; overflow-x:hidden; }
 
 /* ── Two full-height pages ── */
-.page { min-height:100vh; position:relative; display:flex; flex-direction:column; overflow:clip; }
+.page { min-height:100vh; position:relative; display:flex; flex-direction:column; overflow-x:clip; }
 .page-main { padding-top:44px; } /* 補償 fixed navbar 高度 */
 
 /* ── Glow background ── */
@@ -987,11 +991,11 @@ onUnmounted(() => {
 .menu-icon { font-size:16px; flex-shrink:0; width:20px; text-align:center; }
 .menu-text { flex:1; }
 
-/* 選單內的 toggle pill */
 .menu-pill { width:32px; height:17px; border-radius:100px; background:var(--border); position:relative; flex-shrink:0; transition:background 0.22s; }
 .menu-pill.on { background:var(--primary); }
 .menu-knob { position:absolute; top:2px; left:2px; width:13px; height:13px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.2); transition:transform 0.22s cubic-bezier(0.34,1.4,0.64,1); }
 .menu-pill.on .menu-knob { transform:translateX(15px); }
+.menu-lang-badge { font-size:12px; font-weight:900; color:var(--primary); background:rgba(45,71,232,0.1); border-radius:6px; padding:2px 7px; flex-shrink:0; }
 
 /* ── Main content ── */
 .main-content { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px 20px 0; position:relative; z-index:1; }
@@ -1004,7 +1008,6 @@ header { text-align:center; }
 header h1 { font-size:28px; font-weight:700; letter-spacing:-0.5px; line-height:1.5; color:var(--text); user-select:none; }
 header h1 span { color:var(--primary); }
 .page-wrap.elder header h1 { font-size:34px; }
-
 /* Input card */
 .input-card { width:100%; max-width:720px; background:var(--surface); border:1.5px solid var(--border); border-radius:20px; box-shadow:0 8px 40px rgba(0,0,0,0.12); transition:background 0.25s; backdrop-filter:blur(12px); }
 .page-wrap.elder .input-card { border-width:2.5px; border-color:var(--primary); }
@@ -1148,8 +1151,6 @@ header h1 span { color:var(--primary); }
 .page-wrap.elder .eah-text { font-size:17px; }
 .send-spinner { width:16px; height:16px; border:2.5px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; }
 @keyframes spin { to{transform:rotate(360deg)} }
-
-.page-wrap.elder header h1 { font-size:28px; }
 
 /* ── Scroll arrow ── */
 .scroll-arrow {

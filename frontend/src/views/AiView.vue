@@ -30,6 +30,12 @@
                   <span class="menu-text">{{ t('voiceRead') }}</span>
                   <span class="menu-pill" :class="{ on: isTTSEnabled }"><span class="menu-knob"></span></span>
                 </button>
+                <!-- 語言切換 -->
+                <button class="menu-row" @click="toggleLocale">
+                  <span class="menu-icon">🌐</span>
+                  <span class="menu-text">{{ locale === 'zh' ? 'Switch to English' : '切換為中文' }}</span>
+                  <span class="menu-lang-badge">{{ locale === 'zh' ? 'EN' : '中' }}</span>
+                </button>
               </div>
             </transition>
         </div>
@@ -40,75 +46,71 @@
 
     <main class="ai-main" v-if="llmAnalysis">
 
-      <!-- 頂部摘要橫幅 -->
-      <div class="summary-banner" :class="scoreLevel">
-        <div class="sb-score">
-          <span class="sb-num">{{ llmAnalysis.score }}</span>
-          <span class="sb-unit">分</span>
-          <span class="sb-label">AI 風險評分</span>
+      <!-- 風險評分卡 -->
+      <div class="score-card" :class="scoreLevel">
+        <div class="sc-left">
+          <div class="sc-score">{{ llmAnalysis.score }}</div>
+          <div class="sc-label">AI 風險評分</div>
         </div>
-        <div class="sb-divider"></div>
-        <div class="sb-fraud" v-if="llmAnalysis.fraud_type">
-          <span class="sb-fraud-icon">🎯</span>
-          <div>
-            <div class="sb-fraud-label">詐騙手法</div>
-            <div class="sb-fraud-val">{{ llmAnalysis.fraud_type }}</div>
+        <div class="sc-right">
+          <div class="sc-fraud" v-if="llmAnalysis.fraud_type">
+            <span class="sc-fraud-icon">🎯</span>
+            <div class="sc-fraud-text">{{ llmAnalysis.fraud_type }}</div>
           </div>
-        </div>
-        <div class="sb-divider" v-if="llmAnalysis.suggestion"></div>
-        <div class="sb-suggestion" v-if="llmAnalysis.suggestion">
-          <span>💡</span>
-          <p>{{ llmAnalysis.suggestion }}</p>
+          <div class="sc-suggestion" v-if="llmAnalysis.suggestion">{{ llmAnalysis.suggestion }}</div>
         </div>
       </div>
 
-      <!-- 對策建議兩欄 -->
-      <div class="advice-grid" v-if="llmAdvice">
+      <!-- AI 分析原因 -->
+      <div class="analysis-card" v-if="llmAnalysis.reasons?.length">
+        <div class="card-title">🔍 AI 分析依據</div>
+        <ul class="reason-list">
+          <li v-for="(r, i) in llmAnalysis.reasons" :key="i">{{ r }}</li>
+        </ul>
+      </div>
 
-        <div class="col-card">
-          <div class="adv-section" v-if="llmAdvice.immediate_actions?.length">
-            <div class="sec-title">⚡ 立即行動</div>
-            <ul class="adv-list">
-              <li v-for="(a, i) in llmAdvice.immediate_actions" :key="i">
-                <span class="adv-icon ok">✓</span><span>{{ a }}</span>
-              </li>
-            </ul>
-          </div>
-          <div class="adv-section" v-if="llmAdvice.avoid_actions?.length">
-            <div class="sec-title bad">🚫 絕對不要</div>
-            <ul class="adv-list">
-              <li v-for="(a, i) in llmAdvice.avoid_actions" :key="i">
-                <span class="adv-icon bad">✗</span><span>{{ a }}</span>
-              </li>
-            </ul>
-          </div>
-        </div>
+      <!-- 立即行動 -->
+      <div class="action-card" v-if="llmAdvice?.immediate_actions?.length">
+        <div class="card-title">⚡ 立即行動</div>
+        <ul class="action-list ok">
+          <li v-for="(a, i) in llmAdvice.immediate_actions" :key="i">
+            <span class="action-icon">✓</span><span>{{ a }}</span>
+          </li>
+        </ul>
+      </div>
 
-        <div class="col-card">
-          <div class="adv-section" v-if="llmAdvice.report_steps?.length">
-            <div class="sec-title">📋 舉報步驟</div>
-            <ol class="adv-steps">
-              <li v-for="(s, i) in llmAdvice.report_steps" :key="i">{{ s }}</li>
-            </ol>
-          </div>
-          <div class="adv-recovery" v-if="llmAdvice.recovery_tips">
-            <div class="sec-title">🩹 已受騙怎麼辦</div>
-            <p>{{ llmAdvice.recovery_tips }}</p>
-          </div>
-        </div>
+      <!-- 絕對不要 -->
+      <div class="action-card" v-if="llmAdvice?.avoid_actions?.length">
+        <div class="card-title bad">🚫 絕對不要</div>
+        <ul class="action-list bad">
+          <li v-for="(a, i) in llmAdvice.avoid_actions" :key="i">
+            <span class="action-icon">✗</span><span>{{ a }}</span>
+          </li>
+        </ul>
+      </div>
 
+      <!-- 舉報步驟 -->
+      <div class="action-card" v-if="llmAdvice?.report_steps?.length">
+        <div class="card-title">📋 舉報步驟</div>
+        <ol class="step-list">
+          <li v-for="(s, i) in llmAdvice.report_steps" :key="i">{{ s }}</li>
+        </ol>
+      </div>
+
+      <!-- 已受騙處理 -->
+      <div class="recovery-card" v-if="llmAdvice?.recovery_tips">
+        <div class="card-title">🩹 已受騙怎麼辦</div>
+        <p>{{ llmAdvice.recovery_tips }}</p>
       </div>
 
     </main>
 
+    <!-- 無資料提示 -->
     <div class="no-result" v-else>
       <div style="font-size:52px">😕</div>
-      <p>找不到 AI 分析資料，請關閉此頁重試。</p>
+      <p>找不到 AI 分析資料</p>
       <button class="go-home-btn" @click="closeTab">← 返回</button>
     </div>
-
-    <!-- AI 頁教學導覽 -->
-    <OnboardingTour :steps="aiTourSteps" storage-key="aiTourDone" @finish-all="router.push('/')" />
 
   </div>
 </template>
@@ -121,31 +123,18 @@ import { useElder } from '../composables/useElder.js'
 import { isTTSEnabled, toggleTTS } from '../composables/useVoice.js'
 import { useLocale, t } from '../composables/useLocale.js'
 import NavLogo from '../components/NavLogo.vue'
-import OnboardingTour from '../components/OnboardingTour.vue'
 
 const router = useRouter()
 const { isDark, toggle: toggleTheme } = useTheme()
 const { isElder, toggle: toggleElderFn } = useElder()
 
-// 若從教學流程進來，setup 階段同步清除，確保 OnboardingTour 掛載時能偵測到
-if (localStorage.getItem('aiTourPending')) {
-  localStorage.removeItem('aiTourPending')
-  localStorage.removeItem('aiTourDone')
-}
-
 function toggleElder() { toggleElderFn() }
 
 const menuOpen     = ref(false)
 const settingsWrap = ref(null)
-
-function onClickOutside(e) {
-  if (e.target.closest('.tour-overlay')) return
-  if (settingsWrap.value && !settingsWrap.value.contains(e.target)) {
-    menuOpen.value = false
-  }
-}
-const llmAnalysis = ref(null)
-const llmAdvice   = ref(null)
+const llmAnalysis  = ref(null)
+const llmAdvice    = ref(null)
+const { locale, toggle: toggleLocale } = useLocale()
 
 const scoreLevel = computed(() => {
   const s = llmAnalysis.value?.score ?? 0
@@ -156,56 +145,11 @@ const scoreLevel = computed(() => {
 
 function closeTab() { router.back() }
 
-// AI 頁教學步驟
-const aiTourSteps = [
-  {
-    icon: '🤖',
-    title: 'AI 深度分析頁面',
-    desc: '這裡是 AI 對這筆資料的深度分析，比結果頁提供更詳細的判斷依據。',
-    target: null,
-    openMenu: false,
-  },
-  {
-    icon: '🎯',
-    title: '頂部摘要橫幅',
-    desc: 'AI 風險評分、偵測到的詐騙手法類型，以及一句話建議，讓你快速掌握重點。',
-    target: '.summary-banner',
-    openMenu: false,
-    cardSide: 'right',
-  },
-  {
-    icon: '⚡',
-    title: '立即行動 & 絕對不要',
-    desc: '左欄列出你應該立刻做的事，以及絕對不能做的行為，幫助你避免損失擴大。',
-    target: '.col-card',
-    openMenu: false,
-    cardSide: 'right',
-  },
-  {
-    icon: '📋',
-    title: '舉報步驟',
-    desc: '右欄提供逐步的舉報流程，依序操作即可完成向 165 反詐騙專線或相關單位的通報。',
-    target: '.adv-steps',
-    openMenu: false,
-    cardSide: 'left',
-  },
-  {
-    icon: '🩹',
-    title: '已受騙怎麼辦',
-    desc: '如果你或家人已經受騙，這裡提供緊急處置建議，包含凍結帳戶、報案等具體步驟。',
-    target: '.adv-recovery',
-    openMenu: false,
-    cardSide: 'left',
-  },
-  {
-    icon: '✅',
-    title: '教學完成，開始使用',
-    desc: '你已經了解防詐雷達的所有功能！按「開始使用 ✓」回到首頁，開始保護自己和家人。',
-    target: null,
-    openMenu: false,
-    finishAll: true,
-  },
-]
+function onClickOutside(e) {
+  if (settingsWrap.value && !settingsWrap.value.contains(e.target)) {
+    menuOpen.value = false
+  }
+}
 
 onMounted(() => {
   document.title = 'AI 深度分析 — 防詐雷達'
@@ -216,10 +160,8 @@ onMounted(() => {
       llmAnalysis.value = parsed.llmAnalysis ?? null
       llmAdvice.value   = parsed.llmAdvice   ?? null
       localStorage.removeItem('aiAnalysisData')
-      // 刷新時可從 sessionStorage 恢復
       sessionStorage.setItem('aiAnalysisData', JSON.stringify(parsed))
     } else {
-      // 嘗試從 sessionStorage 恢復（刷新情境）
       const session = sessionStorage.getItem('aiAnalysisData')
       if (session) {
         const parsed = JSON.parse(session)
@@ -228,7 +170,6 @@ onMounted(() => {
       }
     }
   } catch {}
-
   document.addEventListener('click', onClickOutside)
 })
 
@@ -238,7 +179,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* 直接沿用全域 CSS 變數，不重複定義顏色 */
 .page-wrap {
   min-height: 100vh;
   background: var(--bg);
@@ -249,10 +189,8 @@ onUnmounted(() => {
   transition: background 0.25s, color 0.25s;
 }
 
+/* ── Navbar ── */
 .navbar { background:var(--navbar-bg); padding:10px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:200; transition:background 0.25s; height:56px; }
-.nav-row-top { display:flex; align-items:center; gap:12px; width:100%; }
-.nav-title { color:#fff; font-size:15px; font-weight:700; cursor:pointer; }
-.nav-logo { height:44px; cursor:pointer; user-select:none; }
 .nav-actions { display:flex; gap:10px; align-items:center; margin-left:auto; }
 .sub-nav { padding:8px 16px; }
 .back-link { background:none; border:none; padding:0; color:var(--primary); font-size:13px; font-weight:600; cursor:pointer; transition:opacity 0.2s; }
@@ -276,144 +214,90 @@ onUnmounted(() => {
 .menu-pill.on { background:var(--primary); }
 .menu-knob { position:absolute; top:2px; left:2px; width:13px; height:13px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.2); transition:transform 0.22s cubic-bezier(0.34,1.4,0.64,1); }
 .menu-pill.on .menu-knob { transform:translateX(15px); }
+.menu-lang-badge { font-size:12px; font-weight:900; color:var(--primary); background:rgba(45,71,232,0.1); border-radius:6px; padding:2px 7px; flex-shrink:0; }
 
 /* ── Main ── */
 .ai-main {
-  max-width: 1100px;
+  max-width: 720px;
   width: 100%;
   margin: 20px auto;
-  padding: 0 24px 48px;
+  padding: 0 20px 48px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
-/* ── 摘要橫幅 ── */
-.summary-banner {
-  display: flex;
-  align-items: stretch;
-  background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: 18px;
-  overflow: hidden;
+/* ── 風險評分卡 ── */
+.score-card {
+  display: flex; align-items: center; gap: 20px;
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 18px; padding: 20px 24px;
   box-shadow: var(--shadow-sm);
 }
-.sb-score {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 20px 24px; min-width: 100px; flex-shrink: 0;
-  background: var(--surface2);
-  gap: 2px;
-}
-.sb-num  { font-size: 44px; font-weight: 900; line-height: 1; }
-.sb-unit { font-size: 13px; font-weight: 700; opacity: 0.7; }
-.sb-label { font-size: 10px; color: var(--text-muted); margin-top: 4px; white-space: nowrap; }
-.summary-banner.scam .sb-num { color: var(--scam); }
-.summary-banner.warn .sb-num { color: var(--warn); }
-.summary-banner.safe .sb-num { color: var(--safe); }
+.score-card.scam { border-color: var(--scam); background: var(--scam-bg); }
+.score-card.warn  { border-color: var(--warn); }
+.sc-left { display:flex; flex-direction:column; align-items:center; flex-shrink:0; min-width:72px; }
+.sc-score { font-size: 52px; font-weight: 900; line-height: 1; }
+.score-card.scam .sc-score { color: var(--scam); }
+.score-card.warn .sc-score { color: var(--warn); }
+.score-card.safe .sc-score { color: var(--safe); }
+.sc-label { font-size: 10px; color: var(--text-muted); margin-top: 4px; white-space: nowrap; }
+.sc-right { flex: 1; display: flex; flex-direction: column; gap: 8px; border-left: 1.5px solid var(--border); padding-left: 20px; }
+.sc-fraud { display: flex; align-items: center; gap: 10px; }
+.sc-fraud-icon { font-size: 22px; }
+.sc-fraud-text { font-size: 18px; font-weight: 900; }
+.sc-suggestion { font-size: 14px; line-height: 1.65; color: var(--text-sub); }
 
-.sb-divider { width: 1.5px; background: var(--border); flex-shrink: 0; }
-
-.sb-fraud {
-  display: flex; align-items: center; gap: 12px;
-  padding: 20px 22px; flex-shrink: 0;
+/* ── 通用卡片 ── */
+.card-title {
+  font-size: 13px; font-weight: 900; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;
 }
-.sb-fraud-icon { font-size: 26px; }
-.sb-fraud-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
-.sb-fraud-val { font-size: 20px; font-weight: 900; }
+.card-title.bad { color: var(--scam-text); }
 
-.sb-suggestion {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 20px 22px; flex: 1;
+.analysis-card, .action-card {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 14px; padding: 18px 20px;
 }
-.sb-suggestion span { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
-.sb-suggestion p { font-size: 14px; line-height: 1.7; color: var(--text-sub); }
 
-/* ── 對策兩欄 ── */
-.advice-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+/* ── 分析原因 ── */
+.reason-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.reason-list li {
+  font-size: 14px; line-height: 1.6;
+  padding: 10px 14px;
+  background: var(--surface2); border-radius: 8px;
+  border-left: 3px solid var(--primary);
 }
-@media (max-width: 640px) { .advice-grid { grid-template-columns: 1fr; } }
+
+/* ── 行動清單 ── */
+.action-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.action-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; line-height: 1.55; padding: 9px 12px; background: var(--surface2); border-radius: 8px; }
+.action-icon { flex-shrink: 0; font-weight: 900; font-size: 13px; margin-top: 1px; }
+.action-list.ok .action-icon  { color: var(--safe); }
+.action-list.bad .action-icon { color: var(--scam); }
+
+/* ── 舉報步驟 ── */
+.step-list { list-style: none; counter-reset: step; display: flex; flex-direction: column; gap: 6px; }
+.step-list li { counter-increment: step; display: flex; align-items: flex-start; gap: 10px; font-size: 14px; line-height: 1.55; padding: 9px 12px; background: var(--surface2); border-radius: 8px; }
+.step-list li::before { content: counter(step); flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+
+/* ── 已受騙 ── */
+.recovery-card {
+  background: var(--warn-bg); border: 1.5px solid rgba(255,140,0,0.25);
+  border-radius: 14px; padding: 18px 20px;
+}
+.recovery-card p { font-size: 14px; line-height: 1.7; color: var(--text-sub); }
+
+/* ── No result ── */
+.no-result { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 60px 24px; }
+.no-result p { font-size: 16px; color: var(--text-sub); }
+.go-home-btn { background: var(--primary); color: #fff; border: none; border-radius: 12px; padding: 12px 28px; font-size: 15px; font-weight: 900; cursor: pointer; }
+
 @media (max-width: 640px) {
   .settings-label { display: none; }
   .settings-btn   { padding: 6px 10px; }
   .ai-main { padding: 12px 12px 48px; }
-  .summary-banner { flex-direction: column; }
-  .sb-divider { width: 100%; height: 1.5px; }
-  .sb-score { padding: 16px; }
-  .sb-fraud { padding: 16px; }
-  .sb-suggestion { padding: 16px; }
-}
-
-.col-card {
-  background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: 16px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.adv-section { display: flex; flex-direction: column; gap: 8px; }
-
-.sec-title {
-  font-size: 14px; font-weight: 900; margin-bottom: 2px;
-  color: var(--text);
-}
-.sec-title.bad { color: var(--scam-text); }
-
-.adv-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
-.adv-list li {
-  display: flex; align-items: flex-start; gap: 8px;
-  font-size: 14px; line-height: 1.55;
-  padding: 9px 12px;
-  background: var(--surface2);
-  border-radius: 8px;
-}
-.adv-icon { flex-shrink: 0; font-weight: 900; font-size: 13px; margin-top: 1px; }
-.adv-icon.ok  { color: var(--safe); }
-.adv-icon.bad { color: var(--scam); }
-
-.adv-steps { list-style: none; counter-reset: step; display: flex; flex-direction: column; gap: 6px; }
-.adv-steps li {
-  counter-increment: step;
-  display: flex; align-items: flex-start; gap: 10px;
-  font-size: 14px; line-height: 1.55;
-  padding: 9px 12px;
-  background: var(--surface2);
-  border-radius: 8px;
-}
-.adv-steps li::before {
-  content: counter(step);
-  flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
-  background: var(--primary); color: #fff;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700;
-}
-
-.adv-recovery {
-  background: var(--warn-bg);
-  border: 1.5px solid rgba(255,140,0,0.2);
-  border-radius: 10px;
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.adv-recovery p { font-size: 14px; line-height: 1.65; color: var(--text-sub); }
-
-/* ── No result ── */
-.no-result {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 16px; padding: 60px 24px;
-}
-.no-result p { font-size: 16px; color: var(--text-sub); }
-.go-home-btn {
-  background: var(--primary); color: #fff; border: none;
-  border-radius: 12px; padding: 12px 28px;
-  font-size: 15px; font-weight: 900; cursor: pointer;
+  .score-card { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .sc-right { border-left: none; border-top: 1.5px solid var(--border); padding-left: 0; padding-top: 14px; width: 100%; }
 }
 </style>
