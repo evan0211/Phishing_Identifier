@@ -31,12 +31,6 @@
                 <span class="menu-text">{{ t('voiceRead') }}</span>
                 <span class="menu-pill" :class="{ on: isTTSEnabled }"><span class="menu-knob"></span></span>
               </button>
-              <!-- 語言切換 -->
-              <button class="menu-row" @click="toggleLocale">
-                <span class="menu-icon">🌐</span>
-                <span class="menu-text">{{ locale === 'zh' ? 'Switch to English' : '切換為中文' }}</span>
-                <span class="menu-lang-badge">{{ locale === 'zh' ? 'EN' : '中' }}</span>
-              </button>
             </div>
           </transition>
         </div>
@@ -144,8 +138,8 @@
             <!-- ── RIGHT COLUMN: 行動建議 ── -->
       <div class="col col-right">
 
-        <!-- Visit site (URL only) — top of right col / 手機版固定底部 -->
-        <div class="section-card visit-card mobile-action-bar" v-if="lastType === 'url'">
+        <!-- Visit site (URL only) — 長輩模式隱藏 -->
+        <div class="section-card visit-card mobile-action-bar" v-if="lastType === 'url' && !isElder">
           <div class="visit-warning" v-if="isScamLevel">
             {{ t('visitWarn') }}<strong>{{ t('visitWarnMsg') }}</strong>
           </div>
@@ -154,8 +148,8 @@
           </button>
         </div>
 
-        <!-- 一鍵撥打（電話偵測時顯示）— 手機版固定底部 -->
-        <div class="section-card visit-card mobile-action-bar" v-if="lastType === 'phone'">
+        <!-- 一鍵撥打（電話偵測時顯示）— 長輩模式隱藏 -->
+        <div class="section-card visit-card mobile-action-bar" v-if="lastType === 'phone' && !isElder">
           <div class="visit-warning" v-if="isScamLevel">
             {{ t('visitWarn') }}<strong>{{ t('visitWarnMsg') }}</strong>
           </div>
@@ -587,10 +581,23 @@ const showAiPanel = ref(false)
 const showConfirm = ref(false)
 
 function openAiPage() {
-  // 同分頁導航，用 localStorage 傳遞資料
+  // llmAdvice 없을 때 기본 fallback 생성
+  const advice = llmAdvice.value ?? (llmAnalysis.value?.score >= 50 ? {
+    immediate_actions: locale.value === 'en'
+      ? ['Do not click any links', 'Do not provide personal information', 'Block this source immediately']
+      : ['不要點擊任何連結', '不要提供個人資料', '立即封鎖此來源'],
+    avoid_actions: locale.value === 'en'
+      ? ['Do not transfer money', 'Do not install unknown apps']
+      : ['不要轉帳匯款', '不要安裝來路不明的程式'],
+    report_steps: locale.value === 'en'
+      ? ['Call 165 anti-scam hotline', 'Report at 165.npa.gov.tw', 'File a police report if needed']
+      : ['撥打 165 反詐騙專線', '至 165.npa.gov.tw 線上通報', '如有損失可向警察局報案'],
+    recovery_tips: null,
+  } : null)
+
   localStorage.setItem('aiAnalysisData', JSON.stringify({
     llmAnalysis: llmAnalysis.value,
-    llmAdvice:   llmAdvice.value,
+    llmAdvice:   advice,
   }))
   router.push('/ai')
 }
@@ -899,6 +906,11 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';docume
 .page-wrap.elder .visit-btn   { font-size:20px; padding:16px; }
 .page-wrap.elder .risk-banner.scam { box-shadow:0 0 0 4px rgba(255,45,45,0.25),0 0 24px rgba(255,45,45,0.12); }
 .page-wrap.elder .risk-banner.warn { box-shadow:0 0 0 4px rgba(255,140,0,0.22); }
+
+/* 長輩模式：強制單欄排列 */
+.page-wrap.elder .result-main { flex-direction: column; padding: 16px 16px 48px; gap: 0; }
+.page-wrap.elder .col-left  { border-right: none; border-bottom: 1.5px solid var(--border); border-radius: 18px 18px 0 0; padding: 20px; }
+.page-wrap.elder .col-right { border-left: none; border-top: none; border-radius: 0 0 18px 18px; padding: 20px; }
 
 /* ── Elder guidance on result page ── */
 .elder-result-tip {

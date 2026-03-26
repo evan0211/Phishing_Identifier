@@ -30,12 +30,6 @@
                   <span class="menu-text">{{ t('voiceRead') }}</span>
                   <span class="menu-pill" :class="{ on: isTTSEnabled }"><span class="menu-knob"></span></span>
                 </button>
-                <!-- 語言切換 -->
-                <button class="menu-row" @click="toggleLocale">
-                  <span class="menu-icon">🌐</span>
-                  <span class="menu-text">{{ locale === 'zh' ? 'Switch to English' : '切換為中文' }}</span>
-                  <span class="menu-lang-badge">{{ locale === 'zh' ? 'EN' : '中' }}</span>
-                </button>
               </div>
             </transition>
         </div>
@@ -112,6 +106,9 @@
       <button class="go-home-btn" @click="closeTab">← 返回</button>
     </div>
 
+    <!-- AI 頁教學導覽 -->
+    <OnboardingTour :steps="aiTourSteps" storage-key="aiTourDone" @finish-all="router.push('/')" />
+
   </div>
 </template>
 
@@ -123,10 +120,17 @@ import { useElder } from '../composables/useElder.js'
 import { isTTSEnabled, toggleTTS } from '../composables/useVoice.js'
 import { useLocale, t } from '../composables/useLocale.js'
 import NavLogo from '../components/NavLogo.vue'
+import OnboardingTour from '../components/OnboardingTour.vue'
 
 const router = useRouter()
 const { isDark, toggle: toggleTheme } = useTheme()
 const { isElder, toggle: toggleElderFn } = useElder()
+
+// 若從教學流程進來，setup 階段同步清除
+if (localStorage.getItem('aiTourPending')) {
+  localStorage.removeItem('aiTourPending')
+  localStorage.removeItem('aiTourDone')
+}
 
 function toggleElder() { toggleElderFn() }
 
@@ -135,6 +139,49 @@ const settingsWrap = ref(null)
 const llmAnalysis  = ref(null)
 const llmAdvice    = ref(null)
 const { locale, toggle: toggleLocale } = useLocale()
+
+// AI 頁教學步驟 — computed 讓語言切換即時生效
+const aiTourSteps = computed(() => {
+  const zh = locale.value !== 'en'
+  return [
+    {
+      icon: '🤖',
+      title: zh ? 'AI 深度分析頁面' : 'AI Deep Analysis',
+      desc: zh ? '這裡是 AI 對這筆資料的深度分析，比結果頁提供更詳細的判斷依據。' : 'This page shows AI\'s in-depth analysis — more detailed than the result page.',
+      target: null, openMenu: false,
+    },
+    {
+      icon: '🎯',
+      title: zh ? '頂部摘要' : 'Summary Card',
+      desc: zh ? 'AI 風險評分、偵測到的詐騙手法類型，以及一句話建議，讓你快速掌握重點。' : 'AI risk score, detected fraud type, and a one-line suggestion for quick understanding.',
+      target: '.score-card', openMenu: false, cardSide: 'right',
+    },
+    {
+      icon: '🔍',
+      title: zh ? 'AI 分析依據' : 'AI Analysis Basis',
+      desc: zh ? 'AI 列出判斷為此風險等級的具體依據，幫助你了解背後的推理過程。' : 'AI lists the specific evidence behind its risk rating so you understand the reasoning.',
+      target: '.analysis-card', openMenu: false, cardSide: 'right',
+    },
+    {
+      icon: '⚡',
+      title: zh ? '立即行動 & 絕對不要' : 'Do & Don\'t',
+      desc: zh ? '列出你應該立刻做的事，以及絕對不能做的行為，幫助你避免損失擴大。' : 'Lists what you should do immediately and what to absolutely avoid.',
+      target: '.action-card', openMenu: false, cardSide: 'right',
+    },
+    {
+      icon: '📋',
+      title: zh ? '舉報步驟' : 'Reporting Steps',
+      desc: zh ? '提供逐步的舉報流程，依序操作即可完成向 165 反詐騙專線或相關單位的通報。' : 'Step-by-step guide to report to the 165 anti-scam hotline or relevant authorities.',
+      target: '.step-list', openMenu: false, cardSide: 'right',
+    },
+    {
+      icon: '✅',
+      title: zh ? '教學完成' : 'Tour Complete',
+      desc: zh ? '你已了解 AI 深度分析頁面的所有功能！按「開始使用 ✓」回到首頁。' : 'You\'ve learned all features of the AI Deep Analysis page! Click "Start ✓" to go home.',
+      target: null, openMenu: false, finishAll: true,
+    },
+  ]
+})
 
 const scoreLevel = computed(() => {
   const s = llmAnalysis.value?.score ?? 0

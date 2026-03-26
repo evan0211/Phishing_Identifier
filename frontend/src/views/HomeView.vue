@@ -46,12 +46,6 @@
                 <span class="menu-text">{{ t('voiceRead') }}</span>
                 <span class="menu-pill" :class="{ on: isTTSEnabled }"><span class="menu-knob"></span></span>
               </button>
-              <!-- 語言切換 -->
-              <button class="menu-row" @click="toggleLocale">
-                <span class="menu-icon">🌐</span>
-                <span class="menu-text">{{ locale === 'zh' ? 'Switch to English' : '切換為中文' }}</span>
-                <span class="menu-lang-badge">{{ locale === 'zh' ? 'EN' : '中' }}</span>
-              </button>
               <!-- 重播教學 -->
               <button class="menu-row" @click.stop="tourRef?.restart(); menuOpen = false">
                 <span class="menu-icon">🎓</span>
@@ -121,7 +115,7 @@
                 class="smart-input"
                 v-model="inputText"
                 :placeholder="''"
-                :inputmode="detectedType === 'phone' ? 'tel' : 'text'"
+                inputmode="text"
                 :disabled="isLoading"
                 @focus="isFocused = true"
                 @blur="isFocused = false"
