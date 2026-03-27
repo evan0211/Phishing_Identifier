@@ -40,6 +40,9 @@
 
     <main class="ai-main" v-if="llmAnalysis">
 
+      <!-- 重新載入中提示 -->
+      <div v-if="isReloading" class="reload-banner">⏳ {{ locale === 'en' ? 'Reloading in English…' : '重新載入中…' }}</div>
+
       <!-- 風險評分卡 -->
       <div class="score-card" :class="scoreLevel">
         <div class="sc-left">
@@ -113,7 +116,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTheme } from '../composables/useTheme.js'
 import { useElder } from '../composables/useElder.js'
@@ -121,6 +124,7 @@ import { isTTSEnabled, toggleTTS } from '../composables/useVoice.js'
 import { useLocale, t } from '../composables/useLocale.js'
 import NavLogo from '../components/NavLogo.vue'
 import OnboardingTour from '../components/OnboardingTour.vue'
+import { autoCheck } from '../services/api.js'
 
 const router = useRouter()
 const { isDark, toggle: toggleTheme } = useTheme()
@@ -138,7 +142,29 @@ const menuOpen     = ref(false)
 const settingsWrap = ref(null)
 const llmAnalysis  = ref(null)
 const llmAdvice    = ref(null)
+const lastInput    = ref('')
+const lastType     = ref('url')
+const isReloading  = ref(false)
 const { locale, toggle: toggleLocale } = useLocale()
+
+// 語言切換時重新呼叫 API 取得對應語言的分析結果
+watch(locale, async () => {
+  if (!lastInput.value) return
+  isReloading.value = true
+  try {
+    const data = await autoCheck(lastInput.value, lastType.value, '+886', null, locale.value)
+    if (data.ai) {
+      const rawReasons = data.ai.reasoning
+      const reasons = Array.isArray(rawReasons)
+        ? rawReasons
+        : rawReasons ? rawReasons.split(/\n|。/).map(s => s.trim()).filter(Boolean) : []
+      llmAnalysis.value = { score: data.ai.score, fraud_type: data.ai.fraud_type, suggestion: data.ai.suggestion, reasons, level: data.level }
+      if (data.advice) llmAdvice.value = data.advice
+    }
+  } catch {} finally {
+    isReloading.value = false
+  }
+})
 
 // AI 頁教學步驟 — computed 讓語言切換即時生效
 const aiTourSteps = computed(() => {
@@ -206,6 +232,8 @@ onMounted(() => {
       const parsed = JSON.parse(raw)
       llmAnalysis.value = parsed.llmAnalysis ?? null
       llmAdvice.value   = parsed.llmAdvice   ?? null
+      lastInput.value   = parsed.lastInput   ?? ''
+      lastType.value    = parsed.lastType    ?? 'url'
       localStorage.removeItem('aiAnalysisData')
       sessionStorage.setItem('aiAnalysisData', JSON.stringify(parsed))
     } else {
@@ -214,6 +242,8 @@ onMounted(() => {
         const parsed = JSON.parse(session)
         llmAnalysis.value = parsed.llmAnalysis ?? null
         llmAdvice.value   = parsed.llmAdvice   ?? null
+        lastInput.value   = parsed.lastInput   ?? ''
+        lastType.value    = parsed.lastType    ?? 'url'
       }
     }
   } catch {}
@@ -339,6 +369,8 @@ onUnmounted(() => {
 .no-result { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 60px 24px; }
 .no-result p { font-size: 16px; color: var(--text-sub); }
 .go-home-btn { background: var(--primary); color: #fff; border: none; border-radius: 12px; padding: 12px 28px; font-size: 15px; font-weight: 900; cursor: pointer; }
+
+.reload-banner { background: var(--surface2); border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 16px; font-size: 13px; color: var(--text-muted); text-align: center; }
 
 @media (max-width: 640px) {
   .settings-label { display: none; }

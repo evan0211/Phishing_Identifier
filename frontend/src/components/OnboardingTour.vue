@@ -131,6 +131,7 @@ const defaultSteps = computed(() => {
     target: '.input-card',
     openMenu: false,
     fillDemo: true,
+    cardSide: 'top',
   },
   {
     icon: '📸',
@@ -255,6 +256,16 @@ function _doPosition(el, cardSide) {
   const gap = 16
 
   let top, left
+
+  // cardSide: 'top' → 強制放在目標上方（所有螢幕尺寸）
+  if (cardSide === 'top') {
+    top = Math.max(gap, rect.top - cardH - gap)
+    left = rect.left + rect.width / 2 - cardW / 2
+    if (window.innerWidth <= 480) left = (window.innerWidth - cardW) / 2
+    left = Math.max(16, Math.min(left, window.innerWidth - cardW - 16))
+    cardStyle.value = { top: top + 'px', left: left + 'px', transform: 'none' }
+    return
+  }
 
   // 電腦版且指定 cardSide → 強制左右定位
   if (cardSide && window.innerWidth > 768) {

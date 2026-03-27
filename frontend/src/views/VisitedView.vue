@@ -99,7 +99,7 @@ const { isDark, toggle: toggleTheme } = useTheme()
 const { isElder } = useElder()
 const { locale } = useLocale()
 
-const scamUrl = route.query.url || (locale.value === 'en' ? '(unknown URL)' : '（未知網址）')
+const scamUrl = (history.state?.url) || route.query.url || (locale.value === 'en' ? '(unknown URL)' : '（未知網址）')
 function goHome() { router.push('/') }
 
 const evidenceOpen  = ref(false)

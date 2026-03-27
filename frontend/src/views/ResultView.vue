@@ -598,6 +598,8 @@ function openAiPage() {
   localStorage.setItem('aiAnalysisData', JSON.stringify({
     llmAnalysis: llmAnalysis.value,
     llmAdvice:   advice,
+    lastInput:   lastInput.value,
+    lastType:    lastType.value,
   }))
   router.push('/ai')
 }
@@ -614,7 +616,12 @@ let _sliderDone = false
 
 function openScamFs()  { showScamFs.value=true;  document.body.style.overflow='hidden'; initSlider() }
 function closeScamFs() { showScamFs.value=false; document.body.style.overflow=''; resetSlider() }
-function proceedToScam() { closeScamFs(); router.push({ path:'/visited', query:{ url:lastInput.value } }) }
+function proceedToScam() {
+  const url = lastInput.value.startsWith('http') ? lastInput.value : `https://${lastInput.value}`
+  closeScamFs()
+  window.open(url, '_blank', 'noopener')
+  router.push({ path:'/visited', state:{ url: lastInput.value } })
+}
 
 function initSlider() {
   _sliderDone=false; sliderDone.value=false
