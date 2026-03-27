@@ -29,7 +29,6 @@
 | 建置工具 | Vite 7 |
 | 路由 | Vue Router 4 |
 | 圖表 | Chart.js 4 |
-| 後端 | Node.js built-in `http`（Mock API） |
 | AI 分析 | AWS Bedrock Claude（透過 API Gateway） |
 | 詐騙資料庫 | Gogolook |
 
@@ -39,8 +38,6 @@
 
 ```
 /
-├── Backend/
-│   └── server.js          # Mock API server（port 3001）
 └── frontend/
     ├── index.html
     ├── vite.config.js
@@ -74,27 +71,18 @@
 
 ## 快速開始
 
-### 前端
-
 ```bash
 cd frontend
 npm install
 npm run dev        # http://localhost:5173
 ```
 
-### Mock 後端
+### 環境變數（選填）
 
-```bash
-cd Backend
-node server.js     # http://localhost:3001
-```
-
-### 環境變數
-
-在 `frontend/.env` 設定 API 端點（選填，預設使用 AWS）：
+在 `frontend/.env` 設定 API 端點，預設使用 AWS：
 
 ```env
-VITE_API_BASE=http://localhost:3001
+VITE_API_BASE=https://ohep7v33l0.execute-api.us-east-1.amazonaws.com/prod
 ```
 
 ---
