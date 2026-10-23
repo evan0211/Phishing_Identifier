@@ -7,41 +7,45 @@
       <div class="nav-actions">
         <!-- 設定按鈕（與首頁一致） -->
         <div class="settings-wrap" ref="settingsWrap">
-          <button class="settings-btn" :class="{ active: menuOpen }" @click="menuOpen = !menuOpen" :aria-label="t('settings')">
+          <button class="settings-btn" :class="{ active: menuOpen }" :aria-expanded="menuOpen" @click="menuOpen = !menuOpen" :aria-label="t('settings')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="3"/>
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
             </svg>
             <span class="settings-label">{{ t('settings') }}</span>
           </button>
-          <transition name="menu-drop">
+<transition name="menu-drop">
             <div class="settings-menu" v-if="menuOpen">
-              <button class="menu-row" :class="{ active: isElder }" @click="toggleElder">
-                <span class="menu-icon">👴</span>
+
+              <button class="menu-row" :class="{ active: isElder }" :aria-pressed="isElder" @click="toggleElder">
+                <span class="menu-icon"><AppIcon name="accessibility" /></span>
                 <span class="menu-text">{{ t('elderMode') }}</span>
                 <span class="menu-pill" :class="{ on: isElder }"><span class="menu-knob"></span></span>
               </button>
               <button class="menu-row" :class="{ active: isDark }" @click="toggleTheme">
-                <span class="menu-icon">{{ isDark ? '🌙' : '☀️' }}</span>
+                <span class="menu-icon"><AppIcon :name="isDark ? 'moon' : 'sun'" /></span>
                 <span class="menu-text">{{ isDark ? t('darkMode') : t('lightMode') }}</span>
                 <span class="menu-pill" :class="{ on: isDark }"><span class="menu-knob"></span></span>
               </button>
               <button class="menu-row" :class="{ active: isTTSEnabled }" @click="toggleTTS">
-                <span class="menu-icon">🔊</span>
+                <span class="menu-icon"><AppIcon name="volume" /></span>
                 <span class="menu-text">{{ t('voiceRead') }}</span>
                 <span class="menu-pill" :class="{ on: isTTSEnabled }"><span class="menu-knob"></span></span>
               </button>
             </div>
+
           </transition>
+
         </div>
       </div>
     </nav>
+
 
     <div class="sub-nav"><button class="back-link" @click="goBack">{{ t('back') }}</button></div>
 
     <!-- No result guard -->
     <div v-if="!result" class="no-result">
-      <div class="no-result-icon">🔍</div>
+      <div class="no-result-icon"><AppIcon name="search" /></div>
       <p>{{ t('noResult') }}</p>
       <button class="go-home-btn" @click="goBack">{{ t('goHome') }}</button>
     </div>
@@ -59,7 +63,7 @@
           </div>
           <div class="rb-info">
             <div class="rb-tag">{{ tagLabel }}</div>
-            <div class="rb-title">{{ translateBackend(result.label) }}</div>
+            <div class="rb-title">{{ translateBackend(analysisText(result.label)) }}</div>
             <div class="rb-input" :title="lastInput">{{ lastInput }}</div>
           </div>
         </div>
@@ -68,9 +72,9 @@
         <div class="section-card score-card" v-if="!isElder">
           <div class="score-labels"><span>{{ t('safeZero') }}</span><span>{{ t('highRisk100') }}</span></div>
 
-          <!-- Gogolook 分數條 -->
-          <div class="dual-bar-row">
-            <span class="dbar-label">Gogolook</span>
+          <!-- 電話僅使用 Claude，不顯示核心模型分數 -->
+          <div class="dual-bar-row" v-if="lastType !== 'phone'">
+            <span class="dbar-label">{{ locale === 'en' ? 'Core Recognition Model' : '核心辨識模型' }}</span>
             <div class="dbar-track">
               <div class="dbar-fill ggl" :style="{ width: barWidth + '%' }"></div>
             </div>
@@ -79,7 +83,7 @@
 
           <!-- AI 分數條 -->
           <div class="dual-bar-row" v-if="llmAnalysis?.score !== undefined">
-            <span class="dbar-label">AI</span>
+            <span class="dbar-label">{{ lastType === 'phone' ? 'Claude' : 'AI' }}</span>
             <div class="dbar-track">
               <div class="dbar-fill ai" :style="{ width: llmBarWidth + '%' }"></div>
             </div>
@@ -88,7 +92,7 @@
 
           <!-- 加權綜合分數 -->
           <div class="weighted-score">
-            <span class="ws-label">{{ t('weightedScoreLabel') }}</span>
+            <span class="ws-label">{{ lastType === 'phone' ? (locale === 'en' ? 'Claude risk score' : 'Claude 風險評分') : t('weightedScoreLabel') }}</span>
             <span class="ws-val" :class="mode">{{ weightedScore != null ? weightedScore + ' ' + t('aiScoreSuffix') : '?' }}</span>
           </div>
         </div>
@@ -100,7 +104,7 @@
           :class="{ loading: isLoadingLLM }"
           :disabled="isLoadingLLM"
           @click="openAiPage">
-          <span class="aeb-icon">{{ isLoadingLLM ? '⏳' : '🤖' }}</span>
+          <span class="aeb-icon"><AppIcon :name="isLoadingLLM ? 'clock' : 'sparkles'" /></span>
           <span class="aeb-text">
             <span class="aeb-title">{{ isLoadingLLM ? t('aiAnalyzing') : t('aiAnalysis') }}</span>
             <span class="aeb-sub" v-if="!isLoadingLLM && llmAnalysis">
@@ -113,19 +117,20 @@
         <!-- Reasons -->
         <div class="section-card reasons-card">
           <div class="sec-title">{{ t('analysisReasons') }}</div>
-          <ul class="reasons">
+          <ul class="reasons" v-if="analysisReasons.length">
             <!-- 長輩模式只顯示前 2 條 -->
-            <li v-for="(r, i) in (isElder ? result.reasons.slice(0,2) : result.reasons)" :key="i">
-              <span class="ri">{{ RI(mode) }}</span>
-              <span>{{ translateBackend(r) }}</span>
+            <li v-for="(r, i) in (isElder ? analysisReasons.slice(0, 2) : analysisReasons)" :key="i">
+              <span class="ri"><AppIcon :name="RI(mode)" /></span>
+              <span>{{ translateBackend(analysisText(r)) }}</span>
             </li>
           </ul>
+          <p v-else>{{ locale === 'en' ? 'The backend did not provide analysis reasons.' : '後端尚未提供分析原因。' }}</p>
         </div>
 
         <!-- 查無資料 — 邀請用戶補充 -->
         <div class="section-card contribute-card" v-if="mode === 'unknown'">
           <button class="contribute-btn" @click="goContribute">
-            📤 {{ locale === 'en' ? 'Help Us Improve' : '協助補充資料' }}
+            <AppIcon name="upload" /> {{ locale === 'en' ? 'Help Us Improve' : '協助補充資料' }}
           </button>
         </div>
 
@@ -160,7 +165,7 @@
 
         <!-- Elder guidance tip -->
         <div class="elder-result-tip" v-if="isElder">
-          <span class="ert-icon">{{ isScamLevel ? '🚨' : ['suspect_high','suspect_low','promo_warn','warn'].includes(mode) ? '⚠️' : '💡' }}</span>
+          <span class="ert-icon"><AppIcon :name="isScamLevel || mode === 'warn' ? 'alert' : 'info'" /></span>
           <div class="ert-text">
             <strong>{{ ['scam','promo_scam'].includes(mode) ? t('elderScam') : ['suspect_high','promo_warn'].includes(mode) ? t('elderSuspectHigh') : ['suspect_low'].includes(mode) ? t('elderSuspectLow') : mode === 'unknown' ? t('elderUnknown') : t('elderSafe') }}</strong>
             <span>{{ isScamLevel ? t('elderAdviceScam') : ['suspect_high','suspect_low','promo_warn'].includes(mode) ? t('elderAdviceSuspect') : t('elderAdviceSafe') }}</span>
@@ -172,21 +177,21 @@
           <div class="sec-title">{{ t('immediateAction') }}</div>
           <div class="actions-col">
             <button class="act-btn btn-block" @click="doAction('block')">
-              <span class="ai">🚫</span>
+              <span class="ai"><AppIcon name="block" /></span>
               <div class="act-text">
                 <span class="at">{{ t('blockBtn') }}</span>
                 <span class="as">{{ t('blockSub') }}</span>
               </div>
             </button>
             <button class="act-btn btn-report" @click="doAction('report')">
-              <span class="ai">📢</span>
+              <span class="ai"><AppIcon name="megaphone" /></span>
               <div class="act-text">
                 <span class="at">{{ t('reportBtn') }}</span>
                 <span class="as">{{ t('reportSub') }}</span>
               </div>
             </button>
             <button class="act-btn btn-evidence" @click="doAction('evidence')">
-              <span class="ai">📁</span>
+              <span class="ai"><AppIcon name="folder" /></span>
               <div class="act-text">
                 <span class="at">{{ t('evidenceBtn') }}</span>
                 <span class="as">{{ t('evidenceSub') }}</span>
@@ -200,7 +205,7 @@
           <div class="sec-title">{{ t('nextStepsTitle') }}</div>
           <div class="next-list">
             <div class="nsi" :class="mode" v-for="(s, i) in nextSteps" :key="i">
-              <span class="nsi-icon">{{ s.i }}</span>
+              <span class="nsi-icon"><AppIcon :name="s.i" /></span>
               <span class="nsi-text">
                 <strong>{{ s.t }}</strong>
                 <span>{{ s.s }}</span>
@@ -216,7 +221,7 @@
     <!-- Confirm overlay -->
     <div class="confirm-overlay" :class="{ show: showConfirm }">
       <div class="confirm-box">
-        <div class="confirm-icon">⚠️</div>
+        <div class="confirm-icon"><AppIcon name="alert" /></div>
         <div class="confirm-title">{{ confirmData.title }}</div>
         <div class="confirm-sub">{{ confirmData.sub }}</div>
         <div class="confirm-btns">
@@ -230,15 +235,15 @@
     <div class="scam-fullscreen" :class="{ show: showScamFs }">
       <div class="sf-stripes"></div>
       <div class="sf-inner">
-        <span class="sf-siren">🚨</span>
+        <span class="sf-siren"><AppIcon name="alert" /></span>
         <div class="sf-badge">{{ t('scamFsBadge') }}</div>
         <div class="sf-title">{{ t('scamFsTitle') }}<span>{{ t('scamFsTitleSpan') }}</span></div>
         <div class="sf-url">{{ lastInput }}</div>
         <div class="sf-risks">
-          <div class="sf-risk-item"><span>💳</span>{{ t('scamRisk1') }}</div>
-          <div class="sf-risk-item"><span>🪪</span>{{ t('scamRisk2') }}</div>
-          <div class="sf-risk-item"><span>📱</span>{{ t('scamRisk3') }}</div>
-          <div class="sf-risk-item"><span>💸</span>{{ t('scamRisk4') }}</div>
+          <div class="sf-risk-item"><span><AppIcon name="card" /></span>{{ t('scamRisk1') }}</div>
+          <div class="sf-risk-item"><span><AppIcon name="identity" /></span>{{ t('scamRisk2') }}</div>
+          <div class="sf-risk-item"><span><AppIcon name="phone" /></span>{{ t('scamRisk3') }}</div>
+          <div class="sf-risk-item"><span><AppIcon name="wallet" /></span>{{ t('scamRisk4') }}</div>
         </div>
         <div class="sf-btns">
           <button class="sf-cancel" @click="closeScamFs">{{ t('scamLeave') }}</button>
@@ -246,7 +251,7 @@
             <div class="sf-fill"  ref="sliderFill"></div>
             <div class="sf-label">{{ t('scamSlider') }}</div>
             <div class="sf-thumb" ref="sliderThumb"
-                 @mousedown="sMouseDown" @touchstart.passive="sTouchStart"><span style="position:relative;top:-5px">⚠️</span></div>
+                 @mousedown="sMouseDown" @touchstart.passive="sTouchStart"><span style="position:relative;top:-5px"><AppIcon name="alert" /></span></div>
           </div>
         </div>
       </div>
@@ -268,10 +273,13 @@
 </template>
 
 <script setup>
+import AppIcon from '../components/AppIcon.vue'
+import { getAnalysisReasons } from '../utils/analysisReasons.js'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTheme } from '../composables/useTheme.js'
 import { useElder } from '../composables/useElder.js'
+import { phoneAnalysisText } from '../utils/analysisText.js'
 import { resultState } from '../composables/useResult.js'
 import { report, analyzeLLMText, getLLMAdvice } from '../services/api.js'
 import { useLocale, t, locale, translateBackend } from '../composables/useLocale.js'
@@ -284,49 +292,51 @@ const resultTourSteps = computed(() => {
   const zh = locale.value !== 'en'
   return [
     {
-      icon: '📊',
+      icon: 'chart',
       title: zh ? '這是分析結果頁' : 'Analysis Result Page',
       desc: zh ? '每次檢測完成後都會來到這裡，顯示完整的風險分析報告。' : 'After each scan, you\'ll land here to see the full risk analysis report.',
       target: null, openMenu: false,
     },
     {
-      icon: '🚨',
+      icon: 'alert',
       title: zh ? '風險等級橫幅' : 'Risk Level Banner',
       desc: zh ? '最上方的橫幅顯示風險等級（安全／促銷／警告／詐騙），顏色越紅代表風險越高。' : 'The banner shows the risk level (Safe / Promo / Warn / Scam) — the redder, the riskier.',
       target: '.risk-banner', openMenu: false, cardSide: 'right',
     },
     {
-      icon: '📈',
+      icon: 'chart',
       title: zh ? '風險評分' : 'Risk Score',
-      desc: zh ? '分數條顯示 Gogolook 資料庫與 AI 各自的評分，以及加權後的綜合風險分數（0–100）。' : 'Score bars show Gogolook and AI scores, plus a weighted overall risk score (0–100).',
+      desc: lastType.value === 'phone'
+        ? (zh ? '電話僅由 Claude 分析，分數表示 AI 推估的風險（0–100）。' : 'Phone numbers are analyzed by Claude only. The score estimates risk (0–100).')
+        : zh ? '分數條顯示 核心辨識模型 資料庫與 AI 各自的評分，以及加權後的綜合風險分數（0–100）。' : 'Score bars show the Core Recognition Model and AI scores, plus a weighted overall risk score (0–100).',
       target: '.score-card', openMenu: false, cardSide: 'right',
     },
     {
-      icon: '🔎',
+      icon: 'search',
       title: zh ? '分析原因' : 'Analysis Reasons',
       desc: zh ? '列出系統判斷為此風險等級的具體理由，幫助你了解哪些特徵觸發了警示。' : 'Lists the specific reasons behind the risk rating so you know what triggered the alert.',
       target: '.reasons-card', openMenu: false, cardSide: 'right',
     },
     {
-      icon: '🌐',
+      icon: 'globe',
       title: zh ? '前往網站' : 'Visit Site',
       desc: zh ? '若你仍想前往該網址，可點此按鈕。系統會再次警告並要求滑動確認，避免誤觸。' : 'If you still want to visit the URL, click here. A confirmation slider prevents accidental access.',
       target: '.visit-card', openMenu: false, cardSide: 'left',
     },
     {
-      icon: '🚫',
+      icon: 'block',
       title: zh ? '立即行動' : 'Immediate Actions',
       desc: zh ? '右欄提供三個快速行動：封鎖號碼／網址、向 165 通報，以及提交證據協助調查。' : 'Three quick actions: block the source, report to 165, or submit evidence for investigation.',
       target: '.actions-card', openMenu: false, cardSide: 'left',
     },
     {
-      icon: '📋',
+      icon: 'clipboard',
       title: zh ? '下一步建議' : 'Next Steps',
       desc: zh ? '根據風險等級，系統會給出具體的後續行動建議，幫助你保護自己和身邊的人。' : 'Tailored follow-up advice based on the risk level to help protect you and those around you.',
       target: '.next-card', openMenu: false, cardSide: 'left',
     },
     {
-      icon: '🤖',
+      icon: 'sparkles',
       title: zh ? 'AI 深度分析' : 'AI Deep Analysis',
       desc: zh ? '點擊此按鈕可進入 AI 深度分析頁面，查看詐騙手法分類、詳細對策與建議。按「前往 AI 頁 →」繼續。' : 'Click to open the AI Deep Analysis page for fraud type classification and detailed advice. Click "Go to AI →" to continue.',
       target: '.ai-expand-btn', openMenu: false, cardSide: 'right', openAiTour: true,
@@ -348,6 +358,8 @@ if (localStorage.getItem('resultTourPending')) {
 const result    = computed(() => resultState.data)
 const lastInput = computed(() => resultState.lastInput)
 const lastType  = computed(() => resultState.lastType)
+const analysisReasons = computed(() => getAnalysisReasons(result.value, lastType.value))
+const analysisText = text => phoneAnalysisText(text, lastType.value, locale.value)
 const mode = computed(() => {
   const lv = result.value?.level || ''
   // Map new levels to CSS class
@@ -379,13 +391,13 @@ const llmAdvice = ref(null)
 const isLoadingLLM = ref(false)
 
 const ICONS = {
-  safe_high: '✅', safe_low: '🟢',
-  suspect_low: '🟡', suspect_high: '🟠',
-  scam: '🚨',
-  promo_safe: '📣', promo_warn: '📣⚠️', promo_scam: '📣🚨',
-  unknown: '❓',
+  safe_high: 'check', safe_low: 'check',
+  suspect_low: 'alert', suspect_high: 'alert',
+  scam: 'alert',
+  promo_safe: 'megaphone', promo_warn: 'alert', promo_scam: 'alert',
+  unknown: 'help',
   // 舊等級 fallback
-  safe: '✅', promo: '📣', warn: '⚠️',
+  safe: 'check', promo: 'megaphone', warn: 'alert',
 }
 const TAGS = computed(() => ({
   safe_high: t('tagSafeHigh'), safe_low: t('tagSafeLow'),
@@ -398,51 +410,65 @@ const TAGS = computed(() => ({
 // Template helper — Vue auto-unwraps computed at top level but not via bracket access
 const tagLabel = computed(() => TAGS.value[mode.value] ?? mode.value)
 const RI = lv => {
-  if (['scam','promo_scam'].includes(lv)) return '🔴'
-  if (['suspect_high','promo_warn'].includes(lv)) return '🟠'
-  if (['suspect_low'].includes(lv)) return '🟡'
-  if (lv === 'unknown') return '⚪'
-  return '🟢'
+  if (['scam','promo_scam'].includes(lv)) return 'alert'
+  if (['suspect_high','promo_warn'].includes(lv)) return 'alert'
+  if (['suspect_low'].includes(lv)) return 'alert'
+  if (lv === 'unknown') return 'help'
+  return 'check'
 }
 const NEXT = computed(() => ({
-  safe_high: [{ i:'✅', t: locale.value==='en'?'Fully safe to use':'完全安全可放心使用', s: locale.value==='en'?'Confirmed safe by Gogolook & AI.':'Gogolook 與 AI 雙重確認安全。' }],
-  safe_low:  [{ i:'🟢', t: locale.value==='en'?'Safe, stay alert':'安全但保持警覺', s: locale.value==='en'?'Very low risk, proceed normally.':'風險極低，正常使用即可。' }],
+  safe_high: [{ i:'check', t: locale.value==='en'?'Fully safe to use':'完全安全可放心使用', s: locale.value==='en'?'No significant risk detected; verify the source before sharing information.':'目前未發現明顯風險，提供資料前仍請確認來源。' }],
+  safe_low:  [{ i:'check', t: locale.value==='en'?'Safe, stay alert':'安全但保持警覺', s: locale.value==='en'?'Very low risk, proceed normally.':'風險極低，正常使用即可。' }],
   suspect_low:  [
-    { i:'🟡', t: locale.value==='en'?'Slightly suspicious, be cautious':'輕度可疑，謹慎使用', s: locale.value==='en'?'Do not share personal data easily.':'不要輕易提供個人資料。' },
-    { i:'👨‍👩‍👧', t: locale.value==='en'?'Ask a trusted person to verify':'詢問家人或朋友確認', s: locale.value==='en'?'Let someone you trust help confirm.':'讓信任的人幫你確認。' }],
+    { i:'alert', t: locale.value==='en'?'Slightly suspicious, be cautious':'輕度可疑，謹慎使用', s: locale.value==='en'?'Do not share personal data easily.':'不要輕易提供個人資料。' },
+    { i:'users', t: locale.value==='en'?'Ask a trusted person to verify':'詢問家人或朋友確認', s: locale.value==='en'?'Let someone you trust help confirm.':'讓信任的人幫你確認。' }],
   suspect_high: [
-    { i:'🟠', t: locale.value==='en'?'Highly suspicious, block it':'高度可疑，建議封鎖', s: locale.value==='en'?'Do not click or share any data.':'請勿點擊或提供任何資料。' },
-    { i:'📢', t: locale.value==='en'?'Report it':'建議通報', s: locale.value==='en'?'Help protect other potential victims.':'協助保護其他可能受害者。' }],
+    { i:'alert', t: locale.value==='en'?'Highly suspicious, block it':'高度可疑，建議封鎖', s: locale.value==='en'?'Do not click or share any data.':'請勿點擊或提供任何資料。' },
+    { i:'megaphone', t: locale.value==='en'?'Report it':'建議通報', s: locale.value==='en'?'Help protect other potential victims.':'協助保護其他可能受害者。' }],
   scam: [
-    { i:'🚫', t: locale.value==='en'?'Stop all activity immediately':'立即停止任何操作', s: locale.value==='en'?'Do not click or enter any data.':'不要點擊、不要輸入資料。' },
-    { i:'💳', t: locale.value==='en'?'Contact your bank now':'立刻聯絡銀行', s: locale.value==='en'?'Call card back number to freeze account.':'撥卡片背面號碼申請凍結。' },
-    { i:'📞', t: locale.value==='en'?'Call 165 anti-scam hotline':'撥打 165 反詐騙', s: locale.value==='en'?'24-hour hotline, staff will assist.':'24 小時，由專人協助。' },
-    { i:'👮', t: locale.value==='en'?'File a police report':'向警察局報案', s: locale.value==='en'?'Bring screenshots to the police station.':'保留截圖向派出所報案。' }],
-  promo_safe: [{ i:'📣', t: locale.value==='en'?'Confirm if you subscribed':'確認是否為主動訂閱', s: locale.value==='en'?'If not subscribed, you may block it.':'若非本人訂閱，可封鎖。' }],
+    { i:'block', t: locale.value==='en'?'Stop all activity immediately':'立即停止任何操作', s: locale.value==='en'?'Do not click or enter any data.':'不要點擊、不要輸入資料。' },
+    { i:'card', t: locale.value==='en'?'Contact your bank now':'立刻聯絡銀行', s: locale.value==='en'?'Call card back number to freeze account.':'撥卡片背面號碼申請凍結。' },
+    { i:'phone', t: locale.value==='en'?'Call 165 anti-scam hotline':'撥打 165 反詐騙', s: locale.value==='en'?'24-hour hotline, staff will assist.':'24 小時，由專人協助。' },
+    { i:'shield', t: locale.value==='en'?'File a police report':'向警察局報案', s: locale.value==='en'?'Bring screenshots to the police station.':'保留截圖向派出所報案。' }],
+  promo_safe: [{ i:'megaphone', t: locale.value==='en'?'Confirm if you subscribed':'確認是否為主動訂閱', s: locale.value==='en'?'If not subscribed, you may block it.':'若非本人訂閱，可封鎖。' }],
   promo_warn: [
-    { i:'📣', t: locale.value==='en'?'Marketing with suspicious signs':'行銷但有可疑跡象', s: locale.value==='en'?'Verify if the source is trustworthy.':'請確認來源是否可信。' },
-    { i:'🔕', t: locale.value==='en'?'Block if unwanted':'不需要可直接封鎖', s: locale.value==='en'?'Tap block to add to blacklist.':'點選一鍵封鎖加入黑名單。' }],
+    { i:'megaphone', t: locale.value==='en'?'Marketing with suspicious signs':'行銷但有可疑跡象', s: locale.value==='en'?'Verify if the source is trustworthy.':'請確認來源是否可信。' },
+    { i:'bell-off', t: locale.value==='en'?'Block if unwanted':'不需要可直接封鎖', s: locale.value==='en'?'Tap block to add to blacklist.':'點選一鍵封鎖加入黑名單。' }],
   promo_scam: [
-    { i:'🚫', t: locale.value==='en'?'Suspected scam disguised as promo':'疑似詐騙偽裝推銷', s: locale.value==='en'?'Do not click or share data.':'不要點擊或提供資料。' },
-    { i:'📢', t: locale.value==='en'?'Report it':'建議通報', s: locale.value==='en'?'Help protect other users.':'協助保護其他用戶。' }],
+    { i:'block', t: locale.value==='en'?'Suspected scam disguised as promo':'疑似詐騙偽裝推銷', s: locale.value==='en'?'Do not click or share data.':'不要點擊或提供資料。' },
+    { i:'megaphone', t: locale.value==='en'?'Report it':'建議通報', s: locale.value==='en'?'Help protect other users.':'協助保護其他用戶。' }],
   unknown: [
-    { i:'❓', t: locale.value==='en'?'Number has no record':'號碼查無資料', s: locale.value==='en'?'No information in the database.':'資料庫中無此號碼資訊。' },
-    { i:'🤔', t: locale.value==='en'?'Be cautious about answering':'謹慎判斷是否接聽', s: locale.value==='en'?'Stay alert for unknown callers.':'陌生來電請提高警覺。' },
-    { i:'📞', t: locale.value==='en'?'Call 165 if in doubt':'如有疑慮撥打 165', s: locale.value==='en'?'24-hour anti-scam hotline.':'24 小時反詐騙專線諮詢。' }],
-  safe:  [{ i:'✅', t: locale.value==='en'?'Safe to browse':'可以安全瀏覽', s: locale.value==='en'?'No scam record for this source.':'此來源無詐騙紀錄。' }],
-  warn:  [{ i:'⚠️', t: locale.value==='en'?'Proceed with caution':'請謹慎使用', s: locale.value==='en'?'Do not provide personal data.':'建議不要提供個人資料。' }],
-  promo: [{ i:'📋', t: locale.value==='en'?'Confirm if you subscribed':'確認是否為主動訂閱', s: locale.value==='en'?'If not subscribed, you may block it.':'若非本人訂閱，可封鎖。' }],
+    { i:'help', t: locale.value==='en'?'Number has no record':'號碼查無資料', s: locale.value==='en'?'No information in the database.':'資料庫中無此號碼資訊。' },
+    { i:'help', t: locale.value==='en'?'Be cautious about answering':'謹慎判斷是否接聽', s: locale.value==='en'?'Stay alert for unknown callers.':'陌生來電請提高警覺。' },
+    { i:'phone', t: locale.value==='en'?'Call 165 if in doubt':'如有疑慮撥打 165', s: locale.value==='en'?'24-hour anti-scam hotline.':'24 小時反詐騙專線諮詢。' }],
+  safe:  [{ i:'check', t: locale.value==='en'?'Safe to browse':'可以安全瀏覽', s: locale.value==='en'?'No scam record for this source.':'此來源無詐騙紀錄。' }],
+  warn:  [{ i:'alert', t: locale.value==='en'?'Proceed with caution':'請謹慎使用', s: locale.value==='en'?'Do not provide personal data.':'建議不要提供個人資料。' }],
+  promo: [{ i:'clipboard', t: locale.value==='en'?'Confirm if you subscribed':'確認是否為主動訂閱', s: locale.value==='en'?'If not subscribed, you may block it.':'若非本人訂閱，可封鎖。' }],
 }))
-const nextSteps = computed(() => NEXT.value[mode.value] || [])
+const nextSteps = computed(() => {
+  if (lastType.value === 'phone' && ['safe', 'unknown'].includes(mode.value)) {
+    const en = locale.value === 'en'
+    return [{
+      i: 'phone',
+      t: en ? 'Verify the caller independently' : '請自行確認來電者身分',
+      s: en
+        ? 'Claude provides a risk estimate, not phone identity verification. Verify through an official contact before sharing information.'
+        : 'Claude 僅提供風險推估，無法驗證號碼持有人身分；提供資料前請透過官方聯絡方式確認。',
+    }]
+  }
+  return NEXT.value[mode.value] || []
+})
 
 const barWidth    = ref(0)
 const llmBarWidth = ref(0)
 
 // 新格式：Lambda 已計算好加權分數
 // ggl unknown 時用 AI 分數代替
-const weightedScore = computed(() => result.value?.score ?? result.value?.ai?.score ?? null)
-// Gogolook 原始分數
-const gglScoreVal = computed(() => result.value?.ggl?.score ?? 0)  // 只取 Gogolook 原始分數
+const weightedScore = computed(() => lastType.value === 'phone'
+  ? (result.value?.ai?.score ?? result.value?.score ?? null)
+  : (result.value?.score ?? result.value?.ai?.score ?? null))
+// 核心辨識模型 原始分數
+const gglScoreVal = computed(() => result.value?.ggl?.score ?? 0)  // 只取 核心辨識模型 原始分數
 
 onMounted(async () => {
   setTimeout(() => {
@@ -464,10 +490,7 @@ function performLLMAnalysis() {
   if (data.ai) {
     // 新格式：ai 欄位已內嵌
     // reasoning 可能是字串或陣列，統一轉成陣列
-    const rawReasons = data.ai.reasoning
-    const reasons = Array.isArray(rawReasons)
-      ? rawReasons
-      : rawReasons ? rawReasons.split(/\n|。/).map(s => s.trim()).filter(Boolean) : []
+    const reasons = getAnalysisReasons(data, lastType.value)
 
     llmAnalysis.value = {
       score:      data.ai.score,
@@ -501,7 +524,8 @@ function performLLMAnalysis() {
       score:      data.score ?? 0,
       fraud_type: null,
       suggestion: null,
-      reasoning:  null,
+      reasoning:  data.reasoning ?? null,
+      reasons:    getAnalysisReasons(data, lastType.value),
       level:      data.level,
     }
     setTimeout(() => { llmBarWidth.value = data.score ?? 0 }, 120)
@@ -514,7 +538,7 @@ function goContribute() {
 }
 function toggleElder() {
   toggleElderFn()
-  showToast(isElder.value ? '👴 ' + t('elderMode') : t('elderMode'), 'ok')
+  showToast(isElder.value ? ' ' + t('elderMode') : t('elderMode'), 'ok')
 }
 
 // ── 設定選單 ──
@@ -532,7 +556,7 @@ function confirmVisit() {
   const url = lastInput.value.startsWith('http') ? lastInput.value : `https://${lastInput.value}`
   if (isSafeLevel.value) { window.open(url, '_blank', 'noopener'); return }
   if (isScamLevel.value) { openScamFs(); return }
-  const title = locale.value === 'en' ? '⚠️ Visit this site?' : '⚠️ 確定前往此網站？'
+  const title = locale.value === 'en' ? ' Visit this site?' : ' 確定前往此網站？'
   const sub   = locale.value === 'en' ? 'This site is flagged as suspicious. Proceed carefully.' : '此網站被標記為可疑，前往請謹慎。'
   const ok    = locale.value === 'en' ? 'Proceed Anyway' : '仍要前往'
   openConfirm(title, sub, ok, () => {
@@ -570,10 +594,10 @@ async function doAction(type) {
         }
       }
       const msgs = {
-        block: '🚫 ' + (locale.value === 'en' ? 'Blocked — ' : '已封鎖 — ') + d.caseNo,
+        block: ' ' + (locale.value === 'en' ? 'Blocked — ' : '已封鎖 — ') + d.caseNo,
       }
       showToast(msgs[type], 'ok')
-    } catch { showToast(locale.value === 'en' ? '❌ Action failed' : '❌ 操作失敗', 'err') }
+    } catch { showToast(locale.value === 'en' ? ' Action failed' : ' 操作失敗', 'err') }
   })
 }
 
@@ -1179,11 +1203,11 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';docume
 
 /* ── 雙色分數條 ── */
 .dual-bar-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
-.dbar-label { font-size:10px; font-weight:700; color:rgba(128,128,128,0.8); width:52px; flex-shrink:0; letter-spacing:0.3px; }
+.dbar-label { font-size:10px; font-weight:700; color:rgba(128,128,128,0.8); width:92px; flex-shrink:0; letter-spacing:0.3px; }
 .dbar-track { flex:1; height:8px; background:rgba(128,128,128,0.15); border-radius:100px; overflow:hidden; }
 .dbar-fill  { height:100%; border-radius:100px; width:0%; transition:width 1.2s cubic-bezier(0.22,1,0.36,1) 0.2s; }
 
-/* Gogolook：固定橘紅漸層（深淺色皆清晰） */
+/* 核心辨識模型：固定橘紅漸層（深淺色皆清晰） */
 .dbar-fill.ggl { background: linear-gradient(90deg, #f97316, #ef4444); }
 .dbar-val.ggl-text { font-size:12px; font-weight:800; color:#ef4444; width:24px; text-align:right; flex-shrink:0; }
 
@@ -1216,4 +1240,29 @@ onUnmounted(()=>{clearTimeout(toastTimer);document.body.style.overflow='';docume
 }
 .contribute-btn:hover { background: rgba(168,196,78,0.22); }
 [data-theme="dark"] .contribute-btn { color: #c8e06a; }
+
+.page-wrap.elder .reasons li { font-size:22px; line-height:1.9; }
+.page-wrap.elder .sec-title { font-size:24px; }
+.page-wrap.elder .rb-input { font-size:20px; white-space:normal; overflow-wrap:anywhere; }
+.page-wrap.elder .rb-tag { font-size:20px; }
+.page-wrap.elder .act-btn { min-height:72px; padding:20px; }
+.page-wrap.elder .act-btn .at { font-size:24px; }
+.page-wrap.elder .act-btn .as { display:block; font-size:20px; opacity:1; }
+.page-wrap.elder .ert-text strong { font-size:26px; line-height:1.6; }
+.page-wrap.elder .ert-text span { font-size:22px; line-height:1.8; }
+
+/* Keep enlarged setting labels and switches inside the panel. */
+.settings-menu {
+  width:min(320px, calc(100vw - 32px)); min-width:0;
+  max-height:calc(100vh - 80px); max-height:calc(100dvh - 80px);
+  overflow-y:auto; overscroll-behavior:contain;
+}
+.settings-menu .menu-row { min-width:0; gap:12px; }
+.settings-menu .menu-text { min-width:0; white-space:normal; overflow-wrap:anywhere; line-height:1.5; }
+.settings-menu .menu-icon { width:24px; flex:0 0 24px; }
+.settings-menu .menu-pill, .settings-menu .menu-lang-badge { flex-shrink:0; }
+
+.settings-menu { top:calc(100% + 24px); }
+
+.settings-menu .menu-icon { display:flex; align-items:center; justify-content:center; }
 </style>

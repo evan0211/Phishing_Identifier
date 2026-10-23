@@ -6,12 +6,12 @@
 
     <div class="blocked-main">
       <div class="blocked-card">
-        <div class="blocked-icon">🚫</div>
+        <div class="blocked-icon"><AppIcon name="block" /></div>
         <div class="blocked-title">{{ locale === 'en' ? 'Blocked' : '已封鎖' }}</div>
         <div class="blocked-query">{{ query }}</div>
         <p class="blocked-desc">{{ locale === 'en' ? 'This source has been blocked by you. It will be intercepted automatically.' : '此來源已被你封鎖，系統將自動攔截。' }}</p>
         <div class="blocked-btns">
-          <button class="btn-unblock" @click="unblock">{{ locale === 'en' ? '🔓 Unblock' : '🔓 解除封鎖' }}</button>
+          <button class="btn-unblock" @click="unblock">{{ locale === 'en' ? ' Unblock' : ' 解除封鎖' }}</button>
           <button class="btn-home" @click="$router.push('/')">{{ locale === 'en' ? '← Back to Home' : '← 返回首頁' }}</button>
         </div>
       </div>
@@ -20,6 +20,7 @@
 </template>
 
 <script setup>
+import AppIcon from '../components/AppIcon.vue'
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { locale } from '../composables/useLocale.js'

@@ -6,42 +6,46 @@
       <NavLogo />
       <div class="nav-actions">
         <div class="settings-wrap" ref="settingsWrap">
-            <button class="settings-btn" :class="{ active: menuOpen }" @click="menuOpen = !menuOpen" :aria-label="t('settings')">
+            <button class="settings-btn" :class="{ active: menuOpen }" :aria-expanded="menuOpen" @click="menuOpen = !menuOpen" :aria-label="t('settings')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="3"/>
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
               </svg>
               <span class="settings-label">{{ t('settings') }}</span>
             </button>
-            <transition name="menu-drop">
+<transition name="menu-drop">
               <div class="settings-menu" v-if="menuOpen">
-                <button class="menu-row" :class="{ active: isElder }" @click="toggleElder">
-                  <span class="menu-icon">👴</span>
+
+                <button class="menu-row" :class="{ active: isElder }" :aria-pressed="isElder" @click="toggleElder">
+                  <span class="menu-icon"><AppIcon name="accessibility" /></span>
                   <span class="menu-text">{{ t('elderMode') }}</span>
                   <span class="menu-pill" :class="{ on: isElder }"><span class="menu-knob"></span></span>
                 </button>
                 <button class="menu-row" :class="{ active: isDark }" @click="toggleTheme">
-                  <span class="menu-icon">{{ isDark ? '🌙' : '☀️' }}</span>
+                  <span class="menu-icon"><AppIcon :name="isDark ? 'moon' : 'sun'" /></span>
                   <span class="menu-text">{{ isDark ? t('darkMode') : t('lightMode') }}</span>
                   <span class="menu-pill" :class="{ on: isDark }"><span class="menu-knob"></span></span>
                 </button>
                 <button class="menu-row" :class="{ active: isTTSEnabled }" @click="toggleTTS">
-                  <span class="menu-icon">🔊</span>
+                  <span class="menu-icon"><AppIcon name="volume" /></span>
                   <span class="menu-text">{{ t('voiceRead') }}</span>
                   <span class="menu-pill" :class="{ on: isTTSEnabled }"><span class="menu-knob"></span></span>
                 </button>
               </div>
+
             </transition>
+
         </div>
       </div>
     </nav>
+
 
     <div class="sub-nav"><button class="back-link" @click="closeTab">{{ locale === 'en' ? '← Back' : '← 返回' }}</button></div>
 
     <main class="ai-main" v-if="llmAnalysis">
 
       <!-- 重新載入中提示 -->
-      <div v-if="isReloading" class="reload-banner">⏳ {{ locale === 'en' ? 'Reloading in English…' : '重新載入中…' }}</div>
+      <div v-if="isReloading" class="reload-banner"><AppIcon name="clock" /> {{ locale === 'en' ? 'Reloading in English…' : '重新載入中…' }}</div>
 
       <!-- 風險評分卡 -->
       <div class="score-card" :class="scoreLevel">
@@ -51,60 +55,64 @@
         </div>
         <div class="sc-right">
           <div class="sc-fraud" v-if="llmAnalysis.fraud_type">
-            <span class="sc-fraud-icon">🎯</span>
-            <div class="sc-fraud-text">{{ llmAnalysis.fraud_type }}</div>
+            <span class="sc-fraud-icon"><AppIcon name="target" /></span>
+            <div class="sc-fraud-text">{{ analysisText(llmAnalysis.fraud_type) }}</div>
           </div>
-          <div class="sc-suggestion" v-if="llmAnalysis.suggestion">{{ llmAnalysis.suggestion }}</div>
+          <div class="sc-suggestion" v-if="llmAnalysis.suggestion">{{ analysisText(llmAnalysis.suggestion) }}</div>
         </div>
       </div>
 
       <!-- AI 分析原因 -->
-      <div class="analysis-card" v-if="llmAnalysis.reasons?.length">
-        <div class="card-title">🔍 AI 分析依據</div>
+      <div class="analysis-card" v-if="analysisReasons.length">
+        <div class="card-title"><AppIcon name="search" /> AI 分析依據</div>
         <ul class="reason-list">
-          <li v-for="(r, i) in llmAnalysis.reasons" :key="i">{{ r }}</li>
+          <li v-for="(r, i) in analysisReasons" :key="i">{{ analysisText(r) }}</li>
         </ul>
+      </div>
+
+      <div class="analysis-card" v-else>
+        {{ locale === 'en' ? 'The backend did not provide analysis reasons.' : '後端尚未提供分析原因。' }}
       </div>
 
       <!-- 立即行動 -->
       <div class="action-card" v-if="llmAdvice?.immediate_actions?.length">
-        <div class="card-title">⚡ 立即行動</div>
+        <div class="card-title"><AppIcon name="sparkles" /> 立即行動</div>
         <ul class="action-list ok">
           <li v-for="(a, i) in llmAdvice.immediate_actions" :key="i">
-            <span class="action-icon">✓</span><span>{{ a }}</span>
+            <span class="action-icon"><AppIcon name="check" /></span><span>{{ analysisText(a) }}</span>
           </li>
         </ul>
       </div>
 
       <!-- 絕對不要 -->
       <div class="action-card" v-if="llmAdvice?.avoid_actions?.length">
-        <div class="card-title bad">🚫 絕對不要</div>
+        <div class="card-title bad"><AppIcon name="block" /> 絕對不要</div>
         <ul class="action-list bad">
           <li v-for="(a, i) in llmAdvice.avoid_actions" :key="i">
-            <span class="action-icon">✗</span><span>{{ a }}</span>
+            <span class="action-icon"><AppIcon name="close" /></span><span>{{ analysisText(a) }}</span>
           </li>
         </ul>
       </div>
 
       <!-- 舉報步驟 -->
       <div class="action-card" v-if="llmAdvice?.report_steps?.length">
-        <div class="card-title">📋 舉報步驟</div>
+        <div class="card-title"><AppIcon name="clipboard" /> 舉報步驟</div>
         <ol class="step-list">
-          <li v-for="(s, i) in llmAdvice.report_steps" :key="i">{{ s }}</li>
+          <li v-for="(s, i) in llmAdvice.report_steps" :key="i">{{ analysisText(s) }}</li>
         </ol>
       </div>
 
       <!-- 已受騙處理 -->
       <div class="recovery-card" v-if="llmAdvice?.recovery_tips">
-        <div class="card-title">🩹 已受騙怎麼辦</div>
-        <p>{{ llmAdvice.recovery_tips }}</p>
+        <div class="card-title"><AppIcon name="shield" /> 已受騙怎麼辦</div>
+        <p>{{ analysisText(llmAdvice.recovery_tips) }}</p>
       </div>
 
     </main>
 
     <!-- 無資料提示 -->
     <div class="no-result" v-else>
-      <div style="font-size:52px">😕</div>
+      <div style="font-size:52px"><AppIcon name="help" /></div>
       <p>找不到 AI 分析資料</p>
       <button class="go-home-btn" @click="closeTab">← 返回</button>
     </div>
@@ -116,6 +124,9 @@
 </template>
 
 <script setup>
+import { resultState } from '../composables/useResult.js'
+import AppIcon from '../components/AppIcon.vue'
+import { getAnalysisReasons } from '../utils/analysisReasons.js'
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTheme } from '../composables/useTheme.js'
@@ -124,6 +135,7 @@ import { isTTSEnabled, toggleTTS } from '../composables/useVoice.js'
 import { useLocale, t } from '../composables/useLocale.js'
 import NavLogo from '../components/NavLogo.vue'
 import OnboardingTour from '../components/OnboardingTour.vue'
+import { phoneAnalysisText } from '../utils/analysisText.js'
 import { autoCheck } from '../services/api.js'
 
 const router = useRouter()
@@ -144,7 +156,9 @@ const llmAnalysis  = ref(null)
 const llmAdvice    = ref(null)
 const lastInput    = ref('')
 const lastType     = ref('url')
+const analysisReasons = computed(() => getAnalysisReasons(llmAnalysis.value, lastType.value))
 const isReloading  = ref(false)
+const analysisText = text => phoneAnalysisText(text, lastType.value, locale.value)
 const { locale, toggle: toggleLocale } = useLocale()
 
 // 語言切換時重新呼叫 API 取得對應語言的分析結果
@@ -152,12 +166,11 @@ watch(locale, async () => {
   if (!lastInput.value) return
   isReloading.value = true
   try {
-    const data = await autoCheck(lastInput.value, lastType.value, '+886', null, locale.value)
+    const query = lastType.value === 'screenshot' ? resultState.lastQuery : lastInput.value
+    if (!query) return
+    const data = await autoCheck(query, lastType.value, '+886', null, locale.value)
     if (data.ai) {
-      const rawReasons = data.ai.reasoning
-      const reasons = Array.isArray(rawReasons)
-        ? rawReasons
-        : rawReasons ? rawReasons.split(/\n|。/).map(s => s.trim()).filter(Boolean) : []
+      const reasons = getAnalysisReasons(data, lastType.value)
       llmAnalysis.value = { score: data.ai.score, fraud_type: data.ai.fraud_type, suggestion: data.ai.suggestion, reasons, level: data.level }
       if (data.advice) llmAdvice.value = data.advice
     }
@@ -171,39 +184,39 @@ const aiTourSteps = computed(() => {
   const zh = locale.value !== 'en'
   return [
     {
-      icon: '🤖',
+      icon: 'sparkles',
       title: zh ? 'AI 深度分析頁面' : 'AI Deep Analysis',
       desc: zh ? '這裡是 AI 對這筆資料的深度分析，比結果頁提供更詳細的判斷依據。' : 'This page shows AI\'s in-depth analysis — more detailed than the result page.',
       target: null, openMenu: false,
     },
     {
-      icon: '🎯',
+      icon: 'target',
       title: zh ? '頂部摘要' : 'Summary Card',
       desc: zh ? 'AI 風險評分、偵測到的詐騙手法類型，以及一句話建議，讓你快速掌握重點。' : 'AI risk score, detected fraud type, and a one-line suggestion for quick understanding.',
       target: '.score-card', openMenu: false, cardSide: 'right',
     },
     {
-      icon: '🔍',
+      icon: 'search',
       title: zh ? 'AI 分析依據' : 'AI Analysis Basis',
       desc: zh ? 'AI 列出判斷為此風險等級的具體依據，幫助你了解背後的推理過程。' : 'AI lists the specific evidence behind its risk rating so you understand the reasoning.',
       target: '.analysis-card', openMenu: false, cardSide: 'right',
     },
     {
-      icon: '⚡',
+      icon: 'sparkles',
       title: zh ? '立即行動 & 絕對不要' : 'Do & Don\'t',
       desc: zh ? '列出你應該立刻做的事，以及絕對不能做的行為，幫助你避免損失擴大。' : 'Lists what you should do immediately and what to absolutely avoid.',
       target: '.action-card', openMenu: false, cardSide: 'right',
     },
     {
-      icon: '📋',
+      icon: 'clipboard',
       title: zh ? '舉報步驟' : 'Reporting Steps',
       desc: zh ? '提供逐步的舉報流程，依序操作即可完成向 165 反詐騙專線或相關單位的通報。' : 'Step-by-step guide to report to the 165 anti-scam hotline or relevant authorities.',
       target: '.step-list', openMenu: false, cardSide: 'right',
     },
     {
-      icon: '✅',
+      icon: 'check',
       title: zh ? '教學完成' : 'Tour Complete',
-      desc: zh ? '你已了解 AI 深度分析頁面的所有功能！按「開始使用 ✓」回到首頁。' : 'You\'ve learned all features of the AI Deep Analysis page! Click "Start ✓" to go home.',
+      desc: zh ? '你已了解 AI 深度分析頁面的所有功能！按「開始使用 」回到首頁。' : 'You\'ve learned all features of the AI Deep Analysis page! Click "Start " to go home.',
       target: null, openMenu: false, finishAll: true,
     },
   ]
@@ -379,4 +392,19 @@ onUnmounted(() => {
   .score-card { flex-direction: column; align-items: flex-start; gap: 14px; }
   .sc-right { border-left: none; border-top: 1.5px solid var(--border); padding-left: 0; padding-top: 14px; width: 100%; }
 }
+
+/* Keep enlarged setting labels and switches inside the panel. */
+.settings-menu {
+  width:min(320px, calc(100vw - 32px)); min-width:0;
+  max-height:calc(100vh - 80px); max-height:calc(100dvh - 80px);
+  overflow-y:auto; overscroll-behavior:contain;
+}
+.settings-menu .menu-row { min-width:0; gap:12px; }
+.settings-menu .menu-text { min-width:0; white-space:normal; overflow-wrap:anywhere; line-height:1.5; }
+.settings-menu .menu-icon { width:24px; flex:0 0 24px; }
+.settings-menu .menu-pill, .settings-menu .menu-lang-badge { flex-shrink:0; }
+
+.settings-menu { top:calc(100% + 24px); }
+
+.settings-menu .menu-icon { display:flex; align-items:center; justify-content:center; }
 </style>

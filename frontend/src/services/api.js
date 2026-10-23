@@ -8,11 +8,15 @@ async function post(path, payload, signal) {
     body:    JSON.stringify(payload),
     signal,
   })
-  const data = await res.json()
-  if (data?.body && typeof data.body === 'string') {
-    try { return JSON.parse(data.body) } catch {}
+  let data = await res.json()
+  const status = Number(data?.statusCode ?? res.status)
+  if (typeof data?.body === 'string') {
+    try { data = JSON.parse(data.body) } catch {
+      if (!res.ok || status >= 400) throw new Error(`HTTP ${status}`)
+      throw new Error('Invalid API response')
+    }
   }
-  if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`)
+  if (!res.ok || status >= 400) throw new Error(data?.error ?? data?.message ?? `HTTP ${status}`)
   return data
 }
 
@@ -20,8 +24,12 @@ export function checkUrl(url) {
   return post('/api/check/url', { type: 'url', query: url })
 }
 
-export function checkPhone(phone) {
-  return post('/api/check/phone', { type: 'phone', query: phone })
+// Phone analysis uses the Claude phone handler; the core model cannot verify numbers.
+export function checkPhone(phone, countryCode = '+886', signal, lang = 'zh') {
+  return post('/api/report', {
+    type: 'llm', subtype: 'phone', query: normalizePhone(phone, countryCode), lang,
+    context: { queryType: 'phone' },
+  }, signal)
 }
 
 export function checkScreenshot(base64) {
@@ -47,22 +55,22 @@ export async function getStatsPeriods() {
   // 今日數據（獨立小卡，不參與月份切換）
   const todayCards = [
     {
-      icon: '📅', title: '今日詐騙案件數',
+      icon: 'calendar', title: '今日詐騙案件數',
       current: `${data.todayCases?.toLocaleString()} 件`,
       currentRaw: data.todayCases, last: null, lastRaw: null, change: null, color: 'orange',
     },
     {
-      icon: '💰', title: '今日損失金額',
+      icon: 'wallet', title: '今日損失金額',
       current: `${Math.round(data.todayLosses).toLocaleString()} 萬元`,
       currentRaw: data.todayLosses, last: null, lastRaw: null, change: null, color: 'red',
     },
     {
-      icon: '🚨', title: '累計詐騙通報件數',
+      icon: 'alert', title: '累計詐騙通報件數',
       current: `${Number(data.reportCount).toLocaleString()} 件`,
       currentRaw: Number(data.reportCount), last: null, lastRaw: null, change: null, color: 'blue',
     },
     {
-      icon: '🏆', title: '今日最常見詐騙手法',
+      icon: 'trophy', title: '今日最常見詐騙手法',
       current: data.topFraud || '網路購物詐騙',
       currentRaw: null, last: null, lastRaw: null, change: null, color: 'orange',
     },
@@ -71,17 +79,17 @@ export async function getStatsPeriods() {
   // 本月英雄卡
   const makeHeroCards = (losses, lossesLast, lossesChange, cases, casesLast, casesChange) => [
     {
-      icon: '💸',
+      icon: 'wallet',
       title: '本月財產損失金額（元）',
-      current: `${(losses / 10000).toFixed(0)} 億 ${Math.round(losses % 10000).toLocaleString()} 萬`,
+      current: `${Math.floor(Math.round(losses) / 10000)} 億 ${(Math.round(losses) % 10000).toLocaleString()} 萬`,
       currentRaw: losses,
-      last: `${(lossesLast / 10000).toFixed(0)} 億 ${Math.round(lossesLast % 10000).toLocaleString()} 萬`,
+      last: `${Math.floor(Math.round(lossesLast) / 10000)} 億 ${(Math.round(lossesLast) % 10000).toLocaleString()} 萬`,
       lastRaw: lossesLast,
       change: lossesChange,
       color: 'red',
     },
     {
-      icon: '🎣',
+      icon: 'shield',
       title: '本月案件受理數（件）',
       current: `${cases?.toLocaleString()}`,
       currentRaw: cases,
@@ -97,27 +105,7 @@ export async function getStatsPeriods() {
     todayCards,
     periods: [
       {
-        label: '114年9月',
-        cards: makeHeroCards(72300, 65000, 11.2, 14800, 13500, 9.6),
-      },
-      {
-        label: '114年10月',
-        cards: makeHeroCards(68900, 72300, -4.7, 14100, 14800, -4.7),
-      },
-      {
-        label: '114年11月',
-        cards: makeHeroCards(75100, 68900, 9.0, 15200, 14100, 7.8),
-      },
-      {
-        label: '114年12月',
-        cards: makeHeroCards(80234, 75100, 6.8, 16820, 15200, 10.7),
-      },
-      {
-        label: '115年1月',
-        cards: makeHeroCards(70558, 80234, -12.1, 14301, 16820, -15.0),
-      },
-      {
-        label: '115年2月',
+        label: data.monthLabel || '最新月份',
         cards: [
           ...makeHeroCards(
             data.monthLosses, data.monthLossesLast, data.monthLossesChange,
@@ -129,16 +117,20 @@ export async function getStatsPeriods() {
   }
 }
 
+// Preserve the entered phone number; do not infer a country or rewrite prefixes.
+export function normalizePhone(query) {
+  return query.trim()
+}
+
 export function autoCheck(query, type, countryCode = '+886', signal, lang = 'zh') {
-  // 截圖：走原本 Gogolook 截圖分析
+  // 截圖：走原本 核心辨識模型 截圖分析
   if (type === 'image' || type === 'screenshot') return post('/api/check/screenshot', { type: 'screenshot', query, lang }, signal)
 
-  // 電話/網址：走 LLM full analyze（含快取 + Gogolook + AI 加權）
+  // 電話只走 Claude phone handler；網址維持綜合辨識流程。
   if (type === 'phone') {
-    const phone = query.startsWith('+') ? query : `${countryCode}${query.replace(/^0/, '')}`
-    return post('/api/report', { type: 'llm', subtype: 'phone', query: phone, lang }, signal)
+    return checkPhone(query, countryCode, signal, lang)
   }
-  return post('/api/report', { type: 'llm', subtype: 'full', query, lang, context: { queryType: 'url' } }, signal)
+  return post('/api/report', { type: 'llm', subtype: 'full', query, lang, context: { queryType: type === 'text' ? 'text' : 'url' } }, signal)
 }
 
 // ════════════════════════════════════════════
@@ -150,7 +142,7 @@ export function autoCheck(query, type, countryCode = '+886', signal, lang = 'zh'
  * @param {string} text - 要分析的文字內容
  */
 export function analyzeLLMText(text) {
-  return post('/api/report', { type: 'llm', subtype: 'full', query: text, context: { queryType: 'url' } })
+  return post('/api/report', { type: 'llm', subtype: 'full', query: text, context: { queryType: 'text' } })
 }
 
 /**

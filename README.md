@@ -30,7 +30,7 @@
 | 路由 | Vue Router 4 |
 | 圖表 | Chart.js 4 |
 | AI 分析 | AWS Bedrock Claude（透過 API Gateway） |
-| 詐騙資料庫 | Gogolook |
+| 詐騙資料庫 | 核心辨識模型 |
 
 ---
 
@@ -93,7 +93,7 @@ VITE_API_BASE=https://ohep7v33l0.execute-api.us-east-1.amazonaws.com/prod
 |------|------|------|
 | GET | `/api/health` | 健康檢查 |
 | POST | `/api/check/url` | 檢查網址 |
-| POST | `/api/check/phone` | 檢查電話 |
+| POST | `/api/report`（`type: llm`, `subtype: phone`） | Claude 電話風險分析 |
 | POST | `/api/check/screenshot` | 檢查截圖 |
 | POST | `/api/report` | 通報 / 封鎖 / 提交證據 |
 
@@ -116,3 +116,20 @@ VITE_API_BASE=https://ohep7v33l0.execute-api.us-east-1.amazonaws.com/prod
 ## Chrome 擴充功能
 
 下載 `ToF-chrome.zip`，解壓縮後在 Chrome 開啟「開發人員模式」，選擇「載入未封裝項目」即可安裝。
+
+## 開發驗證
+
+```bash
+cd frontend
+npm test
+npm run build
+```
+
+介面統一以「核心辨識模型」（Core Recognition Model）顯示辨識來源；為相容既有後端，API 回應的 `ggl` 欄位維持不變。
+統計區僅顯示 API 回傳的最新月份資料，月份名稱可由 `monthLabel` 提供；載入失敗時顯示提示，不使用固定數字替代。
+
+電話查詢僅使用 Claude phone handler，結果頁不顯示核心辨識模型分數。後端的 `subtype: phone` 處理器應只呼叫 Claude；此儲存庫僅包含前端，未包含 AWS 後端實作。
+
+電話號碼會保留使用者輸入的格式（僅去除首尾空白），不自動補國碼或移除開頭的 0。需要國碼時請自行輸入。
+
+輸入區提供網址、文字、電話及截圖選項，文字支援中文與多行內容（Ctrl／Command + Enter 送出）。截圖每次分析一張，支援預覽與更換；檔案上限 10 MB，前端會縮放至最長邊 2048 像素並轉成白底 JPEG。

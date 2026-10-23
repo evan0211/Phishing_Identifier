@@ -11,7 +11,7 @@
     <main class="contribute-main">
       <div class="contribute-card">
         <div class="cc-header">
-          <span class="cc-icon">🙋</span>
+          <span class="cc-icon"><AppIcon name="users" /></span>
           <div>
             <div class="cc-title">{{ t('contributeTitle') }}</div>
             <div class="cc-sub">{{ t('contributeSubtitle') }}</div>
@@ -33,7 +33,7 @@
               class="cf-chip"
               :class="{ active: selectedType === opt.value, [opt.value]: true }"
               @click="selectedType = opt.value">
-              {{ opt.label }}
+              <AppIcon :name="opt.value === 'safe' ? 'check' : opt.value === 'promo' ? 'megaphone' : 'alert'" /> {{ opt.label }}
             </button>
           </div>
         </div>
@@ -65,6 +65,7 @@
 </template>
 
 <script setup>
+import AppIcon from '../components/AppIcon.vue'
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useElder } from '../composables/useElder.js'
@@ -84,10 +85,10 @@ const note         = ref('')
 const submitting   = ref(false)
 
 const options = computed(() => [
-  { value: 'scam',  label: '🚨 ' + t('tagScam')  },
-  { value: 'warn',  label: '⚠️ ' + t('tagWarn')  },
-  { value: 'promo', label: '📣 ' + t('tagPromo')  },
-  { value: 'safe',  label: '✅ ' + t('tagSafe')   },
+  { value: 'scam',  label: ' ' + t('tagScam')  },
+  { value: 'warn',  label: ' ' + t('tagWarn')  },
+  { value: 'promo', label: ' ' + t('tagPromo')  },
+  { value: 'safe',  label: ' ' + t('tagSafe')   },
 ])
 
 function goBack() { router.back() }
@@ -108,8 +109,8 @@ async function submit() {
   try {
     const d = await report(inputVal, inputType)
     const msg = locale.value === 'en'
-      ? '🙏 Thanks for your report, case ' + d.caseNo
-      : '🙏 感謝您的回報，案號 ' + d.caseNo
+      ? ' Thanks for your report, case ' + d.caseNo
+      : ' 感謝您的回報，案號 ' + d.caseNo
     showToast(msg, 'ok')
     setTimeout(() => router.back(), 2000)
   } catch {

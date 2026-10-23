@@ -32,19 +32,21 @@
         />
       </svg>
 
+      <div v-for="(style, index) in blockerStyles" :key="index" class="tour-blocker" :style="style"></div>
+
       <!-- 說明卡片 -->
-      <div class="tour-card" :style="cardStyle">
+      <div key="tour-card" ref="cardRef" class="tour-card" :style="cardStyle" role="dialog" aria-modal="true" aria-labelledby="tour-title">
         <!-- 第一步：歡迎畫面，提供兩個選擇 -->
         <template v-if="current === 0 && !props.steps">
-          <div class="tour-icon">🛡️</div>
-          <div class="tour-title">{{ locale === 'en' ? 'Welcome to ScamRadar' : '歡迎使用防詐雷達' }}</div>
+          <div class="tour-icon"><AppIcon name="shield" :size="36" /></div>
+          <div id="tour-title" class="tour-title">{{ locale === 'en' ? 'Welcome to ScamRadar' : '歡迎使用防詐雷達' }}</div>
           <div class="tour-desc">{{ locale === 'en' ? 'A tool to identify scam URLs, phone numbers, and screenshots.' : '幫助你辨識詐騙網址、電話和截圖的工具。' }}</div>
           <div class="tour-welcome-btns">
             <button class="tour-start-btn" @click="skip">
-              {{ locale === 'en' ? '🚀 Start Using' : '🚀 直接開始使用' }}
+              {{ locale === 'en' ? 'Start Using' : '直接開始使用' }}
             </button>
             <button class="tour-guide-btn" @click="next">
-              {{ locale === 'en' ? '🎓 Take a Tour' : '🎓 導覽模式' }}
+              {{ locale === 'en' ? 'Take a Tour' : '導覽模式' }}
             </button>
           </div>
         </template>
@@ -52,8 +54,8 @@
         <!-- 其他步驟：一般導覽卡片 -->
         <template v-else>
           <div class="tour-step-badge">{{ current }} / {{ activeSteps.length - 1 }}</div>
-          <div class="tour-icon">{{ activeSteps[current].icon }}</div>
-          <div class="tour-title">{{ activeSteps[current].title }}</div>
+          <div class="tour-icon"><AppIcon :name="activeSteps[current].icon" :size="36" /></div>
+          <div id="tour-title" class="tour-title">{{ activeSteps[current].title }}</div>
           <div class="tour-desc">{{ activeSteps[current].desc }}</div>
           <div class="tour-btns">
             <button class="tour-skip" @click="skip">{{ locale === 'en' ? 'Skip' : '跳過教學' }}</button>
@@ -78,6 +80,8 @@
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import AppIcon from './AppIcon.vue'
+import { placeTourCard } from '../utils/tourPosition.js'
 import { locale } from '../composables/useLocale.js'
 
 const props = defineProps({
@@ -93,12 +97,22 @@ const emit = defineEmits(['set-input', 'do-check', 'open-ai', 'finish-all', 'ope
 
 const visible = ref(false)
 
-// 導覽顯示時鎖定頁面滾動（html overflow 方式，不影響元素位置計算）
-let _scrollY = 0
-watch(visible, (val) => {
-  // visible = false 時確保解鎖（finish/skip 已處理，這裡作為保險）
-  if (!val) document.documentElement.style.overflow = ''
-})
+// Lock the background once for the tour; restore its original overflow on exit.
+let previousOverflow = null
+function restoreOverflow() {
+  if (previousOverflow !== null) {
+    document.documentElement.style.overflow = previousOverflow
+    previousOverflow = null
+  }
+}
+watch(visible, val => {
+  if (val) {
+    previousOverflow = document.documentElement.style.overflow
+    document.documentElement.style.overflow = 'hidden'
+  } else {
+    restoreOverflow()
+  }
+}, { flush: 'sync' })
 
 // 語言切換時重新計算位置（刷新卡片內容）
 watch(locale, () => {
@@ -116,7 +130,7 @@ const defaultSteps = computed(() => {
   const zh = locale.value !== 'en'
   return [
   {
-    icon: '🛡️',
+    icon: 'shield',
     title: zh ? '歡迎使用防詐雷達' : 'Welcome to ScamRadar',
     desc: zh ? '這是一款幫助你辨識詐騙網址、電話和截圖的工具。讓我帶你快速了解各項功能。'
              : 'A tool to help you identify scam URLs, phone numbers, and screenshots. Let me walk you through the features.',
@@ -124,17 +138,17 @@ const defaultSteps = computed(() => {
     openMenu: false,
   },
   {
-    icon: '📝',
+    icon: 'edit',
     title: zh ? '輸入可疑內容' : 'Enter Suspicious Content',
     desc: zh ? '在輸入框貼上可疑的網址、電話號碼，或上傳截圖。系統會自動判斷類型。\n\n我們已幫你填入範例網址，你可以直接試試看。'
              : 'Paste a suspicious URL, phone number, or upload a screenshot. The system auto-detects the type.\n\nWe\'ve pre-filled a sample URL — feel free to try it.',
-    target: '.input-card',
+    target: '.smart-input',
     openMenu: false,
     fillDemo: true,
     cardSide: 'top',
   },
   {
-    icon: '📸',
+    icon: 'camera',
     title: zh ? '上傳截圖' : 'Upload Screenshot',
     desc: zh ? '點擊輸入框右下角的相機圖示，可上傳詐騙截圖，系統會自動辨識圖中內容。'
              : 'Click the camera icon at the bottom-right of the input box to upload a scam screenshot.',
@@ -142,7 +156,7 @@ const defaultSteps = computed(() => {
     openMenu: false,
   },
   {
-    icon: '🌐',
+    icon: 'globe',
     title: zh ? '切換語言' : 'Switch Language',
     desc: zh ? '點擊右下角的「中 | EN」按鈕，可在繁體中文與英文之間切換介面語言。'
              : 'Click the "中 | EN" button at the bottom-right to toggle between Traditional Chinese and English.',
@@ -150,23 +164,23 @@ const defaultSteps = computed(() => {
     openMenu: false,
   },
   {
-    icon: '⚙️',
+    icon: 'settings',
     title: zh ? '輔助功能總覽' : 'Accessibility Features',
-    desc: zh ? '點擊右上角設定，可一次看到所有輔助功能：\n👴 長輩模式 — 放大字體、簡化介面\n🌙 深色模式 — 護眼夜間主題\n🔊 語音朗讀 — 滑鼠懸停自動朗讀內容'
-             : 'Click the settings icon (top-right) to access all features:\n👴 Senior Mode — larger fonts\n🌙 Dark Mode — eye-friendly theme\n🔊 Voice Read — hover to hear content',
+    desc: zh ? '點擊右上角設定，可一次看到所有輔助功能：\n長輩模式 — 放大字體、簡化介面\n深色模式 — 護眼夜間主題\n語音朗讀 — 滑鼠懸停自動朗讀內容'
+             : 'Click the settings icon (top-right) to access all features:\nSenior Mode — larger fonts\nDark Mode — eye-friendly theme\nVoice Read — hover to hear content',
     target: '.settings-menu',
     openMenu: true,
   },
   {
-    icon: '👴',
+    icon: 'accessibility',
     title: zh ? '長輩模式' : 'Senior Mode',
-    desc: zh ? '開啟後字體放大、動畫提示更明顯，適合長輩或視力不佳的使用者。'
+    desc: zh ? '開啟後字體放大、操作按鈕更大、減少動畫干擾，適合長輩或視力不佳的使用者。'
              : 'Enables larger fonts and clearer visual hints — ideal for elderly users or those with low vision.',
     target: '.menu-row',
     openMenu: true,
   },
   {
-    icon: '🔗',
+    icon: 'link',
     title: zh ? '切換檢測類型' : 'Switch Detection Type',
     desc: zh ? '系統已自動偵測為「網址」類型。試著點「電話」再切回「網址」，看看 chip 的切換效果。'
              : 'The system auto-detected "URL" type. Try clicking "Phone" then back to "URL" to see the chip switch.',
@@ -174,7 +188,7 @@ const defaultSteps = computed(() => {
     openMenu: false,
   },
   {
-    icon: '🔍',
+    icon: 'search',
     title: zh ? '試著檢測看看' : 'Try a Detection',
     desc: zh ? '範例網址已填好，按「立即試跑 →」，系統會幫你跑一次完整分析，帶你繼續看結果頁介紹。'
              : 'The sample URL is ready. Click "Run Demo →" to run a full analysis and continue to the result page.',
@@ -190,6 +204,20 @@ const activeSteps = computed(() => props.steps ?? defaultSteps.value)
 // 挖洞區域
 const hole = reactive({ x: 0, y: 0, w: 0, h: 0, r: 12 })
 const cardStyle = ref({})
+const cardRef = ref(null)
+const viewportSize = ref({ width: window.innerWidth, height: window.innerHeight })
+const blockerStyles = computed(() => {
+  const { width, height } = viewportSize.value
+  const left = Math.max(0, Math.min(width, hole.x))
+  const right = Math.max(left, Math.min(width, hole.x + hole.w))
+  const top = Math.max(0, Math.min(height, hole.y))
+  const bottom = Math.max(top, Math.min(height, hole.y + hole.h))
+  const regions = hole.w > 0 ? [
+    [0, 0, width, top], [0, bottom, width, height - bottom],
+    [0, top, left, bottom - top], [right, top, width - right, bottom - top],
+  ] : [[0, 0, width, height]]
+  return regions.map(([x, y, w, h]) => ({ left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px` }))
+})
 
 function openSettingsMenu() {
   // 若選單已開啟（DOM 中存在）則不重複
@@ -220,28 +248,21 @@ function closeSettingsMenu() {
 }
 
 function positionOnEl(el, skipScroll = false, cardSide = null) {
-  if (props.noScroll || skipScroll) {
-    _doPosition(el, cardSide)
-    return
-  }
-  // 先解鎖，捲到目標
-  document.documentElement.style.overflow = ''
-  const scrollBlock = window.innerWidth <= 768 ? 'start' : 'center'
-  el.scrollIntoView({ behavior: 'instant', block: scrollBlock })
-  _scrollY = window.scrollY
-  // 手機版不鎖 overflow，避免卡片位置計算錯誤
-  if (window.innerWidth > 768) {
-    document.documentElement.style.overflow = 'hidden'
+  const rect = el.getBoundingClientRect()
+  const outside = rect.bottom <= 0 || rect.top >= window.innerHeight
+    || rect.right <= 0 || rect.left >= window.innerWidth
+  // Keep the current view for any visible target. Only bring offscreen targets
+  // into view, with the smallest necessary movement.
+  if (outside && !props.noScroll && !skipScroll) {
+    const originalMargin = el.style.scrollMarginTop
+    el.style.scrollMarginTop = '80px'
+    el.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'nearest' })
+    el.style.scrollMarginTop = originalMargin
   }
   _doPosition(el, cardSide)
 }
 
 function _doPosition(el, cardSide) {
-  const rect0 = el.getBoundingClientRect()
-  const outOfView = rect0.bottom < 0 || rect0.top > window.innerHeight
-  if (outOfView) {
-    el.scrollIntoView({ block: 'center', behavior: 'instant' })
-  }
   const rect = el.getBoundingClientRect()
   const pad = 12
   hole.x = rect.left - pad
@@ -250,101 +271,40 @@ function _doPosition(el, cardSide) {
   hole.h = rect.height + pad * 2
   hole.r = 12
 
-  const cardEl = document.querySelector('.tour-card')
-  const cardH = cardEl ? Math.max(cardEl.offsetHeight, 260) + 16 : 300
-  const cardW = cardEl ? cardEl.offsetWidth : 340
-  const gap = 16
-
-  let top, left
-
-  // cardSide: 'top' → 強制放在目標上方（所有螢幕尺寸）
-  if (cardSide === 'top') {
-    top = Math.max(gap, rect.top - cardH - gap)
-    left = rect.left + rect.width / 2 - cardW / 2
-    if (window.innerWidth <= 480) left = (window.innerWidth - cardW) / 2
-    left = Math.max(16, Math.min(left, window.innerWidth - cardW - 16))
-    cardStyle.value = { top: top + 'px', left: left + 'px', transform: 'none' }
-    return
+  const cardEl = cardRef.value
+  if (!cardEl) return
+  // Measure natural content height, not the height constrained by the last step.
+  const cardH = Math.min(cardEl.scrollHeight, window.innerHeight - 32)
+  const placement = placeTourCard({
+    left: hole.x, right: hole.x + hole.w, top: hole.y, bottom: hole.y + hole.h,
+  }, { width: cardEl.offsetWidth || 340, height: cardH }, {
+    width: window.innerWidth, height: window.innerHeight,
+  }, cardSide)
+  cardStyle.value = {
+    top: `${placement.top}px`, left: `${placement.left}px`, width: `${placement.width}px`,
+    maxHeight: `${placement.maxHeight}px`, transform: 'none',
   }
 
-  // 電腦版且指定 cardSide → 強制左右定位
-  if (cardSide && window.innerWidth > 768) {
-    top = Math.max(gap, Math.min(
-      rect.top + rect.height / 2 - cardH / 2,
-      window.innerHeight - cardH - gap
-    ))
-    if (cardSide === 'right') {
-      left = rect.right + gap
-    } else {
-      left = rect.left - cardW - gap
-    }
-    left = Math.max(16, Math.min(left, window.innerWidth - cardW - 16))
-    cardStyle.value = { top: top + 'px', left: left + 'px', transform: 'none' }
-    return
-  }
+}
 
-  const spaceBelow = window.innerHeight - rect.bottom - gap
-  const spaceAbove = rect.top - gap
-
-  // 目標元素本身很高（超過視窗 40%）→ 卡片放在元素左側或右側，不重疊
-  if (rect.height > window.innerHeight * 0.4) {
-    const spaceRight = window.innerWidth - rect.right - gap
-    const spaceLeft  = rect.left - gap
-    top  = Math.max(gap, window.innerHeight / 2 - cardH / 2)
-    top  = Math.min(top, window.innerHeight - cardH - gap)
-    if (spaceRight >= cardW) {
-      left = rect.right + gap
-    } else if (spaceLeft >= cardW) {
-      left = rect.left - cardW - gap
-    } else {
-      // 左右都不夠（手機版）→ 卡片置中放在目標上方，捲動讓目標從卡片下方開始
-      left = (window.innerWidth - cardW) / 2
-      top  = gap
-      document.documentElement.style.overflow = ''
-      const targetScrollY = window.scrollY + rect.top - (cardH + gap * 2)
-      window.scrollTo({ top: Math.max(0, targetScrollY), behavior: 'instant' })
-      document.documentElement.style.overflow = 'hidden'
-      const rect2 = el.getBoundingClientRect()
-      hole.x = rect2.left - pad
-      hole.y = rect2.top - pad
-      hole.w = rect2.width + pad * 2
-      hole.h = rect2.height + pad * 2
-    }
-    left = Math.max(16, Math.min(left, window.innerWidth - cardW - 16))
-    cardStyle.value = { top: top + 'px', left: left + 'px', transform: 'none' }
-    return
+function centerCard() {
+  const width = Math.min(cardRef.value?.offsetWidth || 340, window.innerWidth - 32)
+  const height = Math.min(cardRef.value?.scrollHeight || 300, window.innerHeight - 32)
+  cardStyle.value = {
+    top: `${Math.max(16, (window.innerHeight - height) / 2)}px`,
+    left: `${Math.max(16, (window.innerWidth - width) / 2)}px`,
+    maxHeight: `${height}px`, transform: 'none',
   }
-
-  if (spaceBelow >= cardH) {
-    top = rect.bottom + gap
-  } else if (spaceAbove >= cardH) {
-    top = rect.top - cardH - gap
-  } else {
-    top = spaceBelow >= spaceAbove
-      ? Math.min(rect.bottom + gap, window.innerHeight - cardH - gap)
-      : Math.max(gap, rect.top - cardH - gap)
-  }
-
-  top  = Math.max(gap, Math.min(top, window.innerHeight - cardH - gap))
-  left = rect.left + rect.width / 2 - cardW / 2
-  if (window.innerWidth <= 480) {
-    left = (window.innerWidth - cardW) / 2
-  }
-  left = Math.max(16, Math.min(left, window.innerWidth - cardW - 16))
-  cardStyle.value = { top: top + 'px', left: left + 'px', transform: 'none' }
 }
 
 function updatePosition() {
+  if (!visible.value) return
+  viewportSize.value = { width: window.innerWidth, height: window.innerHeight }
   const step = activeSteps.value[current.value]
 
   if (!step.target) {
     hole.w = 0
-    if (!props.noScroll) {
-      // 非首頁才鎖 overflow
-      _scrollY = window.scrollY
-      document.documentElement.style.overflow = 'hidden'
-    }
-    cardStyle.value = { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
+    centerCard()
     return
   }
 
@@ -352,25 +312,23 @@ function updatePosition() {
     openSettingsMenu()
     waitForEl(step.target, (el) => {
       // 選單是 fixed 定位，不需要捲動
-      setTimeout(() => positionOnEl(el, true), 150)
+      setTimeout(() => { if (visible.value && activeSteps.value[current.value] === step) positionOnEl(el, true) }, 150)
     }, 800)
     return
   }
 
+  if (step.fillDemo) emit('set-input', DEMO_URL)
   setTimeout(() => {
+    if (!visible.value) return
     const el = document.querySelector(step.target)
     if (!el) {
       hole.w = 0
-      cardStyle.value = { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
+      centerCard()
       return
     }
     positionOnEl(el, false, step.cardSide ?? null)
   }, 0)
 
-  if (step.fillDemo) {
-    emit('set-input', DEMO_URL)
-    setTimeout(() => updatePosition(), 80)
-  }
 }
 
 async function next() {
@@ -409,8 +367,6 @@ function skip() {
   if (activeSteps.value[current.value]?.openMenu) closeSettingsMenu()
   emit('set-input', '')
   visible.value = false
-  document.documentElement.style.overflow = ''
-  window.scrollTo(0, 0)
   // 清除所有 tour 相關 key，包含 pending flag
   ;['tourDone', 'resultTourDone', 'aiTourDone', 'resultTourPending', 'aiTourPending'].forEach(k => localStorage.setItem(k, '1'))
   localStorage.removeItem('resultTourPending')
@@ -420,9 +376,14 @@ function skip() {
 function finish() {
   if (activeSteps.value[current.value]?.openMenu) closeSettingsMenu()
   visible.value = false
-  document.documentElement.style.overflow = ''
-  window.scrollTo(0, 0)
   localStorage.setItem(props.storageKey, '1')
+}
+
+function updateOnScroll() {
+  if (!visible.value) return
+  const step = activeSteps.value[current.value]
+  const el = step?.target && document.querySelector(step.target)
+  if (el) _doPosition(el, step.cardSide)
 }
 
 function onKeydown(e) {
@@ -432,27 +393,27 @@ function onKeydown(e) {
 }
 
 onMounted(() => {
-  // 確保初始狀態 overflow 乾淨
-  document.documentElement.style.overflow = ''
   if (!localStorage.getItem(props.storageKey)) {
-    window.scrollTo(0, 0)
-    visible.value = true
+      visible.value = true
     nextTick(() => updatePosition())
   }
   document.addEventListener('keydown', onKeydown)
+  window.addEventListener('resize', updatePosition)
+  window.addEventListener('scroll', updateOnScroll, { passive: true })
 })
 
 onUnmounted(() => {
+  visible.value = false
+  restoreOverflow()
   document.removeEventListener('keydown', onKeydown)
-  // 元件卸載時確保解鎖，避免殘留
-  document.documentElement.style.overflow = ''
+  window.removeEventListener('resize', updatePosition)
+  window.removeEventListener('scroll', updateOnScroll)
 })
 
 // 暴露 restart 方法，讓父元件可重播教學
 async function restart() {
   localStorage.removeItem(props.storageKey)
   current.value = 0
-  window.scrollTo(0, 0)
   visible.value = true
   await nextTick()
   updatePosition()
@@ -462,7 +423,7 @@ defineExpose({ restart })
 
 <style scoped>
 .tour-overlay {
-  position: fixed; inset: 0; z-index: 9500;
+  position: fixed; inset: 0; z-index: 10000;
   pointer-events: none; /* 讓目標元素可以被看到，但不可互動 */
 }
 
@@ -470,10 +431,12 @@ defineExpose({ restart })
 .tour-mask {
   position: fixed; inset: 0;
   width: 100vw; height: 100vh;
-  pointer-events: all; /* 點擊遮罩區域可跳過 */
+  pointer-events: none; /* Highlighted controls remain interactive. */
   cursor: pointer;
   z-index: 9500;
 }
+
+.tour-blocker { position:fixed; pointer-events:auto; z-index:9501; }
 
 .tour-card {
   position: fixed;
@@ -485,7 +448,7 @@ defineExpose({ restart })
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.28);
   z-index: 9502;
   pointer-events: all;
-  transition: top 0.3s ease, left 0.3s ease;
+  max-height:calc(100dvh - 32px); overflow-y:auto; overscroll-behavior:contain;
   box-sizing: border-box;
 }
 
@@ -507,7 +470,7 @@ defineExpose({ restart })
 
 .tour-desc {
   font-size: 14px; color: #4B5563; line-height: 1.65;
-  margin-bottom: 18px;
+  margin-bottom: 18px; white-space:pre-line;
 }
 [data-theme="dark"] .tour-desc { color: #9CA3AF; }
 
@@ -562,4 +525,19 @@ defineExpose({ restart })
 .tour-dot.active { background: #2D47E8; transform: scale(1.3); }
 [data-theme="dark"] .tour-dot { background: #2D3557; }
 [data-theme="dark"] .tour-dot.active { background: #6366f1; }
+
+.tour-icon { color:var(--primary, #2D47E8); display:flex; }
+[data-elder="true"] .tour-card { width:400px; padding:20px; }
+[data-elder="true"] .tour-title { font-size:26px; }
+[data-elder="true"] .tour-desc { font-size:20px; line-height:1.7; }
+[data-elder="true"] .tour-card button { min-height:48px; font-size:18px; }
+@media (max-height:600px) { .tour-icon { display:none; } .tour-card { padding:16px; } }
+
+.tour-btns { position:sticky; bottom:12px; background:var(--surface, #fff); padding:8px 0; }
+.tour-dots { position:sticky; bottom:0; background:var(--surface, #fff); padding:6px 0; }
+
+.tour-card {
+  transition:top 0.32s cubic-bezier(0.22, 1, 0.36, 1), left 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion:reduce) { .tour-card { transition:none; } }
 </style>

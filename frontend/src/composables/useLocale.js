@@ -30,31 +30,32 @@ const dict = {
   homeSub:           { zh: '把它貼過來，我幫你看看。',         en: "Paste it here — I'll check it for you." },
   clearInput:        { zh: '清除輸入',                        en: 'Clear input' },
   uploadImage:       { zh: '上傳圖片',                        en: 'Upload image' },
-  typeUrl:           { zh: '🔗 網址',                         en: '🔗 URL' },
-  typePhone:         { zh: '📞 電話',                         en: '📞 Phone' },
-  typeScreenshot:    { zh: '📸 截圖',                         en: '📸 Screenshot' },
+  typeText:          { zh: '文字', en: 'Text' },
+  typeUrl:           { zh: '網址',                         en: 'URL' },
+  typePhone:         { zh: '電話',                         en: 'Phone' },
+  typeScreenshot:    { zh: '截圖',                         en: 'Screenshot' },
   analyzing:         { zh: '分析中…',                          en: 'Analysing…' },
   checkNow:          { zh: '立即檢測',                        en: 'Check Now' },
-  elderHint:         { zh: '👆 輸入完畢？請按下「立即檢測」', en: '👆 Done? Press "Check Now"' },
+  elderHint:         { zh: '輸入完畢？請按下「立即檢測」', en: 'Done? Press "Check Now"' },
   scrollHint:        { zh: '台灣詐騙現況',                    en: 'Taiwan Scam Stats' },
   backTop:           { zh: '↑ 返回頂端',                      en: '↑ Back to Top' },
   statsTitle:        { zh: '您必須知道的',                    en: 'Numbers You Need to Know' },
   statsTitleSpan:    { zh: '詐騙數字',                        en: '' },
   statsSource:       { zh: '數據來源：',                      en: 'Source: ' },
   statsSourceLink:   { zh: '165打詐儀表板',                   en: '165 Anti-Scam Dashboard' },
-  todayLabel:        { zh: '📅 今日數據',                     en: "📅 Today's Stats" },
+  todayLabel:        { zh: '今日數據',                     en: " Today's Stats" },
   vsLastMonth:       { zh: '與上月比較',                      en: 'vs Last Month' },
   thisMonth:         { zh: '本月',                            en: 'This Mo.' },
   lastMonth:         { zh: '上月',                            en: 'Last Mo.' },
-  chartTitle:        { zh: '📈 近 6 個月詐騙趨勢',            en: '📈 6-Month Scam Trend' },
+  chartTitle:        { zh: '近 6 個月詐騙趨勢',            en: '6-Month Scam Trend' },
   chartCases:        { zh: '案件數',                          en: 'Cases' },
   chartLosses:       { zh: '損失金額',                        en: 'Losses' },
-  toastImagePaste:   { zh: '📷 圖片已貼上',                   en: '📷 Image pasted' },
-  toastNoContent:    { zh: '⚠️ 請先輸入內容或上傳圖片',       en: '⚠️ Please enter content or upload an image' },
-  toastInvalidPhone: { zh: '⚠️ 請輸入有效的電話號碼',          en: '⚠️ Please enter a valid phone number' },
-  toastNoData:       { zh: '📭 查無相關資料',                  en: '📭 No data found' },
-  toastCancelled:    { zh: '🚫 已取消檢測',                   en: '🚫 Check cancelled' },
-  toastNetworkErr:   { zh: '❌ 無法連接 API — 請確認網路連線', en: '❌ Cannot reach API — check your network' },
+  toastImagePaste:   { zh: '圖片已貼上',                   en: 'Image pasted' },
+  toastNoContent:    { zh: '請先輸入內容或上傳圖片',       en: 'Please enter content or upload an image' },
+  toastInvalidPhone: { zh: '請輸入有效的電話號碼',          en: 'Please enter a valid phone number' },
+  toastNoData:       { zh: '查無相關資料',                  en: 'No data found' },
+  toastCancelled:    { zh: '已取消檢測',                   en: 'Check cancelled' },
+  toastNetworkErr:   { zh: '無法連接 API — 請確認網路連線', en: 'Cannot reach API — check your network' },
   checkScroll:       { zh: '查看詐騙統計',                    en: 'View scam statistics' },
 
   analysisResult:  { zh: '分析結果',   en: 'Analysis Result' },
@@ -64,23 +65,23 @@ const dict = {
   safeZero:        { zh: '安全 0',     en: 'Safe 0' },
   highRisk100:     { zh: '100 高風險', en: '100 High Risk' },
   weightedScoreLabel: { zh: '綜合評分', en: 'Overall Score' },
-  wsFormula:       { zh: '（Gogolook×55% + AI×45%）', en: '(Gogolook×55% + AI×45%)' },
+  wsFormula:       { zh: '（核心辨識模型×55% + AI×45%）', en: '(Core Recognition Model×55% + AI×45%)' },
   riskScore:       { zh: '風險分數：', en: 'Risk Score: ' },
-  analysisReasons: { zh: '📋 分析原因', en: '📋 Analysis Reasons' },
+  analysisReasons: { zh: '分析原因', en: 'Analysis Reasons' },
   aiAnalysis:      { zh: 'AI 深度分析', en: 'AI Deep Analysis' },
   aiAnalyzing:     { zh: 'AI 正在分析中...', en: 'AI is analysing...' },
   aiRiskScore:     { zh: 'AI 風險評分', en: 'AI Risk Score' },
   aiScoreSuffix:   { zh: '分',          en: 'pts' },
-  proAdvice:       { zh: '🛡️ 專業對策建議', en: '🛡️ Professional Advice' },
-  immediateAction: { zh: '⚡ 立即行動',   en: '⚡ Immediate Action' },
-  doNotDo:         { zh: '🚫 絕對不要',   en: '🚫 Never Do This' },
-  reportSteps:     { zh: '📢 舉報步驟',   en: '📢 Reporting Steps' },
-  ifVictim:        { zh: '🔧 若已受騙',   en: '🔧 If Already Scammed' },
-  nextStepsTitle:  { zh: '🧭 下一步建議', en: '🧭 Next Steps' },
-  visitSite:       { zh: '🔗 前往此網站', en: '🔗 Visit This Site' },
-  visitScam:       { zh: '⚠️ 仍要前往此網站（不建議）', en: '⚠️ Visit Anyway (Not Recommended)' },
-  callNow:         { zh: '📞 一鍵撥打', en: '📞 Call Now' },
-  visitWarn:       { zh: '⚠️ 警告：', en: '⚠️ Warning: ' },
+  proAdvice:       { zh: '專業對策建議', en: 'Professional Advice' },
+  immediateAction: { zh: '立即行動',   en: 'Immediate Action' },
+  doNotDo:         { zh: '絕對不要',   en: 'Never Do This' },
+  reportSteps:     { zh: '舉報步驟',   en: 'Reporting Steps' },
+  ifVictim:        { zh: '若已受騙',   en: 'If Already Scammed' },
+  nextStepsTitle:  { zh: '下一步建議', en: 'Next Steps' },
+  visitSite:       { zh: '前往此網站', en: 'Visit This Site' },
+  visitScam:       { zh: '仍要前往此網站（不建議）', en: 'Visit Anyway (Not Recommended)' },
+  callNow:         { zh: '一鍵撥打', en: 'Call Now' },
+  visitWarn:       { zh: '警告：', en: 'Warning: ' },
   visitWarnMsg:    { zh: '此網站已被標記為詐騙，強烈不建議前往。', en: 'This site is flagged as a scam. Strongly discouraged.' },
   blockBtn:        { zh: '一鍵封鎖',     en: 'Block' },
   blockSub:        { zh: '加入黑名單，下次自動攔截', en: 'Blacklist & auto-block next time' },
@@ -100,12 +101,12 @@ const dict = {
   confirmEvidenceOk: { zh: '確認上傳', en: 'Upload' },
   scamFsTitle:     { zh: '您即將進入',  en: 'You are about to enter a' },
   scamFsTitleSpan: { zh: '詐騙網站',    en: 'Scam Site' },
-  scamFsBadge:     { zh: '⛔ 詐騙網站警告', en: '⛔ Scam Site Warning' },
+  scamFsBadge:     { zh: '詐騙網站警告', en: 'Scam Site Warning' },
   scamRisk1:       { zh: '您的銀行帳號、密碼可能被竊取',  en: 'Your bank account & password may be stolen' },
   scamRisk2:       { zh: '個人身分資料可能遭冒用',        en: 'Your personal identity may be misused' },
   scamRisk3:       { zh: '裝置可能被植入惡意程式',        en: 'Your device may be infected with malware' },
   scamRisk4:       { zh: '財產損失風險極高',              en: 'Very high risk of financial loss' },
-  scamLeave:       { zh: '✅ 離開，保護自己',             en: '✅ Leave & Stay Safe' },
+  scamLeave:       { zh: '離開，保護自己',             en: 'Leave & Stay Safe' },
   scamSlider:      { zh: '← 向右滑動以仍要前往（不建議）', en: '← Slide right to proceed anyway (not recommended)' },
 
   elderScam:       { zh: '此為詐騙！請不要點擊任何連結或輸入資料', en: 'This is a scam! Do not click links or enter data' },
@@ -137,12 +138,12 @@ const dict = {
   contributeNote:   { zh: '補充說明（選填）', en: 'Notes (optional)' },
   contributePlaceholder: { zh: '例如：曾收到詐騙簡訊、假冒銀行客服、廣告騷擾…', en: 'e.g. received a scam SMS, fake bank CS, spam calls…' },
   contributeSubmitting: { zh: '送出中…', en: 'Submitting…' },
-  contributeSubmit:     { zh: '📤 送出回報', en: '📤 Submit Report' },
-  contributeToastOk:    { zh: '✅ 感謝您的回報！', en: '✅ Thanks for your report!' },
-  contributeToastErr:   { zh: '❌ 送出失敗，請稍後再試', en: '❌ Submission failed, please try again' },
+  contributeSubmit:     { zh: '送出回報', en: 'Submit Report' },
+  contributeToastOk:    { zh: '感謝您的回報！', en: 'Thanks for your report!' },
+  contributeToastErr:   { zh: '送出失敗，請稍後再試', en: 'Submission failed, please try again' },
 
   visitedBack:      { zh: '← 離開此頁面',     en: '← Leave This Page' },
-  visitedNavTitle:  { zh: '⚠️ 詐騙網站警告', en: '⚠️ Scam Site Warning' },
+  visitedNavTitle:  { zh: '詐騙網站警告', en: 'Scam Site Warning' },
   visitedBannerTitle:  { zh: '您正在瀏覽詐騙網站', en: 'You are visiting a scam site' },
   visitedBannerSub:    { zh: '防詐雷達已偵測到此頁面為高風險詐騙內容，請立即離開', en: 'ScamRadar detected this page as high-risk scam content. Leave immediately.' },
   visitedAction1T:  { zh: '不要輸入任何個人資料', en: 'Do not enter any personal data' },
@@ -153,26 +154,26 @@ const dict = {
   visitedAction3S:  { zh: '不要執行任何來路不明的 .apk、.exe、.dmg 檔案', en: 'Do not run unknown .apk, .exe, or .dmg files' },
   visitedAction4T:  { zh: '截圖保存此頁面作為報案證據', en: 'Screenshot this page as evidence for reporting' },
   visitedAction4S:  { zh: '向警方報案時需要提供詐騙網站的網址與截圖', en: 'You will need the URL and screenshot when filing a police report' },
-  quickHelp:        { zh: '📞 快速求助',  en: '📞 Quick Help' },
+  quickHelp:        { zh: '快速求助',  en: 'Quick Help' },
   help165:          { zh: '165 反詐騙',   en: '165 Hotline' },
   help165Sub:       { zh: '24 小時專線', en: '24-hour hotline' },
   helpBank:         { zh: '聯絡銀行',    en: 'Contact Bank' },
   helpBankSub:      { zh: '卡片背面號碼', en: 'Number on card back' },
   helpPolice:       { zh: '報警 110',    en: 'Police 110' },
   helpPoliceSub:    { zh: '警察局報案',  en: 'File a report' },
-  leaveNow:         { zh: '✅ 立即離開此頁面', en: '✅ Leave This Page Now' },
-  evidencePanel:    { zh: '📁 一鍵回報證據', en: '📁 Submit Evidence' },
+  leaveNow:         { zh: '立即離開此頁面', en: 'Leave This Page Now' },
+  evidencePanel:    { zh: '一鍵回報證據', en: 'Submit Evidence' },
   crTypeLabel:      { zh: '詐騙類型',     en: 'Scam Type' },
   crDescLabel:      { zh: '補充說明（選填）', en: 'Notes (optional)' },
   crDescPlaceholder:{ zh: '例如：偽裝成玉山銀行登入頁面…', en: 'e.g. disguised as a bank login page…' },
-  crSubmit:         { zh: '📢 送出回報', en: '📢 Submit Report' },
+  crSubmit:         { zh: '送出回報', en: 'Submit Report' },
   crSuccess:        { zh: '感謝您的回報！', en: 'Thank you for your report!' },
   pillText:         { zh: '此為詐騙網站', en: 'This is a scam site' },
   blockNow:         { zh: '一鍵封鎖',    en: 'Block' },
   reportNow:        { zh: '一鍵通報',    en: 'Report' },
-  toast165:         { zh: '📞 撥打 165 反詐騙專線', en: '📞 Call 165 anti-scam hotline' },
-  toastBank:        { zh: '🏦 請撥打銀行卡片背面的客服電話', en: '🏦 Call the number on the back of your bank card' },
-  toastPolice:      { zh: '👮 撥打 110 或前往派出所報案', en: '👮 Call 110 or go to the nearest police station' },
+  toast165:         { zh: '撥打 165 反詐騙專線', en: 'Call 165 anti-scam hotline' },
+  toastBank:        { zh: '請撥打銀行卡片背面的客服電話', en: 'Call the number on the back of your bank card' },
+  toastPolice:      { zh: '撥打 110 或前往派出所報案', en: 'Call 110 or go to the nearest police station' },
 
   scamTypeBank:     { zh: '假冒銀行 / 金融機構',   en: 'Fake Bank / Financial Institution' },
   scamTypeGov:      { zh: '假冒政府機關',           en: 'Fake Government Agency' },
@@ -192,14 +193,14 @@ export function tRef(key) {
   return computed(() => t(key))
 }
 
-// Gogolook 固定字串對照表（中→英）
-const gogolookMap = {
+// 核心辨識模型 固定字串對照表（中→英）
+const coreModelMap = {
   '此為詐騙內容':           'Scam Content Detected',
   '此為可疑內容':           'Suspicious Content',
   '此為安全內容':           'Safe Content',
   '此為促銷內容':           'Promotional Content',
   '查無資料':               'No Data Found',
-  'Gogolook 信任分數':      'Gogolook Trust Score',
+  '核心辨識模型 信任分數':      'Core Recognition Model Trust Score',
   '網域註冊日期':           'Domain Registration Date',
   '網域註冊國家':           'Domain Registration Country',
   '此號碼為詐騙電話':       'Scam Phone Number',
@@ -222,17 +223,19 @@ const gogolookMap = {
 }
 
 /**
- * 翻譯後端回傳的動態字串（Gogolook reasons / label）
+ * 翻譯後端回傳的動態字串（核心辨識模型 reasons / label）
  * 英文模式下嘗試對照翻譯，找不到就原文回傳
  */
 export function translateBackend(text) {
-  if (!text || locale.value !== 'en') return text
+  if (!text || typeof text !== 'string') return text
+  text = text.replace(/gogolook/gi, '核心辨識模型')
+  if (locale.value !== 'en') return text
   // 完整比對
-  if (gogolookMap[text]) return gogolookMap[text]
-  // 部分替換（處理含冒號的格式，如「Gogolook 信任分數：1 / 100」）
+  if (coreModelMap[text]) return coreModelMap[text]
+  // 部分替換（處理含冒號的格式，如「核心辨識模型 信任分數：1 / 100」）
   let result = text
-  for (const [zh, en] of Object.entries(gogolookMap)) {
+  for (const [zh, en] of Object.entries(coreModelMap)) {
     result = result.replace(zh, en)
   }
-  return result
+  return result.replaceAll('核心辨識模型', 'Core Recognition Model')
 }

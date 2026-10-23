@@ -12,11 +12,14 @@ const saved = loadFromSession()
 
 export const resultState = reactive({
   data:      saved?.data      ?? null,
+  lastQuery: saved?.lastQuery ?? '',
   lastInput: saved?.lastInput ?? '',
   lastType:  saved?.lastType  ?? 'url',
 })
 
 // 每次資料變動時同步到 sessionStorage
 watch(resultState, (val) => {
-  sessionStorage.setItem('resultState', JSON.stringify(val))
+  try { sessionStorage.setItem('resultState', JSON.stringify(val)) } catch {
+    // Storage may be unavailable or full; keep the current result in memory.
+  }
 }, { deep: true })

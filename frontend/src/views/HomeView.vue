@@ -1,8 +1,8 @@
 ﻿<template>
-  <div class="page-wrap" :class="{ elder: isElder }">
+  <div class="page-wrap" :class="{ elder: isElder }" @paste="handlePaste">
 
     <!-- Navbar — 在 page-wrap 頂層，window scroll 才能控制 -->
-    <nav class="navbar" :class="{ hidden: navbarHidden }">
+    <nav ref="navbarRef" class="navbar" :class="{ hidden: navbarHidden }">
       <NavLogo />
       <div class="nav-actions">
         <!-- 下載 Chrome 插件按鈕（僅電腦版顯示） -->
@@ -18,47 +18,51 @@
         </a>
         <!-- 設定按鈕 -->
         <div class="settings-wrap" ref="settingsWrap">
-          <button class="settings-btn" :class="{ active: menuOpen }" @click="menuOpen = !menuOpen" :aria-label="t('settings')">
+          <button class="settings-btn" :class="{ active: menuOpen }" :aria-expanded="menuOpen" @click="menuOpen = !menuOpen" :aria-label="t('settings')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="3"/>
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
             </svg>
             <span class="settings-label">{{ t('settings') }}</span>
           </button>
-
-          <!-- 下拉選單 -->
-          <transition name="menu-drop">
+<transition name="menu-drop">
             <div class="settings-menu" v-if="menuOpen">
+
               <!-- 長輩模式 -->
-              <button class="menu-row" :class="{ active: isElder }" @click="toggleElder">
-                <span class="menu-icon">👴</span>
+              <button class="menu-row" :class="{ active: isElder }" :aria-pressed="isElder" @click="toggleElder">
+                <span class="menu-icon"><AppIcon name="accessibility" /></span>
                 <span class="menu-text">{{ t('elderMode') }}</span>
                 <span class="menu-pill" :class="{ on: isElder }"><span class="menu-knob"></span></span>
               </button>
               <!-- 深色/亮色 -->
               <button class="menu-row" :class="{ active: isDark }" @click="toggleTheme">
-                <span class="menu-icon">{{ isDark ? '🌙' : '☀️' }}</span>
+                <span class="menu-icon"><AppIcon :name="isDark ? 'moon' : 'sun'" /></span>
                 <span class="menu-text">{{ isDark ? t('darkMode') : t('lightMode') }}</span>
                 <span class="menu-pill" :class="{ on: isDark }"><span class="menu-knob"></span></span>
               </button>
               <button class="menu-row" :class="{ active: isTTSEnabled }" @click="toggleTTS">
-                <span class="menu-icon">🔊</span>
+                <span class="menu-icon"><AppIcon name="volume" /></span>
                 <span class="menu-text">{{ t('voiceRead') }}</span>
                 <span class="menu-pill" :class="{ on: isTTSEnabled }"><span class="menu-knob"></span></span>
               </button>
               <!-- 重播教學 -->
               <button class="menu-row" @click.stop="tourRef?.restart(); menuOpen = false">
-                <span class="menu-icon">🎓</span>
+                <span class="menu-icon"><AppIcon name="tour" /></span>
                 <span class="menu-text">{{ locale === 'en' ? 'Replay Tour' : '重播教學導覽' }}</span>
               </button>
             </div>
+
           </transition>
+
+          <!-- 下拉選單 -->
+
         </div>
       </div>
     </nav>
 
     <!-- ══ PAGE 1: Main input ══ -->
     <div class="page page-main">
+
 
       <!-- Glow bg -->
       <div class="glow-wrap" aria-hidden="true">
@@ -72,44 +76,28 @@
         <div class="content-inner">
         <header>
           <h1>{{ t('homeTitle') }}<br><span class="sub">{{ t('homeSub') }}</span></h1>
+          <p v-if="isElder" class="elder-instructions">{{ locale === 'en' ? '1. Paste a message or website, enter a phone number, or upload a picture. 2. Press Check now.' : '① 貼上訊息或網址、輸入電話或上傳圖片。② 按下「立即檢測」。' }}</p>
         </header>
 
         <!-- Input card -->
         <div class="input-card" :class="{ focused: isFocused }">
+          <input ref="fileInputRef" class="screenshot-file" type="file" accept="image/*" :disabled="isLoading || isProcessingImage" @change="pickFiles" hidden>
 
           <!-- Image preview row -->
-          <div class="img-row" v-if="images.length > 0">
+          <div class="img-row" v-if="detectedType === 'screenshot' && images.length > 0">
             <div class="img-thumb" v-for="(img, i) in images" :key="i"
                  @click="openPreview(img)"
             >
               <img :src="img.src" :alt="img.name">
-              <button class="img-remove" @click.stop="closePreview(); removeImage(i)">✕</button>
-              <div class="img-expand">🔍</div>
+              <button class="img-remove" :disabled="isLoading || isProcessingImage" :aria-label="locale === 'en' ? 'Remove screenshot' : '移除截圖'" @click.stop="closePreview(); removeImage(i)"><AppIcon name="close" /></button>
+              <div class="img-expand"><AppIcon name="search" /></div>
             </div>
           </div>
 
           <!-- Textarea — hidden when images are uploaded -->
-          <div class="textarea-wrap" v-if="!images.length">
-            <!-- 電話模式：國碼 + 輸入框同行 -->
+          <div class="textarea-wrap" v-if="detectedType !== 'screenshot'">
+            <!-- 原樣輸入電話或網址，不自動補國碼 -->
             <div class="input-row">
-              <transition name="cc-fade">
-                <div class="cc-prefix" v-if="detectedType === 'phone'">
-                  <div class="cc-btn" @click="openCCDrop($event)">
-                    <img class="cc-flag" :src="`https://flagcdn.com/24x18/${selectedCountry.code.toLowerCase()}.png`" :alt="selectedCountry.name">
-                    <span class="cc-dial">{{ selectedCountry.dial }}</span>
-                    <span class="cc-arrow">{{ showCCDrop ? '▲' : '▼' }}</span>
-                  </div>
-                  <Teleport to="body">
-                    <div class="cc-drop" v-if="showCCDrop" :style="ccDropStyle" @click.stop>
-                      <div v-for="c in countries" :key="c.code" class="cc-item" :class="{ active: c.code === selectedCountry.code }" @click="selectCountry(c)">
-                        <img class="cc-flag" :src="`https://flagcdn.com/24x18/${c.code.toLowerCase()}.png`" :alt="c.name">
-                        <span class="cc-item-name">{{ c.name }}</span>
-                        <span class="cc-item-dial">{{ c.dial }}</span>
-                      </div>
-                    </div>
-                  </Teleport>
-                </div>
-              </transition>
               <textarea
                 ref="textareaRef"
                 class="smart-input"
@@ -119,13 +107,11 @@
                 :disabled="isLoading"
                 @focus="isFocused = true"
                 @blur="isFocused = false"
-                @paste="handlePaste"
                 @input="onTextInput"
                 @compositionstart="isComposing = true"
                 @compositionend="onCompositionEnd"
                 @dblclick.prevent
-                @keydown.enter.prevent="doCheck"
-                @keydown.meta.enter.prevent="doCheck"
+                @keydown.enter="onInputEnter"
               ></textarea>
             </div><!-- /input-row -->
             <!-- 清除按鈕 — 右上角，有內容才顯示 -->
@@ -134,43 +120,42 @@
               class="clear-btn"
               :disabled="isLoading"
               :title="t('clearInput')"
-              @click="clearInput">
-              ✕
-            </button>
-            <div class="animated-placeholder" v-if="!inputText">
-              <transition name="ph-slide" mode="out-in">
+              @click="clearInput"><AppIcon name="close" /></button>
+            <div class="animated-placeholder" v-if="!inputText && !isComposing">
+              <span v-if="isElder">{{ locale === 'en' ? 'Enter a message, website, or phone number' : '在這裡貼上訊息、網址或輸入電話' }}</span>
+              <transition v-else name="ph-slide" mode="out-in">
                 <span :key="phIndex">{{ placeholders[phIndex] }}</span>
               </transition>
             </div>
             <!-- Camera button — bottom-right of textarea -->
-            <label class="camera-btn" :title="t('uploadImage')">
-              <input type="file" accept="image/*" multiple @change="pickFiles" style="display:none">
+            <button type="button" class="camera-btn" :aria-label="t('uploadImage')" :title="t('uploadImage')" :disabled="isLoading || isProcessingImage" @click="fileInputRef?.click()">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                 <circle cx="12" cy="13" r="4"/>
               </svg>
-            </label>
+              <span v-if="isElder">{{ locale === 'en' ? 'Upload picture' : '上傳圖片' }}</span>
+            </button>
+          </div>
+
+          <div v-if="detectedType === 'screenshot'" class="screenshot-upload">
+            <button type="button" class="screenshot-pick" :disabled="isLoading || isProcessingImage" @click="fileInputRef?.click()">
+              <AppIcon name="camera" :size="28" />
+              {{ isProcessingImage ? (locale === 'en' ? 'Preparing image…' : '正在處理圖片…') : images.length ? (locale === 'en' ? 'Replace screenshot' : '更換截圖') : (locale === 'en' ? 'Choose a screenshot' : '選擇截圖') }}
+            </button>
+            <p>{{ locale === 'en' ? 'One image per check, up to 10 MB. You can also paste an image.' : '每次分析一張圖片，上限 10 MB，也可以直接貼上圖片。' }}</p>
           </div>
 
           <!-- Bottom action row: detect badge left, send right -->
           <div class="action-row">
             <div class="action-left">
               <transition name="ph-slide" mode="out-in">
-                <div class="type-chips" v-if="inputText.trim() || images.length || detectedType === 'phone'" key="chips">
-                  <template v-if="images.length">
-                    <span class="type-chip active screenshot">{{ t('typeScreenshot') }}</span>
-                  </template>
-                  <template v-else>
-                    <button
-                      v-for="t in typeOptions" :key="t.value"
-                      class="type-chip"
-                      :class="{ active: detectedType === t.value, disabled: isLoading }"
-                      :data-type="t.value"
-                      :disabled="isLoading"
-                      @click="setForcedType(t.value)">
-                      {{ t.label }}
+                <div class="type-chips" key="chips">
+                    <button v-for="option in typeOptions" :key="option.value"
+                      class="type-chip" :class="{ active: detectedType === option.value }"
+                      :data-type="option.value" :aria-pressed="detectedType === option.value"
+                      :disabled="isLoading || isProcessingImage" @click="setForcedType(option.value)">
+                      <AppIcon :name="option.icon" :size="18" /> {{ option.label }}
                     </button>
-                  </template>
                 </div>
               </transition>
             </div>
@@ -188,9 +173,9 @@
                 v-else
                 class="send-btn"
                 :class="{ 'elder-pulse': isElder && (inputText.trim() || images.length) }"
-                :disabled="!inputText.trim() && !images.length && detectedType !== 'phone'"
+                :disabled="isProcessingImage || (detectedType === 'screenshot' ? !images.length : !inputText.trim())"
                 @click="doCheck">
-                <span>🔍</span>
+                <AppIcon name="search" :size="isElder ? 28 : 20" />
                 <span>{{ t('checkNow') }}</span>
               </button>
             </div>
@@ -201,7 +186,12 @@
       </div><!-- /main-content -->
 
       <!-- Scroll-down arrow — 長輩模式隱藏 -->
-      <button class="scroll-arrow" v-if="!isElder" @click="scrollToStats" :aria-label="t('checkScroll')">
+      <button class="scroll-arrow" v-if="!isElder"
+        :style="{ opacity: scrollHintOpacity }"
+        :class="{ 'is-faded': scrollHintOpacity === 0 }"
+        :aria-hidden="scrollHintOpacity === 0 ? 'true' : undefined"
+        :tabindex="scrollHintOpacity === 0 ? -1 : 0"
+        @click="scrollToStats" :aria-label="t('checkScroll')">
         <span class="sa-text">{{ t('scrollHint') }}</span>
         <span class="sa-icon">↓</span>
       </button>
@@ -275,7 +265,7 @@
 
       <!-- 四張小卡：今日數據（獨立，不受月份切換影響）-->
       <div class="today-section" v-if="todayCards.length">
-        <div class="today-label">{{ t('todayLabel') }}</div>
+        <div class="today-label"><AppIcon name="calendar" /> {{ t('todayLabel') }}</div>
         <div class="mini-cards">
           <div
             v-for="(s, i) in todayCards"
@@ -284,7 +274,7 @@
             :class="['mini-card--' + s.color, { visible: statsVisible }]"
             :style="{ transitionDelay: (i * 100 + 450) + 'ms' }">
             <div class="mc-top">
-              <span class="mc-icon">{{ s.icon }}</span>
+              <span class="mc-icon"><AppIcon :name="s.icon" /></span>
             </div>
             <div class="mc-num">{{ s.current }}</div>
             <div class="mc-label">{{ s.title }}</div>
@@ -295,7 +285,7 @@
       <!-- 折線圖區塊 -->
       <div class="chart-section" v-if="chartData.length">
         <div class="chart-header">
-          <div class="chart-title">{{ t('chartTitle') }}</div>
+          <div class="chart-title"><AppIcon name="chart" /> {{ t('chartTitle') }}</div>
           <div class="chart-tabs">
             <button class="chart-tab" :class="{ active: chartMode === 'cases' }" @click="chartMode = 'cases'">{{ t('chartCases') }}</button>
             <button class="chart-tab" :class="{ active: chartMode === 'losses' }" @click="chartMode = 'losses'">{{ t('chartLosses') }}</button>
@@ -334,6 +324,10 @@
 </template>
 
 <script setup>
+import { prepareScreenshot } from '../utils/screenshot.js'
+import AppIcon from '../components/AppIcon.vue'
+import { getAnalysisReasons } from '../utils/analysisReasons.js'
+import { normalizePhone } from '../services/api.js'
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { Chart, registerables } from 'chart.js'
 Chart.register(...registerables)
@@ -351,65 +345,26 @@ const { isDark, toggle: toggleTheme } = useTheme()
 const { isElder, toggle: toggleElder } = useElder()
 const { locale, toggle: toggleLocale } = useLocale()
 
+const navbarRef = ref(null)
 const isFocused   = ref(false)
 const inputText   = ref('')
 const images      = ref([])
+const fileInputRef = ref(null)
+const isProcessingImage = ref(false)
 const isLoading   = ref(false)
 let abortController = null // 用於取消進行中的 fetch 請求
 const phoneIsValid = ref(false)
 const phoneE164    = ref('')
 
-// 國碼選擇器
-const countries = computed(() => {
-  const en = locale.value === 'en'
-  return [
-    { dial: '+886', name: en ? 'Taiwan'    : '台灣',   code: 'TW' },
-    { dial: '+86',  name: en ? 'China'     : '中國',   code: 'CN' },
-    { dial: '+852', name: en ? 'Hong Kong' : '香港',   code: 'HK' },
-    { dial: '+853', name: en ? 'Macau'     : '澳門',   code: 'MO' },
-    { dial: '+1',   name: en ? 'USA'       : '美國',   code: 'US' },
-    { dial: '+81',  name: en ? 'Japan'     : '日本',   code: 'JP' },
-    { dial: '+82',  name: en ? 'Korea'     : '韓國',   code: 'KR' },
-    { dial: '+65',  name: en ? 'Singapore' : '新加坡', code: 'SG' },
-  ]
-})
-const selectedCountry = ref({ dial: '+886', name: '台灣', code: 'TW' })
-const showCCDrop      = ref(false)
-const ccDropStyle     = ref({})
-const ccBtnEl         = ref(null)  // 記住觸發按鈕的 DOM 元素
-
-function updateCCDropPos() {
-  if (!ccBtnEl.value || !showCCDrop.value) return
-  const rect = ccBtnEl.value.getBoundingClientRect()
-  ccDropStyle.value = {
-    top:  (rect.bottom + 4) + 'px',
-    left: rect.left + 'px',
-  }
-}
-
-function openCCDrop(e) {
-  if (isLoading.value) return
-  if (showCCDrop.value) { showCCDrop.value = false; return }
-  ccBtnEl.value = e.currentTarget
-  const rect = e.currentTarget.getBoundingClientRect()
-  ccDropStyle.value = {
-    top:  (rect.bottom + 4) + 'px',
-    left: rect.left + 'px',
-  }
-  showCCDrop.value = true
-}
-
-function selectCountry(c) {
-  selectedCountry.value = c
-  showCCDrop.value = false
-}
 const phoneMode   = ref(false)  // 鎖定電話模式，避免格式化字串干擾
 const forcedType  = ref(null)   // 使用者手動選擇的類型（null = 自動偵測）
 
 // 類型選項 — reactive to locale
 const typeOptions = computed(() => [
-  { value: 'url',   label: t('typeUrl')   },
-  { value: 'phone', label: t('typePhone') },
+  { value: 'url',   label: t('typeUrl'), icon: 'link' },
+  { value: 'text',  label: t('typeText'), icon: 'edit' },
+  { value: 'phone', label: t('typePhone'), icon: 'phone' },
+  { value: 'screenshot', label: t('typeScreenshot'), icon: 'camera' },
 ])
 
 function setForcedType(val) {
@@ -429,7 +384,7 @@ function setForcedType(val) {
 
 // ── Detection regex ──
 // 支援：+886-912-345-678、+886912345678、0912-345-678、(02)1234-5678 等
-const PHONE_RE = /^(\+\d{1,3}[\s\-]?\d{1,14}$|(\+\d{1,3}[\s\-]?)?\(?\d{2,4}\)?[\s\-]?\d{3,4}[\s\-]?\d{3,4})/
+const PHONE_RE = /^(\+\d{1,3}[\s\-]?\d{1,14}|(\+\d{1,3}[\s\-]?)?\(?\d{2,4}\)?[\s\-]?\d{3,4}[\s\-]?\d{3,4})$/
 const URL_RE   = /^(https?:\/\/|www\.|[a-zA-Z0-9]([a-zA-Z0-9\-]*\.)+[a-zA-Z]{2,})/
 
 function onPhoneInput(val) {
@@ -448,22 +403,16 @@ function onPhoneValid({ isValid, e164 }) {
   phoneE164.value    = e164
 }
 
-// textarea 輸入時偵測電話格式，符合就鎖定 phoneMode
+// 清空輸入時重置手動選擇；一般輸入由 detectedType 即時判斷。
 watch(inputText, (val) => {
   // 文字清空時重置電話模式
   if (!val.trim()) {
     phoneMode.value    = false
-    forcedType.value   = null
     phoneIsValid.value = false
     phoneE164.value    = ''
     return
   }
-  if (phoneMode.value) return
-  const t = val.trim().replace(/[-\s()]/g, '')
-  if (PHONE_RE.test(t)) {
-    phoneMode.value  = true
-    forcedType.value = 'phone'
-  }
+
 })
 
 const textareaRef = ref(null)
@@ -482,16 +431,16 @@ const toastType    = ref('')
 let toastTimer = null
 
 const detectedType = computed(() => {
-  if (images.value.length > 0) return 'screenshot'
   if (forcedType.value) return forcedType.value   // 手動選擇優先
+  if (images.value.length > 0) return 'screenshot'
   if (phoneMode.value) return 'phone'
   const t = inputText.value.trim()
   if (!t) return 'url'
   if (PHONE_RE.test(t.replace(/[-\s()]/g, ''))) return 'phone'
   if (URL_RE.test(t)) return 'url'
-  return 'url'
+  return 'text'
 })
-const detectLabel = computed(() => ({ url: '🔗 網址', phone: '📞 電話號碼', screenshot: '📸 截圖' }[detectedType.value]))
+const detectLabel = computed(() => ({ url: ' 網址', phone: ' 電話號碼', screenshot: ' 截圖', text: '文字' }[detectedType.value]))
 
 function autoResize() {
   const el = textareaRef.value
@@ -505,68 +454,45 @@ function autoResize() {
   el.style.height = Math.min(el.scrollHeight, 220) + 'px'
 }
 
-// 過濾中文字元（CJK 統一漢字、注音、全形等）
-const CJK_RE = /[\u2E80-\u2FFF\u3000-\u303F\u3040-\u30FF\u3100-\u312F\u3200-\u32FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFFEF]/g
-
-function stripCJK(str) {
-  return str.replace(CJK_RE, '')
+function onInputEnter(event) {
+  if (event.isComposing || isComposing.value) return
+  if ((detectedType.value === 'text' || event.shiftKey) && !event.metaKey && !event.ctrlKey) return
+  event.preventDefault()
+  doCheck()
 }
 
 function onTextInput() {
-  // 電話模式：只允許數字和 +、-、空格、括號，最多 15 碼
-  if (detectedType.value === 'phone') {
-    let filtered = inputText.value.replace(/[^\d\+\-\s\(\)]/g, '')
-    const digits = filtered.replace(/\D/g, '')
-    if (digits.length > 15) {
-      // 截斷到 15 個數字
-      let count = 0
-      filtered = filtered.split('').filter(c => {
-        if (/\d/.test(c)) { count++; return count <= 15 }
-        return true
-      }).join('')
-    }
-    if (filtered !== inputText.value) inputText.value = filtered
-  }
+  // Preserve Chinese, punctuation and mixed text, including during IME input.
   autoResize()
 }
 
 function onCompositionEnd() {
   isComposing.value = false
-  // 組字結束後過濾（手機輸入法確認輸入時）
-  const filtered = stripCJK(inputText.value)
-  if (filtered !== inputText.value) inputText.value = filtered
   autoResize()
 }
 
-// watch inputText — 非組字期間即時過濾 CJK（涵蓋手機直接輸入情境）
-watch(inputText, (val) => {
-  if (isComposing.value) return
-  const filtered = stripCJK(val)
-  if (filtered !== val) inputText.value = filtered
-})
-
 // ── Images ──
-function pickFiles(e) { Array.from(e.target.files).forEach(addImageFile); e.target.value = '' }
-function addImageFile(file) {
-  if (!file || !file.type.startsWith('image/')) return
-  // 統一轉成 JPEG，確保後端相容
-  const img = new Image()
-  const url = URL.createObjectURL(file)
-  img.onload = () => {
-    const canvas = document.createElement('canvas')
-    canvas.width  = img.naturalWidth
-    canvas.height = img.naturalHeight
-    canvas.getContext('2d').drawImage(img, 0, 0)
-    const jpeg = canvas.toDataURL('image/jpeg', 0.92)
-    URL.revokeObjectURL(url)
-    images.value.push({ src: jpeg, file, name: file.name })
-  }
-  img.src = url
+function pickFiles(e) {
+  const file = e.target.files?.[0]
+  e.target.value = ''
+  if (file) addImageFile(file)
+}
+async function addImageFile(file) {
+  if (isLoading.value || isProcessingImage.value) return
+  isProcessingImage.value = true
+  try {
+    const prepared = await prepareScreenshot(file)
+    images.value = [prepared]
+    forcedType.value = 'screenshot'
+    closePreview()
+  } catch {
+    showToast(locale.value === 'en' ? 'Cannot read image. Choose an image smaller than 10 MB.' : '無法讀取圖片，請選擇小於 10 MB 的圖片。', 'err')
+  } finally { isProcessingImage.value = false }
 }
 function removeImage(i) { images.value.splice(i, 1) }
-async function handlePaste(e) {
-  const imgs = Array.from(e.clipboardData?.items || []).filter(it => it.type.startsWith('image/'))
-  if (imgs.length) { e.preventDefault(); imgs.forEach(it => addImageFile(it.getAsFile())); showToast(t('toastImagePaste'), 'ok') }
+function handlePaste(e) {
+  const item = Array.from(e.clipboardData?.items || []).find(it => it.type.startsWith('image/'))
+  if (item) { e.preventDefault(); addImageFile(item.getAsFile()) }
 }
 
 const previewImg  = ref(null)
@@ -608,6 +534,8 @@ let phTimer = null
 
 // ── Check ──
 async function doCheck() {
+  if (isComposing.value) return
+  if (isLoading.value || isProcessingImage.value) return
   const type = detectedType.value
   // 電話模式：直接檢查輸入框有無內容
   if (type === 'phone' && !inputText.value.trim()) {
@@ -616,14 +544,18 @@ async function doCheck() {
   }
   // 截圖模式：取第一張圖的 base64（含 data:image/... 前綴）
   const rawQ = type === 'phone'
-    ? (selectedCountry.value.dial + inputText.value.trim().replace(/\D/g, ''))
+    ? normalizePhone(inputText.value)
     : type === 'screenshot'
       ? (images.value[0]?.src ?? '')
       : inputText.value.trim()
   if (!rawQ) { showToast(t('toastNoContent'), 'err'); return }
 
   // 檢查黑名單
-  const blocked = JSON.parse(localStorage.getItem('blocklist') || '[]')
+  let blocked = []
+  try {
+    const saved = JSON.parse(localStorage.getItem('blocklist') || '[]')
+    if (Array.isArray(saved)) blocked = saved
+  } catch { /* Ignore unavailable storage or malformed saved data. */ }
   if (blocked.includes(rawQ)) {
     router.push({ path: '/blocked', query: { q: rawQ } })
     return
@@ -631,12 +563,13 @@ async function doCheck() {
   isLoading.value = true
   abortController = new AbortController()
   try {
-    const data = await autoCheck(rawQ, type, '+886', abortController.signal, locale.value)
-    if (!data.level || (!data.reasons?.length && !data.label)) {
+    const data = await autoCheck(rawQ, type, undefined, abortController.signal, locale.value)
+    if (!data.level || (!getAnalysisReasons(data, type).length && !data.label)) {
       showToast(t('toastNoData'), 'ok'); return
     }
     // 截圖模式顯示檔名，避免 base64 字串塞爆結果頁
     const displayInput = type === 'screenshot' ? (images.value[0]?.name ?? (locale.value === 'en' ? 'Screenshot' : '截圖')) : rawQ
+    resultState.lastQuery = rawQ
     resultState.data = data; resultState.lastInput = displayInput; resultState.lastType = type
     router.push('/result')
   } catch (err) {
@@ -681,14 +614,15 @@ function onTourSetInput(val) {
 async function checkHealth() {
   // AWS Lambda 不需要 health check，直接標記為上線
   apiOnline.value = true
-  apiStatusText.value = 'API 連線正常 ✓'
+  apiStatusText.value = 'API 連線正常 '
 }
 
 // ── Scroll ──
 function scrollToStats() {
   if (!statsPage.value) return
-  // 補償 fixed navbar 高度（44px）
-  const top = statsPage.value.getBoundingClientRect().top + window.scrollY - 44
+  // Use the rendered navbar height so the section stays clear when it reappears.
+  const navbarHeight = navbarRef.value?.offsetHeight ?? 56
+  const top = Math.max(0, statsPage.value.getBoundingClientRect().top + window.scrollY - navbarHeight)
   window.scrollTo({ top, behavior: 'smooth' })
 }
 function scrollToMain()  { window.scrollTo({ top: 0, behavior: 'smooth' }) }
@@ -711,20 +645,9 @@ async function loadStats() {
     statsTabIndex.value = Math.max(0, statsPeriods.value.length - 1)
   } catch {
     statsError.value = true
-    // 載入失敗時顯示備用靜態資料
-    statsPeriods.value = [{
-      label: '115年2月',
-      cards: [
-        { icon:'💸', title:'本月財產損失金額（元）', current:'46 億 4,000 萬', currentRaw:464000, last:'39 億 2,000 萬', lastRaw:392000, change:18.4, color:'red' },
-        { icon:'🎣', title:'本月案件受理數（件）',   current:'7,792',          currentRaw:7792,   last:'6,601',         lastRaw:6601,   change:18.0, color:'orange' },
-      ]
-    }]
-    todayCards.value = [
-      { icon:'📅', title:'今日詐騙案件數',   current:'約 260 件',   currentRaw:260,  last:null, lastRaw:null, change:null, color:'orange' },
-      { icon:'💰', title:'今日損失金額',     current:'約 1,547 萬', currentRaw:1547, last:null, lastRaw:null, change:null, color:'red'    },
-      { icon:'🚨', title:'累計詐騙通報件數', current:'93,504 件',   currentRaw:93504,last:null, lastRaw:null, change:null, color:'blue'   },
-      { icon:'🏆', title:'今日最常見詐騙手法',current:'網路購物詐騙',currentRaw:null, last:null, lastRaw:null, change:null, color:'orange' },
-    ]
+    statsPeriods.value = []
+    todayCards.value = []
+    showToast(locale.value === 'en' ? 'Statistics unavailable' : '統計資料暫時無法載入', 'err')
     statsTabIndex.value = 0
   }
 }
@@ -876,21 +799,24 @@ function onClickOutside(e) {
   if (settingsWrap.value && !settingsWrap.value.contains(e.target)) {
     menuOpen.value = false
   }
-  // 點擊 cc-drop 以外的地方就關閉
-  if (!e.target.closest('.cc-prefix') && !e.target.closest('.cc-drop')) {
-    showCCDrop.value = false
-  }
 }
+function getScrollHintOpacity(y) {
+  // Keep the cue visible during a small scroll, then fade across a longer distance.
+  return Math.max(0, 1 - Math.max(0, y - 80) / 360)
+}
+const scrollHintOpacity = ref(getScrollHintOpacity(window.scrollY))
 const navbarHidden = ref(false)
+watch(isElder, enabled => { if (enabled) navbarHidden.value = false })
 let lastScrollY = 0
 let scrollStopTimer = null
 
 function onScroll() {
-  const y = window.scrollY
-  // 國碼下拉選單跟著捲動
-  updateCCDropPos()
-  // 往下滾超過 60px 就隱藏
-  if (y > lastScrollY && y > 60) {
+  const y = Math.max(0, window.scrollY)
+  scrollHintOpacity.value = getScrollHintOpacity(y)
+  // Reveal immediately while returning upward, including during smooth scrolling.
+  if (menuOpen.value || isElder.value || y <= 60 || y < lastScrollY) {
+    navbarHidden.value = false
+  } else if (y > lastScrollY) {
     navbarHidden.value = true
   }
   lastScrollY = y
@@ -915,6 +841,7 @@ onMounted(() => {
 onUnmounted(() => {
   clearInterval(healthTimer)
   clearTimeout(toastTimer)
+  clearTimeout(scrollStopTimer)
   clearInterval(phTimer)
   observer?.disconnect()
   if (chartInstance) { chartInstance.destroy(); chartInstance = null }
@@ -926,14 +853,20 @@ onUnmounted(() => {
 
 <style scoped>
 /* ── Base ── */
-.page-wrap { background:var(--bg); color:var(--text); transition:background 0.25s,color 0.25s; overflow-x:hidden; }
+.page-wrap { --navbar-height:56px; background:var(--bg); color:var(--text); transition:background 0.25s,color 0.25s; overflow-x:clip; }
 
 /* ── Two full-height pages ── */
-.page { min-height:100vh; position:relative; display:flex; flex-direction:column; overflow-x:clip; }
-.page-main { padding-top:44px; } /* 補償 fixed navbar 高度 */
+.page { min-height:100vh; min-height:100svh; position:relative; display:flex; flex-direction:column; isolation:isolate; }
+.page > :not(.glow-wrap) { flex-shrink:0; }
+.page-main { padding-top:var(--navbar-height); } /* 補償 fixed navbar 高度 */
 
 /* ── Glow background ── */
-.glow-wrap { position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:0; }
+.glow-wrap {
+  position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:0;
+  /* Fade the blurred light itself before it reaches a section boundary. */
+  -webkit-mask-image:linear-gradient(to bottom, transparent, #000 120px, #000 calc(100% - 120px), transparent);
+  mask-image:linear-gradient(to bottom, transparent, #000 120px, #000 calc(100% - 120px), transparent);
+}
 .glow { position:absolute; border-radius:50%; filter:blur(90px); opacity:0; animation:glowIn 1.2s ease forwards; }
 
 /* Page 1 glows */
@@ -948,7 +881,7 @@ onUnmounted(() => {
 @keyframes glowIn { from{opacity:0} to{opacity:1} }
 
 /* ── Navbar ── */
-.navbar { background:var(--navbar-bg); padding:10px 16px; display:flex; align-items:center; gap:12px; transition:background 0.25s, transform 0.18s cubic-bezier(0.4,0,0.2,1); position:fixed; top:0; left:0; right:0; width:100%; box-sizing:border-box; z-index:200; height:56px; }
+.navbar { background:var(--navbar-bg); padding:10px 16px; display:flex; align-items:center; gap:12px; transition:background 0.25s, transform 0.18s cubic-bezier(0.4,0,0.2,1); position:fixed; top:0; left:0; right:0; width:100%; box-sizing:border-box; z-index:200; height:var(--navbar-height); }
 .navbar.hidden { transform:translateY(-100%); }
 .nav-title { color:rgba(255,255,255,0.9); font-size:15px; font-weight:700; user-select:none; }
 .nav-logo { height:44px; user-select:none; }
@@ -992,7 +925,7 @@ onUnmounted(() => {
 .menu-lang-badge { font-size:12px; font-weight:900; color:var(--primary); background:rgba(45,71,232,0.1); border-radius:6px; padding:2px 7px; flex-shrink:0; }
 
 /* ── Main content ── */
-.main-content { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px 20px 0; position:relative; z-index:1; }
+.main-content { flex:1 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px 20px 0; position:relative; z-index:1; }
 .content-inner { display:flex; flex-direction:column; align-items:center; gap:14px; width:100%; max-width:720px; }
 header { text-align:center; flex-shrink:0; }
 .input-card { flex-shrink:0; }
@@ -1108,10 +1041,8 @@ header h1 span { color:var(--primary); }
 .type-chip  { padding:4px 12px; border-radius:100px; border:1.5px solid var(--border); background:var(--surface2); color:var(--text-sub); font-size:12px; font-weight:700; cursor:pointer; transition:all 0.18s; white-space:nowrap; }
 .type-chip:hover  { border-color:var(--primary); color:var(--primary); }
 .type-chip.disabled, .type-chip:disabled { opacity:0.45; cursor:not-allowed; pointer-events:none; }
-/* 網址 — 藍 */
-.type-chip.active[data-type="url"],
-.type-chip.active[data-type="phone"],
-.type-chip.active.screenshot { background:#dce4ff; border-color:#4d6ef5; color:#2D47E8; }
+/* Every detected or selected type has the same visible active state. */
+.type-chip.active { background:#dce4ff; border-color:#4d6ef5; color:#2D47E8; }
 .page-wrap.elder .type-chip { font-size:15px; padding:5px 16px; }
 
 /* Action row — detect badge left, send right */
@@ -1149,20 +1080,21 @@ header h1 span { color:var(--primary); }
 /* ── Scroll arrow ── */
 .scroll-arrow {
   position:relative; z-index:1;
-  margin: auto auto 28px;
+  margin: 24px auto 28px;
   display:flex; flex-direction:column; align-items:center; gap:4px;
   background:none; border:none; cursor:pointer;
   color:var(--text-muted);
   animation: bounce 2s ease-in-out infinite;
-  transition:color 0.2s;
+  transition:color 0.2s, opacity 0.15s linear;
 }
+.scroll-arrow.is-faded { pointer-events:none; animation-play-state:paused; }
 .scroll-arrow:hover { color:var(--primary); }
 .sa-text { font-size:12px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; }
 .sa-icon { font-size:22px; line-height:1; }
 @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
 
 /* ══ PAGE 2: STATS ══ */
-.page-stats { background:var(--bg); padding:0 20px 40px; align-items:center; gap: 12px; display: flex; flex-direction: column; min-height:100vh; overflow:visible; }
+.page-stats { background:transparent; padding:0 20px 40px; align-items:center; gap: 12px; display: flex; flex-direction: column; scroll-margin-top:var(--navbar-height); }
 
 .stats-header { text-align:center; padding:64px 20px 20px; position:relative; z-index:1; }
 .stats-badge { display:inline-block; background:var(--primary-light); color:var(--primary); border:1.5px solid rgba(45,71,232,0.25); border-radius:100px; padding:6px 18px; font-size:12px; font-weight:700; letter-spacing:1px; margin-bottom:14px; }
@@ -1433,4 +1365,51 @@ header h1 span { color:var(--primary); }
   .mini-cards { grid-template-columns: 1fr 1fr; }
   .hc-num { font-size:20px; }
 }
+
+/* Large, stable controls keep the main task easy to follow. */
+.page-wrap.elder header h1 { font-size:clamp(28px, 5vw, 38px); }
+.elder-instructions { max-width:680px; margin-top:18px; font-size:22px; line-height:1.8; text-align:left; }
+.page-wrap.elder .content-inner { gap:24px; }
+.page-wrap.elder .smart-input { font-size:26px; min-height:150px; line-height:1.8; }
+.page-wrap.elder .animated-placeholder { font-size:22px; }
+.page-wrap.elder .textarea-wrap { padding-bottom:76px; }
+.page-wrap.elder .action-row { flex-direction:column; align-items:stretch; gap:18px; padding:8px 18px 22px; }
+.page-wrap.elder .action-right { width:100%; }
+.page-wrap.elder .send-btn, .page-wrap.elder .cancel-btn { width:100%; min-height:64px; font-size:26px; padding:16px; animation:none; }
+.page-wrap.elder .type-chips { flex-wrap:wrap; }
+.page-wrap.elder .type-chip { min-height:48px; font-size:20px; padding:10px 18px; }
+.page-wrap.elder .camera-btn { width:auto; min-height:52px; padding:10px 14px; gap:10px; font-size:20px; color:var(--text); }
+.page-wrap.elder .camera-btn svg { width:24px; height:24px; }
+.page-wrap.elder .clear-btn { width:44px; height:44px; font-size:22px; }
+.page-wrap.elder .hero-cards, .page-wrap.elder .mini-cards { grid-template-columns:1fr; }
+.page-wrap.elder .hc-label, .page-wrap.elder .mc-label, .page-wrap.elder .today-label { font-size:20px; }
+.page-wrap.elder .hc-num, .page-wrap.elder .mc-num { font-size:30px; line-height:1.4; }
+
+/* Keep enlarged setting labels and switches inside the panel. */
+.settings-menu {
+  width:min(320px, calc(100vw - 32px)); min-width:0;
+  max-height:calc(100vh - 80px); max-height:calc(100dvh - 80px);
+  overflow-y:auto; overscroll-behavior:contain;
+}
+.settings-menu .menu-row { min-width:0; gap:12px; }
+.settings-menu .menu-text { min-width:0; white-space:normal; overflow-wrap:anywhere; line-height:1.5; }
+.settings-menu .menu-icon { width:24px; flex:0 0 24px; }
+.settings-menu .menu-pill, .settings-menu .menu-lang-badge { flex-shrink:0; }
+
+.settings-menu { top:calc(100% + 24px); }
+
+.settings-menu .menu-icon { display:flex; align-items:center; justify-content:center; }
+
+.type-chips { flex-wrap:wrap; }
+.type-chip { display:inline-flex; align-items:center; gap:6px; }
+.action-row { flex-wrap:wrap; }
+.screenshot-upload { padding:18px; text-align:center; }
+.screenshot-pick { width:100%; background:transparent; font:inherit; display:flex; justify-content:center; align-items:center; gap:10px; padding:20px; border:2px dashed var(--border); border-radius:14px; cursor:pointer; color:var(--text); }
+.screenshot-pick input { display:none; }
+.screenshot-upload p { font-size:14px; color:var(--text-muted); margin-top:10px; }
+.img-row { justify-content:center; }
+.img-thumb { width:min(100%, 360px); height:220px; }
+.img-thumb img { object-fit:contain; }
+.page-wrap.elder .screenshot-pick { font-size:24px; }
+.page-wrap.elder .screenshot-upload p { font-size:20px; }
 </style>

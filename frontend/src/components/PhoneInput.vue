@@ -20,7 +20,7 @@
       ref="inputRef"
       class="phone-input"
       type="text"
-      inputmode="text"
+      inputmode="tel"
       :value="display"
       placeholder="請輸入電話號碼"
       aria-label="電話號碼輸入"
@@ -37,11 +37,12 @@
       :disabled="disabled"
       @mousedown.prevent
       @click="clearPhone"
-      title="清除">✕</button>
+      title="清除" aria-label="清除電話"><AppIcon name="close" /></button>
   </div>
 </template>
 
 <script setup>
+import AppIcon from './AppIcon.vue'
 import { ref, computed, onMounted } from 'vue'
 
 const props = defineProps({
@@ -116,7 +117,7 @@ function onInput(e) {
   rawDigits.value = digits
   if (e.target.value !== digits) e.target.value = digits
 
-  const e164 = selected.value.dial + rawDigits.value
+  const e164 = rawDigits.value ? selected.value.dial + (['+886', '+81', '+82'].includes(selected.value.dial) ? rawDigits.value.replace(/^0/, '') : rawDigits.value) : ''
   emit('update:modelValue', rawDigits.value || '')
   emit('valid', { isValid: rawDigits.value.length === selected.value.maxLen, e164 })
 }
@@ -127,8 +128,9 @@ function select(c) {
   userPickedCountry.value = true  // 鎖定，不再自動切換
   rawDigits.value = rawDigits.value.slice(0, c.maxLen)
   inputRef.value?.focus()
-  const e164 = c.dial + rawDigits.value
-  emit('valid', { isValid: rawDigits.value.length >= 6, e164 })
+  const e164 = rawDigits.value ? c.dial + (['+886', '+81', '+82'].includes(c.dial) ? rawDigits.value.replace(/^0/, '') : rawDigits.value) : ''
+  emit('update:modelValue', rawDigits.value)
+  emit('valid', { isValid: rawDigits.value.length === c.maxLen, e164 })
 }
 
 function clearPhone() {
@@ -143,7 +145,7 @@ onMounted(() => {
   if (!props.noAutoFocus) inputRef.value?.focus()
   // 初始值帶入時，主動 emit 一次 valid 狀態
   if (rawDigits.value) {
-    const e164 = selected.value.dial + rawDigits.value
+    const e164 = rawDigits.value ? selected.value.dial + (['+886', '+81', '+82'].includes(selected.value.dial) ? rawDigits.value.replace(/^0/, '') : rawDigits.value) : ''
     emit('valid', { isValid: rawDigits.value.length === selected.value.maxLen, e164 })
   }
 })

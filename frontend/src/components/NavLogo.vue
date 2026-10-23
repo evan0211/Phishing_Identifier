@@ -1,5 +1,5 @@
 <template>
-  <div class="nl" @click="$router.push('/')">
+  <a class="nl" href="/" aria-label="回到首頁" @click.prevent="goHome">
     <!-- 深色版 -->
     <svg v-if="isDark" class="nl-icon" width="36" height="36" viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -53,12 +53,22 @@
       <span class="nl-t">AntiFraud</span>
       <span class="nl-s">Radar</span>
     </div>
-  </div>
+  </a>
 </template>
 
 <script setup>
+import { useRoute, useRouter } from 'vue-router'
 import { useTheme } from '../composables/useTheme.js'
 const { isDark } = useTheme()
+const route = useRoute()
+const router = useRouter()
+function goHome() {
+  if (route.path === '/') {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  } else {
+    router.push('/')
+  }
+}
 const r = Math.random().toString(36).slice(2,6)
 const cid = 'nc' + r
 const cid2 = 'nl' + r
@@ -66,7 +76,7 @@ const fid = 'nf' + r
 </script>
 
 <style>
-.nl{display:flex;align-items:center;gap:10px;cursor:pointer;flex-shrink:0}
+.nl{text-decoration:none;display:flex;align-items:center;gap:10px;cursor:pointer;flex-shrink:0}
 .nl-icon{flex-shrink:0}
 .nl-txt{display:flex;flex-direction:column;gap:2px}
 .nl-t{font-family:'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:17px;font-weight:700;letter-spacing:.04em;color:#C8D4FF;line-height:1}

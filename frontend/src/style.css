@@ -60,3 +60,32 @@ button { font-family: 'Noto Sans TC', sans-serif; cursor: pointer; }
 .cc-drop .cc-item .cc-flag { width: 20px; height: 15px; object-fit: cover; border-radius: 2px; }
 .cc-drop .cc-item .cc-item-name { flex: 1; }
 .cc-drop .cc-item .cc-item-dial { color: var(--text-muted); font-size: 12px; }
+
+/* Elder mode updates in place, without remounting pages or losing their state. */
+[data-elder="true"] body { font-size:22px; line-height:1.8; }
+[data-elder="true"] .chrome-btn, [data-elder="true"] .glow-wrap { display:none; }
+[data-elder="true"] .nl-sw, [data-elder="true"] .nl-bl { animation:none; }
+[data-elder="true"] .menu-row { min-height:56px; font-size:20px; padding:12px; }
+[data-elder="true"] .settings-menu { min-width:min(300px, calc(100vw - 32px)); }
+[data-elder="true"] .settings-btn { min-height:44px; }
+[data-elder="true"] .settings-label { display:inline; font-size:18px; }
+[data-elder="true"] .menu-lang-badge { font-size:18px; }
+[data-elder="true"] .reasons li, [data-elder="true"] .reason-list li,
+[data-elder="true"] .action-list li, [data-elder="true"] .step-list li,
+[data-elder="true"] .sc-suggestion, [data-elder="true"] .recovery-card p { font-size:22px; line-height:1.9; overflow-wrap:anywhere; }
+[data-elder="true"] .sec-title, [data-elder="true"] .card-title { font-size:24px; }
+[data-elder="true"] .ert-text strong { font-size:26px; line-height:1.6; }
+[data-elder="true"] .ert-text span { font-size:22px; line-height:1.8; }
+[data-elder="true"] .act-btn { min-height:72px; padding:20px; }
+[data-elder="true"] .act-btn .at { font-size:24px; }
+[data-elder="true"] .act-btn .as { display:block; font-size:20px; opacity:1; }
+[data-elder="true"] .rb-input { font-size:20px; white-space:normal; overflow-wrap:anywhere; }
+[data-elder="true"] .rb-tag { font-size:20px; }
+[data-elder="true"] .back-link, [data-elder="true"] .back-btn,
+[data-elder="true"] .scroll-up { min-height:48px; font-size:20px; }
+[data-elder="true"] .sc-fraud { font-size:24px; }
+[data-elder="true"] .score-card { flex-wrap:wrap; }
+[data-elder="true"] :is(button, a, textarea, input):focus-visible { outline:3px solid var(--primary); outline-offset:4px; }
+[data-elder="true"][data-theme="dark"] { --primary:#A3B5FF; --primary-dark:#BDCAFF; --text-muted:#B6C0D5; }
+[data-elder="true"][data-theme="light"] { --text-muted:#526078; }
+[data-elder="true"][data-theme="dark"] .send-btn { color:#10162A; }

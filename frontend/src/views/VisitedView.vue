@@ -6,7 +6,7 @@
         <span class="nav-title" @click="$router.push('/')" style="cursor:pointer">{{ t('appName') }}</span>
         <label class="toggle-wrap theme-toggle" :class="{ active: isDark }" style="margin-left:auto">
           <input type="checkbox" :checked="isDark" @change="toggleTheme" style="display:none">
-          <span class="toggle-icon">{{ isDark ? '🌙' : '☀️' }}</span>
+          <span class="toggle-icon"><AppIcon :name="isDark ? 'moon' : 'sun'" /></span>
           <span class="toggle-label">{{ isDark ? t('dark') : t('light') }}</span>
           <span class="toggle-pill"><span class="toggle-knob"></span></span>
         </label>
@@ -14,7 +14,7 @@
     </nav>
 
     <div class="top-banner">
-      <span class="siren">🚨</span>
+      <span class="siren"><AppIcon name="alert" /></span>
       <div>
         <strong>{{ t('visitedBannerTitle') }}</strong>
         <span>{{ t('visitedBannerSub') }}</span>
@@ -25,21 +25,21 @@
       <div class="scam-url-box">{{ scamUrl }}</div>
 
       <section class="section-card">
-        <div class="sec-title">🚨 {{ locale === 'en' ? 'Take Action Now' : '立即採取以下行動' }}</div>
+        <div class="sec-title"><AppIcon name="alert" /> {{ locale === 'en' ? 'Take Action Now' : '立即採取以下行動' }}</div>
         <div class="steps">
-          <div class="step danger"><span class="step-icon">🚫</span><div class="step-text"><strong>{{ t('visitedAction1T') }}</strong><span>{{ t('visitedAction1S') }}</span></div></div>
-          <div class="step danger"><span class="step-icon">💳</span><div class="step-text"><strong>{{ t('visitedAction2T') }}</strong><span>{{ t('visitedAction2S') }}</span></div></div>
-          <div class="step warn"><span class="step-icon">📱</span><div class="step-text"><strong>{{ t('visitedAction3T') }}</strong><span>{{ t('visitedAction3S') }}</span></div></div>
-          <div class="step info"><span class="step-icon">📋</span><div class="step-text"><strong>{{ t('visitedAction4T') }}</strong><span>{{ t('visitedAction4S') }}</span></div></div>
+          <div class="step danger"><span class="step-icon"><AppIcon name="block" /></span><div class="step-text"><strong>{{ t('visitedAction1T') }}</strong><span>{{ t('visitedAction1S') }}</span></div></div>
+          <div class="step danger"><span class="step-icon"><AppIcon name="card" /></span><div class="step-text"><strong>{{ t('visitedAction2T') }}</strong><span>{{ t('visitedAction2S') }}</span></div></div>
+          <div class="step warn"><span class="step-icon"><AppIcon name="phone" /></span><div class="step-text"><strong>{{ t('visitedAction3T') }}</strong><span>{{ t('visitedAction3S') }}</span></div></div>
+          <div class="step info"><span class="step-icon"><AppIcon name="clipboard" /></span><div class="step-text"><strong>{{ t('visitedAction4T') }}</strong><span>{{ t('visitedAction4S') }}</span></div></div>
         </div>
       </section>
 
       <section class="section-card">
         <div class="sec-title">{{ t('quickHelp') }}</div>
         <div class="quick-btns">
-          <button class="qbtn qbtn-165"    @click="showToast(t('toast165'), 'ok')"><span class="qi">🆘</span><span>{{ t('help165') }}</span><span class="qsub">{{ t('help165Sub') }}</span></button>
-          <button class="qbtn qbtn-bank"   @click="showToast(t('toastBank'), 'ok')"><span class="qi">🏦</span><span>{{ t('helpBank') }}</span><span class="qsub">{{ t('helpBankSub') }}</span></button>
-          <button class="qbtn qbtn-police" @click="showToast(t('toastPolice'), 'ok')"><span class="qi">👮</span><span>{{ t('helpPolice') }}</span><span class="qsub">{{ t('helpPoliceSub') }}</span></button>
+          <button class="qbtn qbtn-165"    @click="showToast(t('toast165'), 'ok')"><span class="qi"><AppIcon name="help" /></span><span>{{ t('help165') }}</span><span class="qsub">{{ t('help165Sub') }}</span></button>
+          <button class="qbtn qbtn-bank"   @click="showToast(t('toastBank'), 'ok')"><span class="qi"><AppIcon name="bank" /></span><span>{{ t('helpBank') }}</span><span class="qsub">{{ t('helpBankSub') }}</span></button>
+          <button class="qbtn qbtn-police" @click="showToast(t('toastPolice'), 'ok')"><span class="qi"><AppIcon name="shield" /></span><span>{{ t('helpPolice') }}</span><span class="qsub">{{ t('helpPoliceSub') }}</span></button>
         </div>
       </section>
 
@@ -49,7 +49,7 @@
     <!-- Corner overlay -->
     <div class="overlay">
       <div class="ov-panel" :class="{ open: evidenceOpen }">
-        <div class="ov-panel-title">{{ t('evidencePanel') }}<button class="ov-close" @click="toggleEvidence">✕</button></div>
+        <div class="ov-panel-title">{{ t('evidencePanel') }}<button class="ov-close" @click="toggleEvidence"><AppIcon name="close" /></button></div>
         <div v-if="!submitSuccess">
           <div class="ov-field">
             <label>{{ t('crTypeLabel') }}</label>
@@ -69,17 +69,17 @@
           <button class="ov-submit" @click="submitReport">{{ t('crSubmit') }}</button>
         </div>
         <div class="ov-success" v-if="submitSuccess">
-          <span class="ov-si">✅</span>
+          <span class="ov-si"><AppIcon name="check" /></span>
           <strong>{{ t('crSuccess') }}</strong>
           <span>{{ caseNo }}</span>
         </div>
       </div>
       <div class="float-actions">
-        <button class="float-btn fb-block"    @click="doBlock">   <span>🚫</span> {{ t('blockNow') }}</button>
-        <button class="float-btn fb-report"   @click="doReport">  <span>📢</span> {{ t('reportNow') }}</button>
-        <button class="float-btn fb-evidence" @click="toggleEvidence"><span>📁</span> {{ t('evidenceBtn') }}</button>
+        <button class="float-btn fb-block"    @click="doBlock">   <span><AppIcon name="block" /></span> {{ t('blockNow') }}</button>
+        <button class="float-btn fb-report"   @click="doReport">  <span><AppIcon name="megaphone" /></span> {{ t('reportNow') }}</button>
+        <button class="float-btn fb-evidence" @click="toggleEvidence"><span><AppIcon name="folder" /></span> {{ t('evidenceBtn') }}</button>
       </div>
-      <div class="pill"><span class="pill-dot"></span><span>🚨</span><span class="pill-text">{{ t('pillText') }}</span></div>
+      <div class="pill"><span class="pill-dot"></span><span><AppIcon name="alert" /></span><span class="pill-text">{{ t('pillText') }}</span></div>
     </div>
 
     <div class="toast" :class="{ show: toastVisible, ok: toastType==='ok' }">{{ toastMsg }}</div>
@@ -87,6 +87,7 @@
 </template>
 
 <script setup>
+import AppIcon from '../components/AppIcon.vue'
 import { ref, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTheme } from '../composables/useTheme.js'
@@ -110,12 +111,12 @@ const caseNo = ref('')
 function toggleEvidence() { evidenceOpen.value = !evidenceOpen.value }
 
 async function doBlock()  {
-  try { const d = await report(scamUrl, 'url'); showToast('🚫 ' + (locale.value === 'en' ? 'Blocked — ' : '已封鎖 — ') + d.caseNo, 'ok') }
-  catch { showToast('🚫 ' + (locale.value === 'en' ? 'Blocked (offline mode)' : '已封鎖（離線模式）'), 'ok') }
+  try { const d = await report(scamUrl, 'url'); showToast(' ' + (locale.value === 'en' ? 'Blocked — ' : '已封鎖 — ') + d.caseNo, 'ok') }
+  catch { showToast(' ' + (locale.value === 'en' ? 'Blocked (offline mode)' : '已封鎖（離線模式）'), 'ok') }
 }
 async function doReport() {
-  try { const d = await report(scamUrl, 'url'); showToast('📢 ' + (locale.value === 'en' ? 'Reported to 165, case ' : '已通報 165，案號 ') + d.caseNo, 'ok') }
-  catch { showToast('📢 ' + (locale.value === 'en' ? 'Reported (offline mode)' : '已通報（離線模式）'), 'ok') }
+  try { const d = await report(scamUrl, 'url'); showToast(' ' + (locale.value === 'en' ? 'Reported to 165, case ' : '已通報 165，案號 ') + d.caseNo, 'ok') }
+  catch { showToast(' ' + (locale.value === 'en' ? 'Reported (offline mode)' : '已通報（離線模式）'), 'ok') }
 }
 async function submitReport() {
   try { const d = await report(scamUrl, 'url'); caseNo.value = (locale.value === 'en' ? 'Case ' : '案號 ') + d.caseNo }
