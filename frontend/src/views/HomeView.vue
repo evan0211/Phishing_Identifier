@@ -149,7 +149,7 @@
           <div class="action-row">
             <div class="action-left">
               <transition name="ph-slide" mode="out-in">
-                <div class="type-chips" key="chips">
+                <div v-if="inputText.trim() || images.length" class="type-chips" key="chips">
                     <button v-for="option in typeOptions" :key="option.value"
                       class="type-chip" :class="{ active: detectedType === option.value }"
                       :data-type="option.value" :aria-pressed="detectedType === option.value"
@@ -435,7 +435,7 @@ const detectedType = computed(() => {
   if (images.value.length > 0) return 'screenshot'
   if (phoneMode.value) return 'phone'
   const t = inputText.value.trim()
-  if (!t) return 'url'
+  if (!t) return null
   if (PHONE_RE.test(t.replace(/[-\s()]/g, ''))) return 'phone'
   if (URL_RE.test(t)) return 'url'
   return 'text'

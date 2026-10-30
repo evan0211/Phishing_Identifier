@@ -144,8 +144,27 @@ it('preserves Chinese IME input and switches mixed phone text to text analysis',
   expect(wrapper.get('.type-chip.active').attributes('data-type')).toBe('text')
 })
 
-it('shows an explicit text mode even before typing', async () => {
+it('keeps empty automatic input unclassified, including after clearing text', async () => {
   wrapper = shallowMount(HomeView)
+  expect(wrapper.find('.type-chips').exists()).toBe(false)
+  expect(wrapper.find('.type-chip.active').exists()).toBe(false)
+  expect(wrapper.get('.send-btn').attributes('disabled')).toBeDefined()
+  const input = wrapper.get('textarea')
+  await input.setValue('請幫我看看這則訊息')
+  expect(wrapper.find('.type-chips').exists()).toBe(true)
+  expect(wrapper.get('.type-chip.active').attributes('data-type')).toBe('text')
+  await input.setValue('   ')
+  expect(wrapper.find('.type-chips').exists()).toBe(false)
+  expect(wrapper.find('.type-chip.active').exists()).toBe(false)
+  await input.setValue('example.com')
+  await wrapper.get('.clear-btn').trigger('click')
+  expect(wrapper.find('.type-chips').exists()).toBe(false)
+  expect(wrapper.find('.type-chip.active').exists()).toBe(false)
+})
+
+it('allows manually selecting a type after entering content', async () => {
+  wrapper = shallowMount(HomeView)
+  await wrapper.get('textarea').setValue('example.com')
   await wrapper.get('[data-type="text"]').trigger('click')
   expect(wrapper.get('.type-chip.active').attributes('data-type')).toBe('text')
   await wrapper.get('textarea').setValue('請幫我看看這則訊息')
